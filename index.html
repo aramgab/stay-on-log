@@ -179,6 +179,22 @@
             position: relative;
             width: 280px;
             height: 280px;
+            isolation: isolate;
+        }
+
+        /* === LOG WRAPPER (handles rotation) === */
+        #log-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 280px;
+            z-index: 1;
+            will-change: transform;
+        }
+
+        #log-svg {
+            display: block;
         }
 
         /* === PLAYER ORBIT === */
@@ -189,8 +205,8 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 5;
-            isolation: isolate;
+            z-index: 10;
+            will-change: transform;
         }
 
         /* === STICKMAN PLAYER (SVG) === */
@@ -280,58 +296,59 @@
     </div>
 
     <div id="game-container">
-        <!-- SVG LOG -->
-        <svg id="log-svg" width="280" height="280" viewBox="0 0 280 280"
-            style="position:absolute; top:0; left:0; z-index:1;">
-            <!-- Bark (outer ring) -->
-            <circle cx="140" cy="140" r="135" fill="#5a3a1a" stroke="#3d2510" stroke-width="2" />
-            <!-- Bark texture -->
-            <circle cx="140" cy="140" r="130" fill="#6b4423" />
-            <!-- Inner wood -->
-            <circle cx="140" cy="140" r="110" fill="#DEB887" />
+        <!-- Log wrapper for rotation -->
+        <div id="log-wrapper">
+            <svg id="log-svg" width="280" height="280" viewBox="0 0 280 280">
+                <!-- Bark (outer ring) -->
+                <circle cx="140" cy="140" r="135" fill="#5a3a1a" stroke="#3d2510" stroke-width="2" />
+                <!-- Bark texture -->
+                <circle cx="140" cy="140" r="130" fill="#6b4423" />
+                <!-- Inner wood -->
+                <circle cx="140" cy="140" r="110" fill="#DEB887" />
 
-            <!-- Growth rings -->
-            <circle cx="140" cy="140" r="95" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6" />
-            <circle cx="140" cy="140" r="78" fill="none" stroke="#c4a06a" stroke-width="1" opacity="0.5" />
-            <circle cx="140" cy="140" r="60" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6" />
-            <circle cx="140" cy="140" r="42" fill="none" stroke="#c4a06a" stroke-width="1" opacity="0.5" />
-            <circle cx="140" cy="140" r="25" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6" />
-            <!-- Center pith -->
-            <circle cx="140" cy="140" r="8" fill="#b8935a" />
+                <!-- Growth rings -->
+                <circle cx="140" cy="140" r="95" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6" />
+                <circle cx="140" cy="140" r="78" fill="none" stroke="#c4a06a" stroke-width="1" opacity="0.5" />
+                <circle cx="140" cy="140" r="60" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6" />
+                <circle cx="140" cy="140" r="42" fill="none" stroke="#c4a06a" stroke-width="1" opacity="0.5" />
+                <circle cx="140" cy="140" r="25" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6" />
+                <!-- Center pith -->
+                <circle cx="140" cy="140" r="8" fill="#b8935a" />
 
-            <!-- KNOTS (сучки) — visible bumps on the bark -->
-            <!-- Knot 1: top-right -->
-            <g class="log-knot">
-                <ellipse cx="140" cy="8" rx="14" ry="8" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
-                <ellipse cx="140" cy="10" rx="9" ry="5" fill="#5a3a1a" />
-                <ellipse cx="140" cy="11" rx="5" ry="3" fill="#6b4423" />
-            </g>
-            <!-- Knot 2: right side -->
-            <g class="log-knot" transform="rotate(90, 140, 140)">
-                <ellipse cx="140" cy="6" rx="18" ry="10" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
-                <ellipse cx="140" cy="9" rx="12" ry="6" fill="#5a3a1a" />
-                <ellipse cx="140" cy="11" rx="6" ry="3" fill="#6b4423" />
-            </g>
-            <!-- Knot 3: bottom-left -->
-            <g class="log-knot" transform="rotate(210, 140, 140)">
-                <ellipse cx="140" cy="10" rx="11" ry="7" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
-                <ellipse cx="140" cy="12" rx="7" ry="4" fill="#5a3a1a" />
-            </g>
-            <!-- Knot 4: small one at ~320 degrees -->
-            <g class="log-knot" transform="rotate(320, 140, 140)">
-                <ellipse cx="140" cy="12" rx="9" ry="5" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
-                <ellipse cx="140" cy="13" rx="5" ry="3" fill="#5a3a1a" />
-            </g>
+                <!-- KNOTS (сучки) — visible bumps on the bark -->
+                <!-- Knot 1: top-right -->
+                <g class="log-knot">
+                    <ellipse cx="140" cy="8" rx="14" ry="8" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
+                    <ellipse cx="140" cy="10" rx="9" ry="5" fill="#5a3a1a" />
+                    <ellipse cx="140" cy="11" rx="5" ry="3" fill="#6b4423" />
+                </g>
+                <!-- Knot 2: right side -->
+                <g class="log-knot" transform="rotate(90, 140, 140)">
+                    <ellipse cx="140" cy="6" rx="18" ry="10" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
+                    <ellipse cx="140" cy="9" rx="12" ry="6" fill="#5a3a1a" />
+                    <ellipse cx="140" cy="11" rx="6" ry="3" fill="#6b4423" />
+                </g>
+                <!-- Knot 3: bottom-left -->
+                <g class="log-knot" transform="rotate(210, 140, 140)">
+                    <ellipse cx="140" cy="10" rx="11" ry="7" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
+                    <ellipse cx="140" cy="12" rx="7" ry="4" fill="#5a3a1a" />
+                </g>
+                <!-- Knot 4: small one at ~320 degrees -->
+                <g class="log-knot" transform="rotate(320, 140, 140)">
+                    <ellipse cx="140" cy="12" rx="9" ry="5" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
+                    <ellipse cx="140" cy="13" rx="5" ry="3" fill="#5a3a1a" />
+                </g>
 
-            <!-- Shadow overlay for depth -->
-            <circle cx="140" cy="140" r="135" fill="url(#logShadow)" opacity="0.15" />
-            <defs>
-                <radialGradient id="logShadow" cx="40%" cy="35%" r="60%">
-                    <stop offset="0%" stop-color="white" />
-                    <stop offset="100%" stop-color="black" />
-                </radialGradient>
-            </defs>
-        </svg>
+                <!-- Shadow overlay for depth -->
+                <circle cx="140" cy="140" r="135" fill="url(#logShadow)" opacity="0.15" />
+                <defs>
+                    <radialGradient id="logShadow" cx="40%" cy="35%" r="60%">
+                        <stop offset="0%" stop-color="white" />
+                        <stop offset="100%" stop-color="black" />
+                    </radialGradient>
+                </defs>
+            </svg>
+        </div><!-- /log-wrapper -->
 
         <!-- Player orbit -->
         <div id="player-orbit">
@@ -377,7 +394,7 @@
 
         // Physics
         let logAngle = 0;
-        let logSpeed = 0.5;           // degrees per frame
+        let logSpeed = 0.8;           // degrees per frame (starting speed)
         let logDirection = 1;          // 1 = clockwise, -1 = counter-clockwise
         let userAngle = 0;
         let smoothedDelta = 0;         // for low-pass filter
@@ -388,13 +405,13 @@
         const MIN_CHANGE_INTERVAL = 5000;  // 5 seconds
         const MAX_CHANGE_INTERVAL = 10000; // 10 seconds
         const MIN_SPEED = 0.3;
-        const MAX_SPEED = 1.5;
+        const MAX_SPEED = 2.5;
 
         // Low-pass filter coefficient (lower = smoother, higher = more responsive)
         const SMOOTH_ALPHA = 0.15;
 
         // DOM
-        const logSvg = document.getElementById('log-svg');
+        const logWrapper = document.getElementById('log-wrapper');
         const orbitEl = document.getElementById('player-orbit');
         const playerEl = document.getElementById('player');
         const scoreEl = document.getElementById('score-display');
@@ -411,9 +428,9 @@
         function gameLoop() {
             if (!isPlaying) return;
 
-            // 1. Rotate the log
+            // 1. Rotate the log (via wrapper)
             logAngle += logSpeed * logDirection;
-            logSvg.style.transform = `rotate(${logAngle}deg)`;
+            logWrapper.style.transform = `rotate(${logAngle}deg)`;
 
             // 2. Player position = log rotation + user compensation
             let playerPosition = logAngle + userAngle;
@@ -551,9 +568,9 @@
             userAngle = 0;
             smoothedDelta = 0;
             rawLastAngle = null;
-            logSpeed = 0.5;
+            logSpeed = 0.8;
             logDirection = 1;
-            logSvg.style.transform = 'rotate(0deg)';
+            logWrapper.style.transform = 'rotate(0deg)';
             orbitEl.style.transform = 'rotate(0deg)';
 
             let count = 3;

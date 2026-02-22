@@ -1151,9 +1151,9 @@
                 requestAnimationFrame(() => {
                     // Now apply transition and target values
                     fallingPlayerEl.style.transition = 'left 0.8s ease-in, top 0.8s ease-in, transform 0.8s ease-in, opacity 0.8s ease-in';
-                    fallingPlayerEl.style.left = (startX + fallDirection * 120) + 'px';
+                    fallingPlayerEl.style.left = (startX + fallDirection * 30) + 'px';
                     fallingPlayerEl.style.top = waterTop + 'px';
-                    fallingPlayerEl.style.transform = `rotate(${fallDirection * 180}deg)`;
+                    fallingPlayerEl.style.transform = `rotate(${fallDirection * 90}deg)`;
                     fallingPlayerEl.style.opacity = '0.3';
                 });
             });
@@ -1162,7 +1162,7 @@
             setTimeout(() => {
                 splashEl.removeAttribute('style');
                 splashEl.style.position = 'fixed';
-                splashEl.style.left = (startX + fallDirection * 120 - 18) + 'px';
+                splashEl.style.left = (startX + fallDirection * 30 - 18) + 'px';
                 splashEl.style.top = (waterTop - 30) + 'px';
                 splashEl.style.display = 'block';
                 splashEl.classList.remove('active');

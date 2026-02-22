@@ -34,6 +34,19 @@
             width: 100%;
         }
 
+        #player-name {
+            font-size: 16px;
+            opacity: 0.7;
+            margin-bottom: 4px;
+            cursor: pointer;
+            letter-spacing: 0.5px;
+        }
+
+        #player-name:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+
         #score-display {
             font-size: 28px;
             font-weight: 700;
@@ -454,8 +467,8 @@
             transform: translate(-50%, -50%);
             font-size: 28px;
             font-weight: 900;
-            color: #ff6b6b;
-            text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+            color: #ffd93d;
+            text-shadow: 0 0 20px rgba(255, 217, 61, 0.5);
             z-index: 50;
             display: none;
             animation: flashWarn 0.3s ease-in-out infinite alternate;
@@ -471,6 +484,81 @@
             }
         }
 
+        /* === NICKNAME OVERLAY === */
+        #nickname-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 20, 30, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            gap: 20px;
+        }
+
+        #nickname-overlay.active {
+            display: flex;
+        }
+
+        #nickname-overlay h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+            text-shadow: 0 2px 10px rgba(255, 255, 255, 0.15);
+        }
+
+        #nickname-overlay p {
+            font-size: 15px;
+            opacity: 0.6;
+            margin: 0;
+        }
+
+        #nickname-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            border-radius: 12px;
+            padding: 14px 24px;
+            font-size: 20px;
+            color: white;
+            text-align: center;
+            outline: none;
+            width: 260px;
+            max-width: 80vw;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        #nickname-input:focus {
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        #nickname-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        #nickname-save-btn {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            padding: 14px 36px;
+            font-size: 18px;
+            font-weight: 700;
+            border-radius: 14px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(39, 174, 96, 0.4);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            letter-spacing: 1px;
+        }
+
+        #nickname-save-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+        }
+
         #debug {
             position: absolute;
             bottom: 10px;
@@ -484,13 +572,22 @@
 <body>
 
     <div id="ui-layer">
+        <div id="player-name" onclick="showNicknameOverlay()"></div>
         <div id="score-display">Очки: 0</div>
         <div id="high-score-display"></div>
         <div id="new-record">⭐ Новый рекорд! ⭐</div>
         <div id="status-text">Нажми старт</div>
         <div id="direction-arrow"></div>
         <div id="speed-indicator"></div>
-        <button id="start-btn" onclick="requestPermissionAndStart()">СТАРТ</button>
+        <button id="start-btn" onclick="handleStartClick()">СТАРТ</button>
+    </div>
+
+    <!-- Nickname overlay -->
+    <div id="nickname-overlay">
+        <h2>👋 Привет!</h2>
+        <p>Как тебя зовут?</p>
+        <input id="nickname-input" type="text" placeholder="Введи ник" maxlength="16" autocomplete="off">
+        <button id="nickname-save-btn" onclick="saveNickname()">Играть!</button>
     </div>
 
     <div id="game-area">
@@ -638,6 +735,7 @@
         let score = 0;
         let startTime = 0;
         let highScore = parseInt(localStorage.getItem('stayOnLog_highScore')) || 0;
+        let playerName = localStorage.getItem('stayOnLog_playerName') || '';
 
         // Physics
         let logAngle = 0;
@@ -676,9 +774,13 @@
         const splashEl = document.getElementById('splash');
         const gameContainer = document.getElementById('game-container');
         const waterContainer = document.getElementById('water-container');
+        const playerNameEl = document.getElementById('player-name');
+        const nicknameOverlay = document.getElementById('nickname-overlay');
+        const nicknameInput = document.getElementById('nickname-input');
 
-        // Show high score on load
+        // Show high score and nickname on load
         updateHighScoreDisplay();
+        updatePlayerNameDisplay();
 
         // === MAIN GAME LOOP ===
         function gameLoop() {
@@ -751,16 +853,51 @@
             nextChangeTime = Date.now() + interval;
         }
 
+        // Returns speed percent 0-100 from actual speed value
+        function getSpeedPercent(speed) {
+            return ((speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)) * 100;
+        }
+
         function changeDirectionOrSpeed() {
             let rand = Math.random();
-            if (rand < 0.4) {
-                logDirection *= -1;
-            } else if (rand < 0.7) {
-                logSpeed = MIN_SPEED + Math.random() * (MAX_SPEED - MIN_SPEED);
-            } else {
-                logDirection *= -1;
-                logSpeed = MIN_SPEED + Math.random() * (MAX_SPEED - MIN_SPEED);
+            let wantsReverse = rand < 0.4 || rand >= 0.7;
+            let wantsSpeedChange = rand >= 0.4;
+
+            let newSpeed = logSpeed;
+            let newDirection = logDirection;
+
+            // Determine new speed
+            if (wantsSpeedChange) {
+                newSpeed = MIN_SPEED + Math.random() * (MAX_SPEED - MIN_SPEED);
             }
+
+            // Determine new direction
+            if (wantsReverse) {
+                newDirection = logDirection * -1;
+            }
+
+            // === DIFFICULTY BALANCE ===
+            if (score < 400) {
+                // Phase 1 (0-399): cap speed at 50%
+                let maxSpeedPhase1 = MIN_SPEED + (MAX_SPEED - MIN_SPEED) * 0.5;
+                if (newSpeed > maxSpeedPhase1) {
+                    newSpeed = MIN_SPEED + Math.random() * (maxSpeedPhase1 - MIN_SPEED);
+                }
+            } else if (score < 800) {
+                // Phase 2 (400-799): block high-speed reversal combos
+                // If reversing AND both old and new speed > 75%, re-roll new speed lower
+                let threshold75 = MIN_SPEED + (MAX_SPEED - MIN_SPEED) * 0.75;
+                let oldSpeedHigh = logSpeed > threshold75;
+                let newSpeedHigh = newSpeed > threshold75;
+                if (newDirection !== logDirection && oldSpeedHigh && newSpeedHigh) {
+                    // Re-roll speed to be within 0-75%
+                    newSpeed = MIN_SPEED + Math.random() * (threshold75 - MIN_SPEED);
+                }
+            }
+            // Phase 3 (800+): no restrictions
+
+            logSpeed = newSpeed;
+            logDirection = newDirection;
             updateDirectionUI();
         }
 
@@ -772,7 +909,7 @@
                 statusEl.innerText = "КРУТИ ВПРАВО";
                 arrowEl.innerText = "→";
             }
-            let speedPercent = Math.round(((logSpeed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)) * 100);
+            let speedPercent = Math.round(getSpeedPercent(logSpeed));
             speedEl.innerText = "Скорость: " + speedPercent + "%";
         }
 
@@ -785,7 +922,60 @@
             }
         }
 
+        // === NICKNAME SYSTEM ===
+
+        function updatePlayerNameDisplay() {
+            if (playerName) {
+                playerNameEl.innerText = '👤 ' + playerName;
+                playerNameEl.style.display = 'block';
+            } else {
+                playerNameEl.style.display = 'none';
+            }
+        }
+
+        function showNicknameOverlay() {
+            if (isPlaying) return;
+            nicknameInput.value = playerName;
+            nicknameOverlay.classList.add('active');
+            setTimeout(() => nicknameInput.focus(), 100);
+        }
+
+        function saveNickname() {
+            let name = nicknameInput.value.trim();
+            if (!name) {
+                nicknameInput.style.borderColor = '#ff6b6b';
+                setTimeout(() => nicknameInput.style.borderColor = '', 1000);
+                return;
+            }
+            playerName = name;
+            localStorage.setItem('stayOnLog_playerName', playerName);
+            nicknameOverlay.classList.remove('active');
+            updatePlayerNameDisplay();
+        }
+
+        // Handle Enter key in nickname input
+        document.getElementById('nickname-input').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') saveNickname();
+        });
+
         // === GAME FLOW ===
+
+        function handleStartClick() {
+            if (!playerName) {
+                showNicknameOverlay();
+                // After saving nickname, auto-start
+                const origSave = saveNickname;
+                saveNickname = function () {
+                    origSave();
+                    if (playerName) {
+                        saveNickname = origSave;
+                        requestPermissionAndStart();
+                    }
+                };
+                return;
+            }
+            requestPermissionAndStart();
+        }
 
         function requestPermissionAndStart() {
             if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {

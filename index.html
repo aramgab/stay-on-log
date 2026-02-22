@@ -3,119 +3,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Бревно Гринд</title>
+    <title>Stay on Log!</title>
     <style>
+        * { box-sizing: border-box; }
+
         body {
-            background-color: #2c3e50;
+            background-color: #1a2a3a;
             color: white;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
             margin: 0;
-            overflow: hidden; /* Блокируем скролл */
+            overflow: hidden;
             touch-action: none;
+            user-select: none;
         }
 
+        /* === UI LAYER === */
         #ui-layer {
             position: absolute;
-            top: 10%;
+            top: 6%;
             text-align: center;
             z-index: 10;
             width: 100%;
         }
 
-        h1 { margin: 0; font-size: 48px; }
-        p { font-size: 18px; opacity: 0.8; }
-
-        /* Игровой контейнер */
-        #game-container {
-            position: relative;
-            width: 300px;
-            height: 300px;
+        #score-display {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
         }
 
-        /* Бревно */
-        #log {
-            width: 250px;
-            height: 250px;
-            background-color: #8B4513; /* Коричневый */
-            border-radius: 50%;
-            position: absolute;
-            top: 25px;
-            left: 25px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-            /* Анимация вращения будет через JS */
+        #status-text {
+            font-size: 22px;
+            margin-top: 4px;
+            opacity: 0.9;
+            font-weight: 600;
         }
 
-        /* Сердцевина бревна (светлая) */
-        #log::after {
-            content: '';
-            width: 200px;
-            height: 200px;
-            background-color: #DEB887; /* Светло-коричневый */
-            border-radius: 50%;
-            position: absolute;
+        #direction-arrow {
+            font-size: 48px;
+            margin-top: 2px;
+            display: none;
+            animation: pulseArrow 0.8s ease-in-out infinite alternate;
         }
 
-        /* Линия доказательства вращения */
-        #log-line {
-            width: 100%;
-            height: 4px;
-            background-color: black;
-            position: absolute;
-            z-index: 2;
+        @keyframes pulseArrow {
+            from { opacity: 0.6; transform: scale(0.9); }
+            to   { opacity: 1;   transform: scale(1.1); }
         }
 
-        /* Контейнер игрока (вращается вокруг центра) */
-        #player-orbit {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            /* z-index выше бревна */
-            z-index: 5;
-            transition: transform 0.1s linear; 
-        }
-
-        /* Сам персонаж */
-        #player {
-            width: 20px;
-            height: 40px;
-            background-color: #ff3b30;
-            position: absolute;
-            /* Ставим его на вершину орбиты */
-            top: 5px; 
-            left: 50%;
-            transform: translateX(-50%);
-            border: 2px solid white;
-            border-radius: 4px;
+        #speed-indicator {
+            font-size: 14px;
+            opacity: 0.6;
+            margin-top: 4px;
+            display: none;
         }
 
         #start-btn {
-            background-color: #27ae60;
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
             color: white;
             border: none;
-            padding: 15px 30px;
-            font-size: 20px;
-            border-radius: 12px;
+            padding: 16px 40px;
+            font-size: 22px;
+            font-weight: 700;
+            border-radius: 16px;
             cursor: pointer;
-            margin-top: 20px;
+            margin-top: 16px;
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            letter-spacing: 2px;
         }
-        
+
+        #start-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 3px 10px rgba(39, 174, 96, 0.3);
+        }
+
+        /* === COUNTDOWN OVERLAY === */
+        #countdown-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 20, 30, 0.92);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        #countdown-overlay.active {
+            display: flex;
+        }
+
+        #countdown-text {
+            font-size: 18px;
+            opacity: 0.85;
+            margin-bottom: 30px;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        #countdown-number {
+            font-size: 120px;
+            font-weight: 900;
+            text-shadow: 0 0 40px rgba(255,255,255,0.3);
+            animation: countPop 0.5s ease-out;
+        }
+
+        @keyframes countPop {
+            0%   { transform: scale(2); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Animated phone icon */
+        #phone-icon {
+            width: 60px;
+            height: 100px;
+            border: 4px solid white;
+            border-radius: 14px;
+            margin-top: 30px;
+            background: transparent;
+            animation: rotatePhone 2s linear infinite;
+            position: relative;
+        }
+
+        #phone-icon::after {
+            content: '';
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 3px;
+            background: white;
+            border-radius: 2px;
+        }
+
+        @keyframes rotatePhone {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(-360deg); }
+        }
+
+        /* === GAME CONTAINER === */
+        #game-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+        }
+
+        /* === PLAYER ORBIT === */
+        #player-orbit {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* === STICKMAN PLAYER (SVG) === */
+        #player {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 55px;
+            opacity: 0;
+            transition: none;
+        }
+
+        #player.visible {
+            opacity: 1;
+        }
+
+        #player.falling {
+            animation: fallDown 0.5s ease-in forwards;
+        }
+
+        @keyframes fallDown {
+            0%   { top: -250px; opacity: 1; }
+            70%  { top: -5px; }
+            85%  { top: -15px; }
+            100% { top: -10px; opacity: 1; }
+        }
+
+        /* === DIRECTION CHANGE WARNING === */
+        #direction-warning {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 28px;
+            font-weight: 900;
+            color: #ff6b6b;
+            text-shadow: 0 0 20px rgba(255,107,107,0.5);
+            z-index: 50;
+            display: none;
+            animation: flashWarn 0.3s ease-in-out infinite alternate;
+        }
+
+        @keyframes flashWarn {
+            from { opacity: 0.4; }
+            to   { opacity: 1; }
+        }
+
+        /* === DEBUG === */
         #debug {
             position: absolute;
             bottom: 10px;
             font-size: 12px;
-            opacity: 0.5;
-            display: none; /* Включи если надо отладить углы */
+            opacity: 0.4;
+            display: none;
         }
     </style>
 </head>
@@ -124,180 +228,359 @@
     <div id="ui-layer">
         <div id="score-display">Очки: 0</div>
         <div id="status-text">Нажми старт</div>
-        <button id="start-btn" onclick="requestPermissionAndStart()">СТАРТ (iOS Требует)</button>
+        <div id="direction-arrow"></div>
+        <div id="speed-indicator"></div>
+        <button id="start-btn" onclick="requestPermissionAndStart()">СТАРТ</button>
     </div>
 
     <div id="game-container">
-        <!-- Бревно -->
-        <div id="log">
-            <div id="log-line"></div>
-        </div>
-        
-        <!-- Орбита игрока (показывает его реальное положение) -->
+        <!-- SVG LOG -->
+        <svg id="log-svg" width="280" height="280" viewBox="0 0 280 280" style="position:absolute; top:0; left:0;">
+            <!-- Bark (outer ring) -->
+            <circle cx="140" cy="140" r="135" fill="#5a3a1a" stroke="#3d2510" stroke-width="2"/>
+            <!-- Bark texture -->
+            <circle cx="140" cy="140" r="130" fill="#6b4423"/>
+            <!-- Inner wood -->
+            <circle cx="140" cy="140" r="110" fill="#DEB887"/>
+
+            <!-- Growth rings -->
+            <circle cx="140" cy="140" r="95" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6"/>
+            <circle cx="140" cy="140" r="78" fill="none" stroke="#c4a06a" stroke-width="1" opacity="0.5"/>
+            <circle cx="140" cy="140" r="60" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6"/>
+            <circle cx="140" cy="140" r="42" fill="none" stroke="#c4a06a" stroke-width="1" opacity="0.5"/>
+            <circle cx="140" cy="140" r="25" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6"/>
+            <!-- Center pith -->
+            <circle cx="140" cy="140" r="8" fill="#b8935a"/>
+
+            <!-- KNOTS (сучки) — visible bumps on the bark -->
+            <!-- Knot 1: top-right -->
+            <g class="log-knot">
+                <ellipse cx="140" cy="8" rx="14" ry="8" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5"/>
+                <ellipse cx="140" cy="10" rx="9" ry="5" fill="#5a3a1a"/>
+                <ellipse cx="140" cy="11" rx="5" ry="3" fill="#6b4423"/>
+            </g>
+            <!-- Knot 2: right side -->
+            <g class="log-knot" transform="rotate(90, 140, 140)">
+                <ellipse cx="140" cy="6" rx="18" ry="10" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5"/>
+                <ellipse cx="140" cy="9" rx="12" ry="6" fill="#5a3a1a"/>
+                <ellipse cx="140" cy="11" rx="6" ry="3" fill="#6b4423"/>
+            </g>
+            <!-- Knot 3: bottom-left -->
+            <g class="log-knot" transform="rotate(210, 140, 140)">
+                <ellipse cx="140" cy="10" rx="11" ry="7" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5"/>
+                <ellipse cx="140" cy="12" rx="7" ry="4" fill="#5a3a1a"/>
+            </g>
+            <!-- Knot 4: small one at ~320 degrees -->
+            <g class="log-knot" transform="rotate(320, 140, 140)">
+                <ellipse cx="140" cy="12" rx="9" ry="5" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5"/>
+                <ellipse cx="140" cy="13" rx="5" ry="3" fill="#5a3a1a"/>
+            </g>
+
+            <!-- Shadow overlay for depth -->
+            <circle cx="140" cy="140" r="135" fill="url(#logShadow)" opacity="0.15"/>
+            <defs>
+                <radialGradient id="logShadow" cx="40%" cy="35%" r="60%">
+                    <stop offset="0%" stop-color="white"/>
+                    <stop offset="100%" stop-color="black"/>
+                </radialGradient>
+            </defs>
+        </svg>
+
+        <!-- Player orbit -->
         <div id="player-orbit">
-            <div id="player"></div>
+            <!-- Stickman SVG -->
+            <svg id="player" viewBox="0 0 40 55" xmlns="http://www.w3.org/2000/svg">
+                <!-- Head -->
+                <circle cx="20" cy="10" r="8" fill="#ff5252" stroke="white" stroke-width="2"/>
+                <!-- Eyes -->
+                <circle cx="17" cy="9" r="1.5" fill="white"/>
+                <circle cx="23" cy="9" r="1.5" fill="white"/>
+                <!-- Body -->
+                <line x1="20" y1="18" x2="20" y2="36" stroke="white" stroke-width="3" stroke-linecap="round"/>
+                <!-- Arms -->
+                <line x1="20" y1="23" x2="8" y2="30" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="20" y1="23" x2="32" y2="30" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                <!-- Legs -->
+                <line x1="20" y1="36" x2="10" y2="50" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="20" y1="36" x2="30" y2="50" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                <!-- Feet -->
+                <line x1="10" y1="50" x2="6" y2="50" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="30" y1="50" x2="34" y2="50" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
         </div>
     </div>
+
+    <!-- Countdown overlay -->
+    <div id="countdown-overlay">
+        <div id="countdown-text">Готовься крутить телефон!</div>
+        <div id="countdown-number">3</div>
+        <div id="phone-icon"></div>
+    </div>
+
+    <!-- Direction change warning -->
+    <div id="direction-warning">⚠ СМЕНА!</div>
 
     <div id="debug">Debug info</div>
 
     <script>
-        // --- ПЕРЕМЕННЫЕ ИГРЫ ---
+        // === GAME VARIABLES ===
         let isPlaying = false;
         let score = 0;
         let startTime = 0;
-        
-        // Физика
-        let logAngle = 0; // Угол поворота бревна (растет постоянно)
-        let logSpeed = 0.5; // Скорость вращения (градусов за кадр) - это МЕДЛЕННО для начала
-        
-        let userAngle = 0; // Накопленный угол поворота телефона
-        let rawLastAngle = null; // Для развертки углов (чтобы не было скачка 360->0)
-        let rotationOffset = 0; // Калибровка начального положения
-        
-        // DOM Элементы
-        const logEl = document.getElementById('log');
+
+        // Physics
+        let logAngle = 0;
+        let logSpeed = 0.5;           // degrees per frame
+        let logDirection = 1;          // 1 = clockwise, -1 = counter-clockwise
+        let userAngle = 0;
+        let smoothedDelta = 0;         // for low-pass filter
+        let rawLastAngle = null;
+
+        // Direction/speed change timers
+        let nextChangeTime = 0;
+        const MIN_CHANGE_INTERVAL = 5000;  // 5 seconds
+        const MAX_CHANGE_INTERVAL = 10000; // 10 seconds
+        const MIN_SPEED = 0.3;
+        const MAX_SPEED = 1.5;
+
+        // Low-pass filter coefficient (lower = smoother, higher = more responsive)
+        const SMOOTH_ALPHA = 0.15;
+
+        // DOM
+        const logSvg = document.getElementById('log-svg');
         const orbitEl = document.getElementById('player-orbit');
+        const playerEl = document.getElementById('player');
         const scoreEl = document.getElementById('score-display');
         const statusEl = document.getElementById('status-text');
+        const arrowEl = document.getElementById('direction-arrow');
+        const speedEl = document.getElementById('speed-indicator');
         const startBtn = document.getElementById('start-btn');
         const debugEl = document.getElementById('debug');
+        const countdownOverlay = document.getElementById('countdown-overlay');
+        const countdownNumber = document.getElementById('countdown-number');
+        const dirWarning = document.getElementById('direction-warning');
 
-        // --- ГЛАВНЫЙ ЦИКЛ ИГРЫ ---
+        // === MAIN GAME LOOP ===
         function gameLoop() {
             if (!isPlaying) return;
 
-            // 1. Вращаем бревно (По часовой)
-            logAngle += logSpeed;
-            logEl.style.transform = `rotate(${logAngle}deg)`;
+            // 1. Rotate the log
+            logAngle += logSpeed * logDirection;
+            logSvg.style.transform = `rotate(${logAngle}deg)`;
 
-            // 2. Считаем позицию игрока
-            // Логика: Бревно уносит нас на logAngle. Мы компенсируем userAngle.
-            // Если userAngle (отрицательный при вращении влево) равен -logAngle, мы в нуле.
-            let playerPosition = logAngle + userAngle; 
-            
-            // Визуализируем позицию игрока
+            // 2. Player position = log rotation + user compensation
+            let playerPosition = logAngle + userAngle;
             orbitEl.style.transform = `rotate(${playerPosition}deg)`;
 
-            // 3. Обновляем очки
+            // 3. Score
             let now = Date.now();
-            score = Math.floor((now - startTime) / 100); // 10 очков в секунду
+            score = Math.floor((now - startTime) / 100);
             scoreEl.innerText = "Очки: " + score;
 
-            // 4. Проверка проигрыша
-            // Нормализуем угол, чтобы проверить отклонение от -90 до +90
-            if (playerPosition > 90 || playerPosition < -90) {
-                gameOver();
+            // 4. Check direction/speed change
+            if (now >= nextChangeTime) {
+                scheduleNextChange();
+                changeDirectionOrSpeed();
             }
 
-            // Отладка
-            // debugEl.innerText = `Log: ${logAngle.toFixed(0)} | User: ${userAngle.toFixed(0)} | Pos: ${playerPosition.toFixed(0)}`;
+            // 5. Show warning 1.5s before change
+            if (nextChangeTime - now < 1500 && nextChangeTime - now > 0) {
+                dirWarning.style.display = 'block';
+            } else {
+                dirWarning.style.display = 'none';
+            }
+
+            // 6. Check loss (more than 90 degrees off)
+            // Normalize to [-180, 180]
+            let normPos = ((playerPosition % 360) + 540) % 360 - 180;
+            if (normPos > 90 || normPos < -90) {
+                gameOver();
+                return;
+            }
 
             requestAnimationFrame(gameLoop);
         }
 
-        // --- ОБРАБОТКА ДАТЧИКОВ (МАТЕМАТИКА) ---
+        // === ACCELEROMETER HANDLER ===
         function handleMotion(event) {
-            // Используем акселерометр (гравитацию), чтобы понять, где низ
             let x = event.accelerationIncludingGravity.x;
             let y = event.accelerationIncludingGravity.y;
 
-            // Вычисляем угол телефона (арктангенс)
-            // atan2 возвращает радианы от -PI до PI
             let rad = Math.atan2(y, x);
             let deg = rad * (180 / Math.PI);
 
-            // Корректировка ориентации: 
-            // В браузере (x=0, y=9.8) это обычно 90 градусов.
-            // Нам нужно, чтобы "вертикально вверх" было 0.
-            // При стандартном портретном хвате y положительный, x около 0.
-            
-            // Смещаем фазу, чтобы вертикально было 0 (примерно)
+            // Shift so vertical = 0
             deg = deg - 90;
 
-            // --- РАЗВЕРТКА УГЛА (UNWRAP) ---
-            // Проблема: угол прыгает от 180 к -180. Нам нужно плавное число (360, 370...)
+            // Unwrap angle
             if (rawLastAngle !== null) {
                 let delta = deg - rawLastAngle;
-                
-                // Если скачок слишком большой (перешли границу круга)
                 if (delta < -180) delta += 360;
                 if (delta > 180) delta -= 360;
 
-                // Накапливаем угол
-                userAngle += delta;
+                // Low-pass filter to smooth out jitter
+                smoothedDelta = smoothedDelta * (1 - SMOOTH_ALPHA) + delta * SMOOTH_ALPHA;
+                userAngle += smoothedDelta;
             }
-            
+
             rawLastAngle = deg;
         }
 
-        // --- УПРАВЛЕНИЕ ИГРОЙ ---
-        
-        // Запрос разрешений для iOS 13+
+        // === DIRECTION / SPEED CHANGES ===
+        function scheduleNextChange() {
+            let interval = MIN_CHANGE_INTERVAL + Math.random() * (MAX_CHANGE_INTERVAL - MIN_CHANGE_INTERVAL);
+            nextChangeTime = Date.now() + interval;
+        }
+
+        function changeDirectionOrSpeed() {
+            // 50% chance to change direction, 50% to change speed, sometimes both
+            let rand = Math.random();
+
+            if (rand < 0.4) {
+                // Change direction only
+                logDirection *= -1;
+            } else if (rand < 0.7) {
+                // Change speed only
+                logSpeed = MIN_SPEED + Math.random() * (MAX_SPEED - MIN_SPEED);
+            } else {
+                // Change both
+                logDirection *= -1;
+                logSpeed = MIN_SPEED + Math.random() * (MAX_SPEED - MIN_SPEED);
+            }
+
+            updateDirectionUI();
+        }
+
+        function updateDirectionUI() {
+            if (logDirection === 1) {
+                // Log goes clockwise → user must spin LEFT
+                statusEl.innerText = "КРУТИ ВЛЕВО";
+                arrowEl.innerText = "←";
+            } else {
+                // Log goes counter-clockwise → user must spin RIGHT
+                statusEl.innerText = "КРУТИ ВПРАВО";
+                arrowEl.innerText = "→";
+            }
+
+            // Speed display
+            let speedPercent = Math.round(((logSpeed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)) * 100);
+            speedEl.innerText = "Скорость: " + speedPercent + "%";
+        }
+
+        // === GAME FLOW ===
+
         function requestPermissionAndStart() {
             if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
                 DeviceMotionEvent.requestPermission()
                     .then(response => {
                         if (response === 'granted') {
-                            startCountdown();
+                            showCountdown();
                         } else {
                             alert("Нужен доступ к датчикам, чтобы крутить бревно!");
                         }
                     })
                     .catch(console.error);
             } else {
-                // Для Android и старых iOS
-                startCountdown();
+                showCountdown();
             }
         }
 
-        function startCountdown() {
+        function showCountdown() {
             startBtn.style.display = 'none';
-            let count = 3;
-            statusEl.innerText = count;
-            
-            // Инициализация датчиков
+            arrowEl.style.display = 'none';
+            speedEl.style.display = 'none';
+            statusEl.innerText = '';
+            playerEl.classList.remove('visible', 'falling');
+            playerEl.style.opacity = '0';
+
+            // Show overlay
+            countdownOverlay.classList.add('active');
+
+            // Init sensors early to calibrate
             window.addEventListener('devicemotion', handleMotion);
-            
-            // Сброс переменных
-            // Ждем первого чтения датчика, чтобы обнулить позицию
-            setTimeout(() => {
-                logAngle = 0;
-                // Сбрасываем userAngle в 0 относительно текущего положения телефона
-                // Чтобы игра начиналась с "0" независимо от того, как ты держишь телефон
-                // Но для прототипа просто начнем считать изменения.
-                userAngle = 0; 
-                rawLastAngle = null; // Сброс трекинга
-            }, 100);
+
+            // Reset
+            logAngle = 0;
+            userAngle = 0;
+            smoothedDelta = 0;
+            rawLastAngle = null;
+            logSpeed = 0.5;
+            logDirection = 1;
+            logSvg.style.transform = 'rotate(0deg)';
+            orbitEl.style.transform = 'rotate(0deg)';
+
+            let count = 3;
+            countdownNumber.innerText = count;
+            countdownNumber.style.animation = 'none';
+            void countdownNumber.offsetWidth;
+            countdownNumber.style.animation = 'countPop 0.5s ease-out';
 
             let interval = setInterval(() => {
                 count--;
                 if (count > 0) {
-                    statusEl.innerText = count;
+                    countdownNumber.innerText = count;
+                    countdownNumber.style.animation = 'none';
+                    void countdownNumber.offsetWidth;
+                    countdownNumber.style.animation = 'countPop 0.5s ease-out';
                 } else {
                     clearInterval(interval);
-                    statusEl.innerText = "КРУТИ!";
-                    startGame();
+                    countdownOverlay.classList.remove('active');
+
+                    // Reset user angle just before game starts
+                    userAngle = 0;
+                    smoothedDelta = 0;
+                    rawLastAngle = null;
+
+                    // Drop the player onto the log
+                    dropPlayer();
                 }
             }, 1000);
+        }
+
+        function dropPlayer() {
+            playerEl.classList.remove('visible', 'falling');
+            playerEl.style.opacity = '0';
+
+            // Short delay then animate fall
+            requestAnimationFrame(() => {
+                playerEl.classList.add('falling');
+
+                playerEl.addEventListener('animationend', function onEnd() {
+                    playerEl.removeEventListener('animationend', onEnd);
+                    playerEl.classList.remove('falling');
+                    playerEl.classList.add('visible');
+                    playerEl.style.top = '-10px';
+                    startGame();
+                }, { once: true });
+            });
         }
 
         function startGame() {
             isPlaying = true;
             startTime = Date.now();
+            score = 0;
+
+            // Show direction UI
+            arrowEl.style.display = 'block';
+            speedEl.style.display = 'block';
+            updateDirectionUI();
+
+            // Schedule first direction/speed change
+            scheduleNextChange();
+
             gameLoop();
         }
 
         function gameOver() {
             isPlaying = false;
+            dirWarning.style.display = 'none';
+            arrowEl.style.display = 'none';
+            speedEl.style.display = 'none';
             statusEl.innerText = "УПАЛ! Очки: " + score;
             startBtn.style.display = 'inline-block';
             startBtn.innerText = "Попробовать снова";
             window.removeEventListener('devicemotion', handleMotion);
-            
-            // Визуальный эффект падения (просто оставляем как есть)
         }
-
     </script>
 </body>
 </html>

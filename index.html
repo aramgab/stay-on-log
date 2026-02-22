@@ -11,7 +11,7 @@
         }
 
         body {
-            background-color: #1a2a3a;
+            background: linear-gradient(180deg, #0d1b2a 0%, #1b2838 40%, #1a2a3a 100%);
             color: white;
             font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
             display: flex;
@@ -28,7 +28,7 @@
         /* === UI LAYER === */
         #ui-layer {
             position: absolute;
-            top: 6%;
+            top: 5%;
             text-align: center;
             z-index: 10;
             width: 100%;
@@ -39,6 +39,33 @@
             font-weight: 700;
             letter-spacing: 1px;
             text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        #high-score-display {
+            font-size: 14px;
+            opacity: 0.5;
+            margin-top: 2px;
+        }
+
+        #new-record {
+            font-size: 20px;
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+            display: none;
+            animation: recordPulse 0.6s ease-in-out infinite alternate;
+        }
+
+        @keyframes recordPulse {
+            from {
+                transform: scale(0.9);
+                opacity: 0.7;
+            }
+
+            to {
+                transform: scale(1.1);
+                opacity: 1;
+            }
         }
 
         #status-text {
@@ -140,7 +167,6 @@
             }
         }
 
-        /* Animated phone icon */
         #phone-icon {
             width: 60px;
             height: 100px;
@@ -174,15 +200,25 @@
             }
         }
 
+        /* === GAME AREA === */
+        #game-area {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         /* === GAME CONTAINER === */
         #game-container {
             position: relative;
             width: 280px;
             height: 280px;
             isolation: isolate;
+            z-index: 5;
         }
 
-        /* === LOG WRAPPER (handles rotation) === */
         #log-wrapper {
             position: absolute;
             top: 0;
@@ -197,7 +233,6 @@
             display: block;
         }
 
-        /* === PLAYER ORBIT === */
         #player-orbit {
             position: absolute;
             top: 0;
@@ -209,14 +244,14 @@
             will-change: transform;
         }
 
-        /* === STICKMAN PLAYER (SVG) === */
+        /* === SIDE-VIEW RUNNING STICKMAN === */
         #player {
             position: absolute;
             top: -25px;
             left: 50%;
             transform: translateX(-50%);
-            width: 48px;
-            height: 65px;
+            width: 44px;
+            height: 60px;
             opacity: 0;
             transition: none;
         }
@@ -249,6 +284,168 @@
             }
         }
 
+        /* Running leg animation */
+        .leg-back {
+            animation: legSwingBack 0.35s ease-in-out infinite alternate;
+            transform-origin: 22px 32px;
+        }
+
+        .leg-front {
+            animation: legSwingFront 0.35s ease-in-out infinite alternate;
+            transform-origin: 22px 32px;
+        }
+
+        .arm-back {
+            animation: armSwingBack 0.35s ease-in-out infinite alternate;
+            transform-origin: 22px 20px;
+        }
+
+        .arm-front {
+            animation: armSwingFront 0.35s ease-in-out infinite alternate;
+            transform-origin: 22px 20px;
+        }
+
+        @keyframes legSwingBack {
+            0% {
+                transform: rotate(-25deg);
+            }
+
+            100% {
+                transform: rotate(25deg);
+            }
+        }
+
+        @keyframes legSwingFront {
+            0% {
+                transform: rotate(25deg);
+            }
+
+            100% {
+                transform: rotate(-25deg);
+            }
+        }
+
+        @keyframes armSwingBack {
+            0% {
+                transform: rotate(20deg);
+            }
+
+            100% {
+                transform: rotate(-20deg);
+            }
+        }
+
+        @keyframes armSwingFront {
+            0% {
+                transform: rotate(-20deg);
+            }
+
+            100% {
+                transform: rotate(20deg);
+            }
+        }
+
+        /* === WATER === */
+        #water-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 35%;
+            z-index: 2;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .wave {
+            position: absolute;
+            width: 200%;
+            left: -50%;
+        }
+
+        .wave-back {
+            top: 15px;
+            animation: waveMove 4s ease-in-out infinite;
+        }
+
+        .wave-front {
+            top: 0;
+            animation: waveMove 3s ease-in-out infinite reverse;
+        }
+
+        @keyframes waveMove {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            50% {
+                transform: translateX(5%);
+            }
+        }
+
+        #water-body {
+            position: absolute;
+            top: 35px;
+            left: 0;
+            width: 100%;
+            height: calc(100% - 35px);
+            background: linear-gradient(180deg, #1a6eb5 0%, #0d3d6b 50%, #082040 100%);
+        }
+
+        /* === SPLASH === */
+        #splash {
+            position: absolute;
+            z-index: 15;
+            display: none;
+            pointer-events: none;
+        }
+
+        #splash.active {
+            display: block;
+            animation: splashAnim 0.6s ease-out forwards;
+        }
+
+        @keyframes splashAnim {
+            0% {
+                transform: scale(0.3);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        /* === FALL INTO WATER === */
+        #falling-player {
+            position: absolute;
+            z-index: 12;
+            display: none;
+            pointer-events: none;
+        }
+
+        #falling-player.active {
+            display: block;
+            animation: fallIntoWater 0.8s ease-in forwards;
+        }
+
+        @keyframes fallIntoWater {
+            0% {
+                opacity: 1;
+            }
+
+            80% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+            }
+        }
+
         /* === DIRECTION CHANGE WARNING === */
         #direction-warning {
             position: fixed;
@@ -274,7 +471,6 @@
             }
         }
 
-        /* === DEBUG === */
         #debug {
             position: absolute;
             bottom: 10px;
@@ -289,89 +485,139 @@
 
     <div id="ui-layer">
         <div id="score-display">Очки: 0</div>
+        <div id="high-score-display"></div>
+        <div id="new-record">⭐ Новый рекорд! ⭐</div>
         <div id="status-text">Нажми старт</div>
         <div id="direction-arrow"></div>
         <div id="speed-indicator"></div>
         <button id="start-btn" onclick="requestPermissionAndStart()">СТАРТ</button>
     </div>
 
-    <div id="game-container">
-        <!-- Log wrapper for rotation -->
-        <div id="log-wrapper">
-            <svg id="log-svg" width="280" height="280" viewBox="0 0 280 280">
-                <!-- Bark (outer ring) -->
-                <circle cx="140" cy="140" r="135" fill="#5a3a1a" stroke="#3d2510" stroke-width="2" />
-                <!-- Bark texture -->
-                <circle cx="140" cy="140" r="130" fill="#6b4423" />
-                <!-- Inner wood -->
-                <circle cx="140" cy="140" r="110" fill="#DEB887" />
+    <div id="game-area">
+        <div id="game-container">
+            <!-- Log wrapper for rotation -->
+            <div id="log-wrapper">
+                <svg id="log-svg" width="280" height="280" viewBox="0 0 280 280">
+                    <circle cx="140" cy="140" r="135" fill="#5a3a1a" stroke="#3d2510" stroke-width="2" />
+                    <circle cx="140" cy="140" r="130" fill="#6b4423" />
+                    <circle cx="140" cy="140" r="110" fill="#DEB887" />
+                    <circle cx="140" cy="140" r="95" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6" />
+                    <circle cx="140" cy="140" r="78" fill="none" stroke="#c4a06a" stroke-width="1" opacity="0.5" />
+                    <circle cx="140" cy="140" r="60" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6" />
+                    <circle cx="140" cy="140" r="42" fill="none" stroke="#c4a06a" stroke-width="1" opacity="0.5" />
+                    <circle cx="140" cy="140" r="25" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6" />
+                    <circle cx="140" cy="140" r="8" fill="#b8935a" />
+                    <!-- Knots -->
+                    <g>
+                        <ellipse cx="140" cy="8" rx="14" ry="8" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
+                        <ellipse cx="140" cy="10" rx="9" ry="5" fill="#5a3a1a" />
+                        <ellipse cx="140" cy="11" rx="5" ry="3" fill="#6b4423" />
+                    </g>
+                    <g transform="rotate(90, 140, 140)">
+                        <ellipse cx="140" cy="6" rx="18" ry="10" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
+                        <ellipse cx="140" cy="9" rx="12" ry="6" fill="#5a3a1a" />
+                        <ellipse cx="140" cy="11" rx="6" ry="3" fill="#6b4423" />
+                    </g>
+                    <g transform="rotate(210, 140, 140)">
+                        <ellipse cx="140" cy="10" rx="11" ry="7" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
+                        <ellipse cx="140" cy="12" rx="7" ry="4" fill="#5a3a1a" />
+                    </g>
+                    <g transform="rotate(320, 140, 140)">
+                        <ellipse cx="140" cy="12" rx="9" ry="5" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
+                        <ellipse cx="140" cy="13" rx="5" ry="3" fill="#5a3a1a" />
+                    </g>
+                    <circle cx="140" cy="140" r="135" fill="url(#logShadow)" opacity="0.15" />
+                    <defs>
+                        <radialGradient id="logShadow" cx="40%" cy="35%" r="60%">
+                            <stop offset="0%" stop-color="white" />
+                            <stop offset="100%" stop-color="black" />
+                        </radialGradient>
+                    </defs>
+                </svg>
+            </div>
 
-                <!-- Growth rings -->
-                <circle cx="140" cy="140" r="95" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6" />
-                <circle cx="140" cy="140" r="78" fill="none" stroke="#c4a06a" stroke-width="1" opacity="0.5" />
-                <circle cx="140" cy="140" r="60" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6" />
-                <circle cx="140" cy="140" r="42" fill="none" stroke="#c4a06a" stroke-width="1" opacity="0.5" />
-                <circle cx="140" cy="140" r="25" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6" />
-                <!-- Center pith -->
-                <circle cx="140" cy="140" r="8" fill="#b8935a" />
-
-                <!-- KNOTS (сучки) — visible bumps on the bark -->
-                <!-- Knot 1: top-right -->
-                <g class="log-knot">
-                    <ellipse cx="140" cy="8" rx="14" ry="8" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
-                    <ellipse cx="140" cy="10" rx="9" ry="5" fill="#5a3a1a" />
-                    <ellipse cx="140" cy="11" rx="5" ry="3" fill="#6b4423" />
-                </g>
-                <!-- Knot 2: right side -->
-                <g class="log-knot" transform="rotate(90, 140, 140)">
-                    <ellipse cx="140" cy="6" rx="18" ry="10" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
-                    <ellipse cx="140" cy="9" rx="12" ry="6" fill="#5a3a1a" />
-                    <ellipse cx="140" cy="11" rx="6" ry="3" fill="#6b4423" />
-                </g>
-                <!-- Knot 3: bottom-left -->
-                <g class="log-knot" transform="rotate(210, 140, 140)">
-                    <ellipse cx="140" cy="10" rx="11" ry="7" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
-                    <ellipse cx="140" cy="12" rx="7" ry="4" fill="#5a3a1a" />
-                </g>
-                <!-- Knot 4: small one at ~320 degrees -->
-                <g class="log-knot" transform="rotate(320, 140, 140)">
-                    <ellipse cx="140" cy="12" rx="9" ry="5" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
-                    <ellipse cx="140" cy="13" rx="5" ry="3" fill="#5a3a1a" />
-                </g>
-
-                <!-- Shadow overlay for depth -->
-                <circle cx="140" cy="140" r="135" fill="url(#logShadow)" opacity="0.15" />
-                <defs>
-                    <radialGradient id="logShadow" cx="40%" cy="35%" r="60%">
-                        <stop offset="0%" stop-color="white" />
-                        <stop offset="100%" stop-color="black" />
-                    </radialGradient>
-                </defs>
-            </svg>
-        </div><!-- /log-wrapper -->
-
-        <!-- Player orbit -->
-        <div id="player-orbit">
-            <!-- Stickman SVG -->
-            <svg id="player" viewBox="0 0 40 55" xmlns="http://www.w3.org/2000/svg">
-                <!-- Head -->
-                <circle cx="20" cy="10" r="8" fill="#ff5252" stroke="white" stroke-width="2" />
-                <!-- Eyes -->
-                <circle cx="17" cy="9" r="1.5" fill="white" />
-                <circle cx="23" cy="9" r="1.5" fill="white" />
-                <!-- Body -->
-                <line x1="20" y1="18" x2="20" y2="36" stroke="white" stroke-width="3" stroke-linecap="round" />
-                <!-- Arms -->
-                <line x1="20" y1="23" x2="8" y2="30" stroke="white" stroke-width="2.5" stroke-linecap="round" />
-                <line x1="20" y1="23" x2="32" y2="30" stroke="white" stroke-width="2.5" stroke-linecap="round" />
-                <!-- Legs -->
-                <line x1="20" y1="36" x2="10" y2="50" stroke="white" stroke-width="2.5" stroke-linecap="round" />
-                <line x1="20" y1="36" x2="30" y2="50" stroke="white" stroke-width="2.5" stroke-linecap="round" />
-                <!-- Feet -->
-                <line x1="10" y1="50" x2="6" y2="50" stroke="white" stroke-width="2.5" stroke-linecap="round" />
-                <line x1="30" y1="50" x2="34" y2="50" stroke="white" stroke-width="2.5" stroke-linecap="round" />
-            </svg>
+            <!-- Player orbit -->
+            <div id="player-orbit">
+                <!-- Side-view running stickman -->
+                <svg id="player" viewBox="0 0 44 55" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Head -->
+                    <circle cx="22" cy="9" r="7.5" fill="#ff5252" stroke="white" stroke-width="2" />
+                    <!-- Eye -->
+                    <circle cx="26" cy="8" r="1.5" fill="white" />
+                    <!-- Mouth -->
+                    <path d="M24 12 Q26 14 28 12" fill="none" stroke="white" stroke-width="1" stroke-linecap="round" />
+                    <!-- Body (slight lean forward) -->
+                    <line x1="22" y1="16" x2="21" y2="32" stroke="white" stroke-width="3" stroke-linecap="round" />
+                    <!-- Arms (animated) -->
+                    <g class="arm-back">
+                        <line x1="22" y1="20" x2="14" y2="28" stroke="white" stroke-width="2.5"
+                            stroke-linecap="round" />
+                    </g>
+                    <g class="arm-front">
+                        <line x1="22" y1="20" x2="30" y2="28" stroke="white" stroke-width="2.5"
+                            stroke-linecap="round" />
+                    </g>
+                    <!-- Legs (animated) -->
+                    <g class="leg-back">
+                        <line x1="21" y1="32" x2="14" y2="46" stroke="white" stroke-width="2.5"
+                            stroke-linecap="round" />
+                        <line x1="14" y1="46" x2="12" y2="46" stroke="white" stroke-width="2.5"
+                            stroke-linecap="round" />
+                    </g>
+                    <g class="leg-front">
+                        <line x1="21" y1="32" x2="28" y2="46" stroke="white" stroke-width="2.5"
+                            stroke-linecap="round" />
+                        <line x1="28" y1="46" x2="30" y2="46" stroke="white" stroke-width="2.5"
+                            stroke-linecap="round" />
+                    </g>
+                </svg>
+            </div>
         </div>
+
+        <!-- Water -->
+        <div id="water-container">
+            <!-- Wave back layer -->
+            <svg class="wave wave-back" viewBox="0 0 1200 60" preserveAspectRatio="none" height="50">
+                <path d="M0,30 Q75,5 150,30 T300,30 T450,30 T600,30 T750,30 T900,30 T1050,30 T1200,30 V60 H0 Z"
+                    fill="rgba(30,100,180,0.5)" />
+            </svg>
+            <!-- Wave front layer -->
+            <svg class="wave wave-front" viewBox="0 0 1200 60" preserveAspectRatio="none" height="45">
+                <path
+                    d="M0,25 Q60,0 120,25 T240,25 T360,25 T480,25 T600,25 T720,25 T840,25 T960,25 T1080,25 T1200,25 V60 H0 Z"
+                    fill="rgba(40,130,210,0.6)" />
+            </svg>
+            <div id="water-body"></div>
+        </div>
+
+        <!-- Falling player clone (for fall animation) -->
+        <svg id="falling-player" width="44" height="55" viewBox="0 0 44 55" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="22" cy="9" r="7.5" fill="#ff5252" stroke="white" stroke-width="2" />
+            <circle cx="26" cy="8" r="1.5" fill="white" />
+            <line x1="22" y1="16" x2="21" y2="32" stroke="white" stroke-width="3" stroke-linecap="round" />
+            <line x1="22" y1="20" x2="14" y2="28" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+            <line x1="22" y1="20" x2="30" y2="28" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+            <line x1="21" y1="32" x2="14" y2="46" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+            <line x1="21" y1="32" x2="28" y2="46" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+        </svg>
+
+        <!-- Splash effect -->
+        <svg id="splash" width="80" height="60" viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="40" cy="45" rx="35" ry="8" fill="rgba(100,180,255,0.4)" />
+            <path d="M20,40 Q15,20 20,10" fill="none" stroke="rgba(100,180,255,0.8)" stroke-width="3"
+                stroke-linecap="round" />
+            <path d="M35,38 Q33,15 38,5" fill="none" stroke="rgba(100,180,255,0.9)" stroke-width="3"
+                stroke-linecap="round" />
+            <path d="M50,38 Q52,18 48,8" fill="none" stroke="rgba(100,180,255,0.8)" stroke-width="3"
+                stroke-linecap="round" />
+            <path d="M60,40 Q65,22 58,12" fill="none" stroke="rgba(100,180,255,0.7)" stroke-width="3"
+                stroke-linecap="round" />
+            <!-- Droplets -->
+            <circle cx="18" cy="8" r="3" fill="rgba(100,180,255,0.7)" />
+            <circle cx="40" cy="3" r="2.5" fill="rgba(100,180,255,0.8)" />
+            <circle cx="55" cy="6" r="3" fill="rgba(100,180,255,0.6)" />
+            <circle cx="62" cy="10" r="2" fill="rgba(100,180,255,0.5)" />
+        </svg>
     </div>
 
     <!-- Countdown overlay -->
@@ -391,23 +637,24 @@
         let isPlaying = false;
         let score = 0;
         let startTime = 0;
+        let highScore = parseInt(localStorage.getItem('stayOnLog_highScore')) || 0;
 
         // Physics
         let logAngle = 0;
-        let logSpeed = 0.8;           // degrees per frame (starting speed)
-        let logDirection = 1;          // 1 = clockwise, -1 = counter-clockwise
+        let logSpeed = 0.8;
+        let logDirection = 1;
         let userAngle = 0;
-        let smoothedDelta = 0;         // for low-pass filter
+        let smoothedDelta = 0;
         let rawLastAngle = null;
 
         // Direction/speed change timers
         let nextChangeTime = 0;
-        const MIN_CHANGE_INTERVAL = 5000;  // 5 seconds
-        const MAX_CHANGE_INTERVAL = 10000; // 10 seconds
+        const MIN_CHANGE_INTERVAL = 5000;
+        const MAX_CHANGE_INTERVAL = 10000;
         const MIN_SPEED = 0.3;
         const MAX_SPEED = 2.5;
 
-        // Low-pass filter coefficient (lower = smoother, higher = more responsive)
+        // Low-pass filter
         const SMOOTH_ALPHA = 0.15;
 
         // DOM
@@ -415,6 +662,8 @@
         const orbitEl = document.getElementById('player-orbit');
         const playerEl = document.getElementById('player');
         const scoreEl = document.getElementById('score-display');
+        const highScoreEl = document.getElementById('high-score-display');
+        const newRecordEl = document.getElementById('new-record');
         const statusEl = document.getElementById('status-text');
         const arrowEl = document.getElementById('direction-arrow');
         const speedEl = document.getElementById('speed-indicator');
@@ -423,16 +672,23 @@
         const countdownOverlay = document.getElementById('countdown-overlay');
         const countdownNumber = document.getElementById('countdown-number');
         const dirWarning = document.getElementById('direction-warning');
+        const fallingPlayerEl = document.getElementById('falling-player');
+        const splashEl = document.getElementById('splash');
+        const gameContainer = document.getElementById('game-container');
+        const waterContainer = document.getElementById('water-container');
+
+        // Show high score on load
+        updateHighScoreDisplay();
 
         // === MAIN GAME LOOP ===
         function gameLoop() {
             if (!isPlaying) return;
 
-            // 1. Rotate the log (via wrapper)
+            // 1. Rotate the log
             logAngle += logSpeed * logDirection;
             logWrapper.style.transform = `rotate(${logAngle}deg)`;
 
-            // 2. Player position = log rotation + user compensation
+            // 2. Player position
             let playerPosition = logAngle + userAngle;
             orbitEl.style.transform = `rotate(${playerPosition}deg)`;
 
@@ -441,48 +697,47 @@
             score = Math.floor((now - startTime) / 100);
             scoreEl.innerText = "Очки: " + score;
 
-            // 4. Check direction/speed change
+            // Check for new record during gameplay
+            if (score > highScore) {
+                newRecordEl.style.display = 'block';
+            }
+
+            // 4. Direction/speed change
             if (now >= nextChangeTime) {
                 scheduleNextChange();
                 changeDirectionOrSpeed();
             }
 
-            // 5. Show warning 1.5s before change
+            // 5. Warning before change
             if (nextChangeTime - now < 1500 && nextChangeTime - now > 0) {
                 dirWarning.style.display = 'block';
             } else {
                 dirWarning.style.display = 'none';
             }
 
-            // 6. Check loss (more than 90 degrees off)
-            // Normalize to [-180, 180]
+            // 6. Check loss
             let normPos = ((playerPosition % 360) + 540) % 360 - 180;
             if (normPos > 90 || normPos < -90) {
-                gameOver();
+                gameOver(normPos);
                 return;
             }
 
             requestAnimationFrame(gameLoop);
         }
 
-        // === ACCELEROMETER HANDLER ===
+        // === ACCELEROMETER ===
         function handleMotion(event) {
             let x = event.accelerationIncludingGravity.x;
             let y = event.accelerationIncludingGravity.y;
 
             let rad = Math.atan2(y, x);
-            let deg = rad * (180 / Math.PI);
+            let deg = rad * (180 / Math.PI) - 90;
 
-            // Shift so vertical = 0
-            deg = deg - 90;
-
-            // Unwrap angle
             if (rawLastAngle !== null) {
                 let delta = deg - rawLastAngle;
                 if (delta < -180) delta += 360;
                 if (delta > 180) delta -= 360;
 
-                // Low-pass filter to smooth out jitter
                 smoothedDelta = smoothedDelta * (1 - SMOOTH_ALPHA) + delta * SMOOTH_ALPHA;
                 userAngle += smoothedDelta;
             }
@@ -490,45 +745,44 @@
             rawLastAngle = deg;
         }
 
-        // === DIRECTION / SPEED CHANGES ===
+        // === DIRECTION / SPEED ===
         function scheduleNextChange() {
             let interval = MIN_CHANGE_INTERVAL + Math.random() * (MAX_CHANGE_INTERVAL - MIN_CHANGE_INTERVAL);
             nextChangeTime = Date.now() + interval;
         }
 
         function changeDirectionOrSpeed() {
-            // 50% chance to change direction, 50% to change speed, sometimes both
             let rand = Math.random();
-
             if (rand < 0.4) {
-                // Change direction only
                 logDirection *= -1;
             } else if (rand < 0.7) {
-                // Change speed only
                 logSpeed = MIN_SPEED + Math.random() * (MAX_SPEED - MIN_SPEED);
             } else {
-                // Change both
                 logDirection *= -1;
                 logSpeed = MIN_SPEED + Math.random() * (MAX_SPEED - MIN_SPEED);
             }
-
             updateDirectionUI();
         }
 
         function updateDirectionUI() {
             if (logDirection === 1) {
-                // Log goes clockwise → user must spin LEFT
                 statusEl.innerText = "КРУТИ ВЛЕВО";
                 arrowEl.innerText = "←";
             } else {
-                // Log goes counter-clockwise → user must spin RIGHT
                 statusEl.innerText = "КРУТИ ВПРАВО";
                 arrowEl.innerText = "→";
             }
-
-            // Speed display
             let speedPercent = Math.round(((logSpeed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)) * 100);
             speedEl.innerText = "Скорость: " + speedPercent + "%";
+        }
+
+        function updateHighScoreDisplay() {
+            if (highScore > 0) {
+                highScoreEl.innerText = "Рекорд: " + highScore;
+                highScoreEl.style.display = 'block';
+            } else {
+                highScoreEl.style.display = 'none';
+            }
         }
 
         // === GAME FLOW ===
@@ -553,14 +807,19 @@
             startBtn.style.display = 'none';
             arrowEl.style.display = 'none';
             speedEl.style.display = 'none';
+            newRecordEl.style.display = 'none';
             statusEl.innerText = '';
             playerEl.classList.remove('visible', 'falling');
             playerEl.style.opacity = '0';
 
-            // Show overlay
+            // Hide falling player & splash from prev game
+            fallingPlayerEl.classList.remove('active');
+            fallingPlayerEl.style.display = 'none';
+            splashEl.classList.remove('active');
+            splashEl.style.display = 'none';
+
             countdownOverlay.classList.add('active');
 
-            // Init sensors early to calibrate
             window.addEventListener('devicemotion', handleMotion);
 
             // Reset
@@ -590,12 +849,10 @@
                     clearInterval(interval);
                     countdownOverlay.classList.remove('active');
 
-                    // Reset user angle just before game starts
                     userAngle = 0;
                     smoothedDelta = 0;
                     rawLastAngle = null;
 
-                    // Drop the player onto the log
                     dropPlayer();
                 }
             }, 1000);
@@ -605,7 +862,6 @@
             playerEl.classList.remove('visible', 'falling');
             playerEl.style.opacity = '0';
 
-            // Short delay then animate fall
             requestAnimationFrame(() => {
                 playerEl.classList.add('falling');
 
@@ -613,7 +869,6 @@
                     playerEl.removeEventListener('animationend', onEnd);
                     playerEl.classList.remove('falling');
                     playerEl.classList.add('visible');
-                    // CRITICAL: clear inline opacity so .visible class takes effect
                     playerEl.style.opacity = '';
                     playerEl.style.top = '-25px';
                     startGame();
@@ -626,26 +881,94 @@
             startTime = Date.now();
             score = 0;
 
-            // Show direction UI
             arrowEl.style.display = 'block';
             speedEl.style.display = 'block';
             updateDirectionUI();
-
-            // Schedule first direction/speed change
             scheduleNextChange();
-
             gameLoop();
         }
 
-        function gameOver() {
+        function gameOver(normPos) {
             isPlaying = false;
             dirWarning.style.display = 'none';
             arrowEl.style.display = 'none';
             speedEl.style.display = 'none';
-            statusEl.innerText = "УПАЛ! Очки: " + score;
-            startBtn.style.display = 'inline-block';
-            startBtn.innerText = "Попробовать снова";
             window.removeEventListener('devicemotion', handleMotion);
+
+            // Hide stickman on log
+            playerEl.classList.remove('visible');
+            playerEl.style.opacity = '0';
+
+            // Save high score
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('stayOnLog_highScore', highScore);
+                updateHighScoreDisplay();
+            }
+            newRecordEl.style.display = 'none';
+
+            // === FALL ANIMATION ===
+            animateFall(normPos);
+        }
+
+        function animateFall(normPos) {
+            // Determine fall direction: positive normPos = fell to the right
+            let fallDirection = normPos > 0 ? 1 : -1;
+
+            // Get game container position
+            let containerRect = gameContainer.getBoundingClientRect();
+            let centerX = containerRect.left + containerRect.width / 2;
+            let centerY = containerRect.top + containerRect.height / 2;
+
+            // Position falling player at the top of the log
+            let startX = centerX - 22; // half of 44px player width
+            let startY = containerRect.top - 25;
+
+            // Water position
+            let waterRect = waterContainer.getBoundingClientRect();
+            let waterTop = waterRect.top + 30;
+
+            // Set up falling player
+            fallingPlayerEl.style.display = 'block';
+            fallingPlayerEl.style.left = startX + 'px';
+            fallingPlayerEl.style.top = startY + 'px';
+            fallingPlayerEl.style.position = 'fixed';
+            fallingPlayerEl.style.transition = 'none';
+            fallingPlayerEl.style.opacity = '1';
+            fallingPlayerEl.style.transform = 'rotate(0deg)';
+
+            // Force reflow
+            void fallingPlayerEl.offsetWidth;
+
+            // Animate: arc trajectory to water
+            fallingPlayerEl.style.transition = 'all 0.8s ease-in';
+            fallingPlayerEl.style.left = (startX + fallDirection * 120) + 'px';
+            fallingPlayerEl.style.top = (waterTop) + 'px';
+            fallingPlayerEl.style.transform = `rotate(${fallDirection * 180}deg)`;
+            fallingPlayerEl.style.opacity = '0.3';
+
+            // Show splash when player hits water
+            setTimeout(() => {
+                let splashX = startX + fallDirection * 120;
+                splashEl.style.position = 'fixed';
+                splashEl.style.left = (splashX - 18) + 'px';
+                splashEl.style.top = (waterTop - 30) + 'px';
+                splashEl.style.display = 'block';
+                splashEl.classList.remove('active');
+                void splashEl.offsetWidth;
+                splashEl.classList.add('active');
+            }, 650);
+
+            // Show results after animation
+            setTimeout(() => {
+                fallingPlayerEl.style.display = 'none';
+                statusEl.innerText = "УПАЛ! Очки: " + score;
+                if (score >= highScore) {
+                    statusEl.innerText += " 🏆";
+                }
+                startBtn.style.display = 'inline-block';
+                startBtn.innerText = "Попробовать снова";
+            }, 1200);
         }
     </script>
 </body>

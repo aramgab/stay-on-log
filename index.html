@@ -1002,10 +1002,12 @@
             playerEl.classList.remove('visible', 'falling');
             playerEl.style.opacity = '0';
 
-            // Hide falling player & splash from prev game
+            // Hide falling player & splash from prev game — full reset
             fallingPlayerEl.classList.remove('active');
+            fallingPlayerEl.removeAttribute('style');
             fallingPlayerEl.style.display = 'none';
             splashEl.classList.remove('active');
+            splashEl.removeAttribute('style');
             splashEl.style.display = 'none';
 
             countdownOverlay.classList.add('active');

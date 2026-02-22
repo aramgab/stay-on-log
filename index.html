@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Stay on Log!</title>
     <style>
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
 
         body {
             background-color: #1a2a3a;
@@ -35,7 +38,7 @@
             font-size: 28px;
             font-weight: 700;
             letter-spacing: 1px;
-            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
         }
 
         #status-text {
@@ -53,8 +56,15 @@
         }
 
         @keyframes pulseArrow {
-            from { opacity: 0.6; transform: scale(0.9); }
-            to   { opacity: 1;   transform: scale(1.1); }
+            from {
+                opacity: 0.6;
+                transform: scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1.1);
+            }
         }
 
         #speed-indicator {
@@ -87,7 +97,10 @@
         /* === COUNTDOWN OVERLAY === */
         #countdown-overlay {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: rgba(10, 20, 30, 0.92);
             display: none;
             flex-direction: column;
@@ -111,13 +124,20 @@
         #countdown-number {
             font-size: 120px;
             font-weight: 900;
-            text-shadow: 0 0 40px rgba(255,255,255,0.3);
+            text-shadow: 0 0 40px rgba(255, 255, 255, 0.3);
             animation: countPop 0.5s ease-out;
         }
 
         @keyframes countPop {
-            0%   { transform: scale(2); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
+            0% {
+                transform: scale(2);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
 
         /* Animated phone icon */
@@ -145,8 +165,13 @@
         }
 
         @keyframes rotatePhone {
-            from { transform: rotate(0deg); }
-            to   { transform: rotate(-360deg); }
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(-360deg);
+            }
         }
 
         /* === GAME CONTAINER === */
@@ -159,21 +184,23 @@
         /* === PLAYER ORBIT === */
         #player-orbit {
             position: absolute;
-            top: 0; left: 0;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
             z-index: 5;
+            isolation: isolate;
         }
 
         /* === STICKMAN PLAYER (SVG) === */
         #player {
             position: absolute;
-            top: -10px;
+            top: -30px;
             left: 50%;
             transform: translateX(-50%);
-            width: 40px;
-            height: 55px;
+            width: 55px;
+            height: 75px;
             opacity: 0;
             transition: none;
         }
@@ -187,10 +214,23 @@
         }
 
         @keyframes fallDown {
-            0%   { top: -250px; opacity: 1; }
-            70%  { top: -5px; }
-            85%  { top: -15px; }
-            100% { top: -10px; opacity: 1; }
+            0% {
+                top: -300px;
+                opacity: 1;
+            }
+
+            70% {
+                top: -25px;
+            }
+
+            85% {
+                top: -35px;
+            }
+
+            100% {
+                top: -30px;
+                opacity: 1;
+            }
         }
 
         /* === DIRECTION CHANGE WARNING === */
@@ -202,15 +242,20 @@
             font-size: 28px;
             font-weight: 900;
             color: #ff6b6b;
-            text-shadow: 0 0 20px rgba(255,107,107,0.5);
+            text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
             z-index: 50;
             display: none;
             animation: flashWarn 0.3s ease-in-out infinite alternate;
         }
 
         @keyframes flashWarn {
-            from { opacity: 0.4; }
-            to   { opacity: 1; }
+            from {
+                opacity: 0.4;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         /* === DEBUG === */
@@ -223,6 +268,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <div id="ui-layer">
@@ -235,53 +281,54 @@
 
     <div id="game-container">
         <!-- SVG LOG -->
-        <svg id="log-svg" width="280" height="280" viewBox="0 0 280 280" style="position:absolute; top:0; left:0;">
+        <svg id="log-svg" width="280" height="280" viewBox="0 0 280 280"
+            style="position:absolute; top:0; left:0; z-index:1;">
             <!-- Bark (outer ring) -->
-            <circle cx="140" cy="140" r="135" fill="#5a3a1a" stroke="#3d2510" stroke-width="2"/>
+            <circle cx="140" cy="140" r="135" fill="#5a3a1a" stroke="#3d2510" stroke-width="2" />
             <!-- Bark texture -->
-            <circle cx="140" cy="140" r="130" fill="#6b4423"/>
+            <circle cx="140" cy="140" r="130" fill="#6b4423" />
             <!-- Inner wood -->
-            <circle cx="140" cy="140" r="110" fill="#DEB887"/>
+            <circle cx="140" cy="140" r="110" fill="#DEB887" />
 
             <!-- Growth rings -->
-            <circle cx="140" cy="140" r="95" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6"/>
-            <circle cx="140" cy="140" r="78" fill="none" stroke="#c4a06a" stroke-width="1" opacity="0.5"/>
-            <circle cx="140" cy="140" r="60" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6"/>
-            <circle cx="140" cy="140" r="42" fill="none" stroke="#c4a06a" stroke-width="1" opacity="0.5"/>
-            <circle cx="140" cy="140" r="25" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6"/>
+            <circle cx="140" cy="140" r="95" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6" />
+            <circle cx="140" cy="140" r="78" fill="none" stroke="#c4a06a" stroke-width="1" opacity="0.5" />
+            <circle cx="140" cy="140" r="60" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6" />
+            <circle cx="140" cy="140" r="42" fill="none" stroke="#c4a06a" stroke-width="1" opacity="0.5" />
+            <circle cx="140" cy="140" r="25" fill="none" stroke="#c4a06a" stroke-width="1.5" opacity="0.6" />
             <!-- Center pith -->
-            <circle cx="140" cy="140" r="8" fill="#b8935a"/>
+            <circle cx="140" cy="140" r="8" fill="#b8935a" />
 
             <!-- KNOTS (сучки) — visible bumps on the bark -->
             <!-- Knot 1: top-right -->
             <g class="log-knot">
-                <ellipse cx="140" cy="8" rx="14" ry="8" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5"/>
-                <ellipse cx="140" cy="10" rx="9" ry="5" fill="#5a3a1a"/>
-                <ellipse cx="140" cy="11" rx="5" ry="3" fill="#6b4423"/>
+                <ellipse cx="140" cy="8" rx="14" ry="8" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
+                <ellipse cx="140" cy="10" rx="9" ry="5" fill="#5a3a1a" />
+                <ellipse cx="140" cy="11" rx="5" ry="3" fill="#6b4423" />
             </g>
             <!-- Knot 2: right side -->
             <g class="log-knot" transform="rotate(90, 140, 140)">
-                <ellipse cx="140" cy="6" rx="18" ry="10" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5"/>
-                <ellipse cx="140" cy="9" rx="12" ry="6" fill="#5a3a1a"/>
-                <ellipse cx="140" cy="11" rx="6" ry="3" fill="#6b4423"/>
+                <ellipse cx="140" cy="6" rx="18" ry="10" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
+                <ellipse cx="140" cy="9" rx="12" ry="6" fill="#5a3a1a" />
+                <ellipse cx="140" cy="11" rx="6" ry="3" fill="#6b4423" />
             </g>
             <!-- Knot 3: bottom-left -->
             <g class="log-knot" transform="rotate(210, 140, 140)">
-                <ellipse cx="140" cy="10" rx="11" ry="7" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5"/>
-                <ellipse cx="140" cy="12" rx="7" ry="4" fill="#5a3a1a"/>
+                <ellipse cx="140" cy="10" rx="11" ry="7" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
+                <ellipse cx="140" cy="12" rx="7" ry="4" fill="#5a3a1a" />
             </g>
             <!-- Knot 4: small one at ~320 degrees -->
             <g class="log-knot" transform="rotate(320, 140, 140)">
-                <ellipse cx="140" cy="12" rx="9" ry="5" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5"/>
-                <ellipse cx="140" cy="13" rx="5" ry="3" fill="#5a3a1a"/>
+                <ellipse cx="140" cy="12" rx="9" ry="5" fill="#4a2a10" stroke="#3d2510" stroke-width="1.5" />
+                <ellipse cx="140" cy="13" rx="5" ry="3" fill="#5a3a1a" />
             </g>
 
             <!-- Shadow overlay for depth -->
-            <circle cx="140" cy="140" r="135" fill="url(#logShadow)" opacity="0.15"/>
+            <circle cx="140" cy="140" r="135" fill="url(#logShadow)" opacity="0.15" />
             <defs>
                 <radialGradient id="logShadow" cx="40%" cy="35%" r="60%">
-                    <stop offset="0%" stop-color="white"/>
-                    <stop offset="100%" stop-color="black"/>
+                    <stop offset="0%" stop-color="white" />
+                    <stop offset="100%" stop-color="black" />
                 </radialGradient>
             </defs>
         </svg>
@@ -291,21 +338,21 @@
             <!-- Stickman SVG -->
             <svg id="player" viewBox="0 0 40 55" xmlns="http://www.w3.org/2000/svg">
                 <!-- Head -->
-                <circle cx="20" cy="10" r="8" fill="#ff5252" stroke="white" stroke-width="2"/>
+                <circle cx="20" cy="10" r="8" fill="#ff5252" stroke="white" stroke-width="2" />
                 <!-- Eyes -->
-                <circle cx="17" cy="9" r="1.5" fill="white"/>
-                <circle cx="23" cy="9" r="1.5" fill="white"/>
+                <circle cx="17" cy="9" r="1.5" fill="white" />
+                <circle cx="23" cy="9" r="1.5" fill="white" />
                 <!-- Body -->
-                <line x1="20" y1="18" x2="20" y2="36" stroke="white" stroke-width="3" stroke-linecap="round"/>
+                <line x1="20" y1="18" x2="20" y2="36" stroke="white" stroke-width="3" stroke-linecap="round" />
                 <!-- Arms -->
-                <line x1="20" y1="23" x2="8" y2="30" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-                <line x1="20" y1="23" x2="32" y2="30" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="20" y1="23" x2="8" y2="30" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+                <line x1="20" y1="23" x2="32" y2="30" stroke="white" stroke-width="2.5" stroke-linecap="round" />
                 <!-- Legs -->
-                <line x1="20" y1="36" x2="10" y2="50" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-                <line x1="20" y1="36" x2="30" y2="50" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="20" y1="36" x2="10" y2="50" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+                <line x1="20" y1="36" x2="30" y2="50" stroke="white" stroke-width="2.5" stroke-linecap="round" />
                 <!-- Feet -->
-                <line x1="10" y1="50" x2="6" y2="50" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-                <line x1="30" y1="50" x2="34" y2="50" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="10" y1="50" x2="6" y2="50" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+                <line x1="30" y1="50" x2="34" y2="50" stroke="white" stroke-width="2.5" stroke-linecap="round" />
             </svg>
         </div>
     </div>
@@ -549,7 +596,7 @@
                     playerEl.removeEventListener('animationend', onEnd);
                     playerEl.classList.remove('falling');
                     playerEl.classList.add('visible');
-                    playerEl.style.top = '-10px';
+                    playerEl.style.top = '-30px';
                     startGame();
                 }, { once: true });
             });
@@ -583,4 +630,5 @@
         }
     </script>
 </body>
+
 </html>

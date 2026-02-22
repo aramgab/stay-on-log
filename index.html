@@ -1110,10 +1110,24 @@
             // Get game container position
             let containerRect = gameContainer.getBoundingClientRect();
             let centerX = containerRect.left + containerRect.width / 2;
+            let centerY = containerRect.top + containerRect.height / 2;
 
-            // Position falling player at the top of the log
-            let startX = centerX - 22; // half of 44px player width
-            let startY = containerRect.top - 25;
+            // Calculate exact position based on angle
+            // The player orbits at r=135 from center. normPos is angle in degrees.
+            // 0 deg is top of log. 90 deg is right, -90 is left.
+            // Adjust so 0 deg is pointing UP in standard math terms (which is -90 in JS Math)
+            let rad = (normPos - 90) * (Math.PI / 180);
+            let orbitRadius = 135; // This matches the SVG design
+            let pX = centerX + Math.cos(rad) * orbitRadius;
+            let pY = centerY + Math.sin(rad) * orbitRadius;
+
+            // Adjust for player element bounds (44x55 px, origin is bottom center usually, 
+            // but in CSS it's centered via negative margin or explicit offset.
+            // In original code, startX = centerX - 22, startY = containerRect.top - 25
+            // Radius 135 means containerRect.top is at Y-140. So Y-25 is actually radius+some.
+            // Let's use the explicit calculated center and offset.
+            let startX = pX - 22;
+            let startY = pY - 27;
 
             // Water position
             let waterRect = waterContainer.getBoundingClientRect();

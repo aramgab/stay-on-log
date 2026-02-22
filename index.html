@@ -212,11 +212,11 @@
         /* === STICKMAN PLAYER (SVG) === */
         #player {
             position: absolute;
-            top: -30px;
+            top: -25px;
             left: 50%;
             transform: translateX(-50%);
-            width: 55px;
-            height: 75px;
+            width: 48px;
+            height: 65px;
             opacity: 0;
             transition: none;
         }
@@ -236,15 +236,15 @@
             }
 
             70% {
-                top: -25px;
+                top: -20px;
             }
 
             85% {
-                top: -35px;
+                top: -30px;
             }
 
             100% {
-                top: -30px;
+                top: -25px;
                 opacity: 1;
             }
         }
@@ -613,7 +613,9 @@
                     playerEl.removeEventListener('animationend', onEnd);
                     playerEl.classList.remove('falling');
                     playerEl.classList.add('visible');
-                    playerEl.style.top = '-30px';
+                    // CRITICAL: clear inline opacity so .visible class takes effect
+                    playerEl.style.opacity = '';
+                    playerEl.style.top = '-25px';
                     startGame();
                 }, { once: true });
             });

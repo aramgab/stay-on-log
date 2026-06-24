@@ -729,6 +729,82 @@ body {
     width: 130px;
 }
 
+/* === FX (juice): screen-shake + particles === */
+#fx-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 250;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.fx-particle {
+    position: fixed;
+    border-radius: 2px;
+    transform: translate(-50%, -50%);
+    will-change: transform, opacity;
+}
+
+.shake-sm {
+    animation: shakeSm 0.3s ease-in-out;
+}
+
+.shake-lg {
+    animation: shakeLg 0.5s ease-in-out;
+}
+
+@keyframes shakeSm {
+
+    0%,
+    100% {
+        transform: translate(0, 0);
+    }
+
+    20% {
+        transform: translate(-4px, 2px);
+    }
+
+    40% {
+        transform: translate(4px, -2px);
+    }
+
+    60% {
+        transform: translate(-3px, -2px);
+    }
+
+    80% {
+        transform: translate(3px, 2px);
+    }
+}
+
+@keyframes shakeLg {
+
+    0%,
+    100% {
+        transform: translate(0, 0);
+    }
+
+    15% {
+        transform: translate(-9px, 5px);
+    }
+
+    30% {
+        transform: translate(9px, -5px);
+    }
+
+    45% {
+        transform: translate(-8px, -4px);
+    }
+
+    60% {
+        transform: translate(8px, 5px);
+    }
+
+    75% {
+        transform: translate(-5px, 3px);
+    }
+}
+
 /* Player flashing during the invulnerability window after a non-fatal hit */
 #player.hit {
     animation: hitBlink 0.3s ease-in-out 3;

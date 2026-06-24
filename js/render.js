@@ -11,6 +11,7 @@ import {
     statusEl,
     startBtn,
 } from './dom.js';
+import { countUp } from './fx.js';
 
 export function animateFall(normPos) {
     // Determine fall direction: positive normPos = fell to the right
@@ -74,12 +75,13 @@ export function animateFall(normPos) {
         splashEl.classList.add('active');
     }, 700);
 
-    // Show results after animation
+    // Show results after animation, counting the score up for a bit of juice.
     setTimeout(() => {
         fallingPlayerEl.style.display = 'none';
-        statusEl.innerText = "УПАЛ! Очки: " + state.score;
-        if (state.score >= state.highScore) {
-            statusEl.innerText += " 🏆";
+        const trophy = state.score >= state.highScore ? ' 🏆' : '';
+        countUp(statusEl, state.score, 700, 'УПАЛ! Очки: ');
+        if (trophy) {
+            setTimeout(() => { statusEl.innerText = 'УПАЛ! Очки: ' + state.score + trophy; }, 720);
         }
         startBtn.style.display = 'inline-block';
         startBtn.innerText = "Попробовать снова";

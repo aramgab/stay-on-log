@@ -46,6 +46,7 @@ import { animateFall } from './render.js';
 import { spawnObstacles, renderObstacleLayer, stepObstacles, resetObstacles } from './obstacles.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall } from './haptics.js';
+import { screenShake, burst } from './fx.js';
 
 // === TELEGRAM MINI APP (guarded; no-op outside Telegram) ===
 if (window.Telegram && window.Telegram.WebApp) {
@@ -107,9 +108,11 @@ function gameLoop() {
     renderObstacleLayer();
     const obEvent = stepObstacles(Math.abs(state.logSpeed));
     if (obEvent === 'cleared') {
-        // Skill reward: jumping an obstacle is worth real points + a ping.
+        // Skill reward: jumping an obstacle is worth real points + a ping + chips.
         state.eventScore += OBSTACLE_CLEAR_POINTS;
         sfx.point();
+        const xy = playerXY();
+        burst(xy.x, xy.y, { color: '#6b4423', count: 10, size: 6, up: 50 });
     } else if (obEvent === 'hit' && registerHit(playerPosition)) {
         return; // fatal hit — loop stopped inside gameOver
     }
@@ -233,6 +236,12 @@ function normalizePos(playerPosition) {
     return ((playerPosition % 360) + 540) % 360 - 180;
 }
 
+// Viewport coords of the stickman (for spawning particles at the player).
+function playerXY() {
+    const r = playerEl.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+
 // Apply an obstacle hit. Returns true if it was fatal (game over triggered).
 function registerHit(playerPosition) {
     state.hp -= 1;
@@ -247,6 +256,9 @@ function registerHit(playerPosition) {
     // can't drain two lives in consecutive frames.
     sfx.hit();
     hapticHit();
+    screenShake(false);
+    const xy = playerXY();
+    burst(xy.x, xy.y, { color: '#ff5252', count: 8, size: 5 });
     state.invulnerable = true;
     playerEl.classList.add('hit');
     dirWarning.style.display = 'none';
@@ -454,6 +466,7 @@ function gameOver(normPos) {
     music.stop();
     sfx.splash();
     hapticFall();
+    screenShake(true);
 
     // Clear obstacles
     resetObstacles();

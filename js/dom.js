@@ -22,6 +22,7 @@ export const countdownNumber = document.getElementById('countdown-number');
 export const dirWarning = document.getElementById('direction-warning');
 export const fallingPlayerEl = document.getElementById('falling-player');
 export const splashEl = document.getElementById('splash');
+export const gameArea = document.getElementById('game-area');
 export const gameContainer = document.getElementById('game-container');
 export const waterContainer = document.getElementById('water-container');
 export const playerNameEl = document.getElementById('player-name');

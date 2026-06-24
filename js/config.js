@@ -29,8 +29,8 @@ export const ORBIT_RADIUS = 135;
 // === OBSTACLES & JUMP ===
 // Radius (px) at which the obstacle sits on the rotating log surface.
 export const OBSTACLE_RADIUS = 118;
-// No obstacles at all until the player reaches this score (grace period).
-export const OBSTACLE_START_SCORE = 250;
+// No obstacles at all for this long after the start (grace period, ms).
+export const OBSTACLE_START_MS = 25000;
 // After an obstacle is passed it submerges for this many full log rotations.
 export const OBSTACLE_COOLDOWN_MIN_ROT = 1;
 export const OBSTACLE_COOLDOWN_MAX_ROT = 3;
@@ -46,3 +46,17 @@ export const START_HP = 2;
 export const INVULN_DURATION = 900;
 // Slip-off threshold (deg). The player falls past ±this angle (symmetric).
 export const FALL_THRESHOLD = 110;
+
+// === SCORING (event-based) ===
+// Score = a small survival trickle + bonuses for actually doing things, so that
+// skill earns points instead of just time. (See P0.3 in the plan.)
+// One survival point per this many ms alive (500 = 2 pts/sec).
+export const SURVIVAL_MS_PER_POINT = 500;
+// Points awarded for jumping over (clearing) an obstacle.
+export const OBSTACLE_CLEAR_POINTS = 25;
+
+// === DIFFICULTY PHASES (time-based, ms) ===
+// Decoupled from score now that score is event-based. Timings match the old
+// 250/400/800-score thresholds (~25/40/80 s).
+export const PHASE1_MS = 40000;
+export const PHASE2_MS = 80000;

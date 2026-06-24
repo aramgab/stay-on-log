@@ -22,9 +22,12 @@ export function lsSet(key, value) {
 
 export const state = {
     isPlaying: false,
-    score: 0,
+    score: 0,           // survival trickle + eventScore, recomputed each frame
+    eventScore: 0,      // points earned from events (obstacle clears, …) this run
+    elapsed: 0,         // ms since this run started
     startTime: 0,
-    highScore: parseInt(lsGet('stayOnLog_highScore'), 10) || 0,
+    // v2 key: score is event-based now, so the old timer-based record is retired.
+    highScore: parseInt(lsGet('stayOnLog_highScore_v2'), 10) || 0,
     playerName: lsGet('stayOnLog_playerName') || '',
 
     // Physics

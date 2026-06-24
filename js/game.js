@@ -12,6 +12,10 @@ import {
     START_HP,
     INVULN_DURATION,
     FALL_THRESHOLD,
+    SURVIVAL_MS_PER_POINT,
+    OBSTACLE_CLEAR_POINTS,
+    PHASE1_MS,
+    PHASE2_MS,
 } from './config.js';
 import {
     logWrapper,
@@ -66,15 +70,15 @@ const devMode = new URLSearchParams(location.search).has('dev');
 const DEV_KEY_SPEED = 2.5; // deg/frame the arrow keys move the player on the log
 const devKeys = { left: false, right: false };
 
-// Highest 100-point milestone reached this run (for the milestone ping).
-let lastMilestone = 0;
-
 // Screen angle the player holds while airborne, so the log spins underneath him.
 let jumpScreenPos = 0;
 
 // === MAIN GAME LOOP ===
 function gameLoop() {
     if (!state.isPlaying) return;
+
+    let now = Date.now();
+    state.elapsed = now - state.startTime;
 
     // 0. Dev keyboard control (desktop testing only)
     if (devMode) {
@@ -99,23 +103,20 @@ function gameLoop() {
     let playerPosition = state.logAngle + state.userAngle;
     orbitEl.style.transform = `rotate(${playerPosition}deg)`;
 
-    // 2b. Obstacles (rotate with the log, then test for a collision)
+    // 2b. Obstacles (rotate with the log, then handle the collision event)
     renderObstacleLayer();
-    if (stepObstacles(Math.abs(state.logSpeed)) && registerHit(playerPosition)) {
+    const obEvent = stepObstacles(Math.abs(state.logSpeed));
+    if (obEvent === 'cleared') {
+        // Skill reward: jumping an obstacle is worth real points + a ping.
+        state.eventScore += OBSTACLE_CLEAR_POINTS;
+        sfx.point();
+    } else if (obEvent === 'hit' && registerHit(playerPosition)) {
         return; // fatal hit — loop stopped inside gameOver
     }
 
-    // 3. Score
-    let now = Date.now();
-    state.score = Math.floor((now - state.startTime) / 100);
+    // 3. Score = small survival trickle + event points (skill-weighted)
+    state.score = Math.floor(state.elapsed / SURVIVAL_MS_PER_POINT) + state.eventScore;
     scoreEl.innerText = "Очки: " + state.score;
-
-    // Milestone ping every 100 points
-    let milestone = Math.floor(state.score / 100);
-    if (milestone > lastMilestone) {
-        lastMilestone = milestone;
-        sfx.point();
-    }
 
     // Check for new record during gameplay
     if (state.score > state.highScore) {
@@ -174,15 +175,15 @@ function changeDirectionOrSpeed() {
         newDirection = state.logDirection * -1;
     }
 
-    // === DIFFICULTY BALANCE ===
-    if (state.score < 400) {
-        // Phase 1 (0-399): cap speed at 50%
+    // === DIFFICULTY BALANCE (time-based) ===
+    if (state.elapsed < PHASE1_MS) {
+        // Phase 1: cap speed at 50%
         let maxSpeedPhase1 = MIN_SPEED + (MAX_SPEED - MIN_SPEED) * 0.5;
         if (newSpeed > maxSpeedPhase1) {
             newSpeed = MIN_SPEED + Math.random() * (maxSpeedPhase1 - MIN_SPEED);
         }
-    } else if (state.score < 800) {
-        // Phase 2 (400-799): block high-speed reversal combos
+    } else if (state.elapsed < PHASE2_MS) {
+        // Phase 2: block high-speed reversal combos
         // If reversing AND both old and new speed > 75%, re-roll new speed lower
         let threshold75 = MIN_SPEED + (MAX_SPEED - MIN_SPEED) * 0.75;
         let oldSpeedHigh = state.logSpeed > threshold75;
@@ -192,7 +193,7 @@ function changeDirectionOrSpeed() {
             newSpeed = MIN_SPEED + Math.random() * (threshold75 - MIN_SPEED);
         }
     }
-    // Phase 3 (800+): no restrictions
+    // Phase 3 (after PHASE2_MS): no restrictions
 
     state.logSpeed = newSpeed;
     state.logDirection = newDirection;
@@ -423,12 +424,13 @@ function startGame() {
     state.isPlaying = true;
     state.startTime = Date.now();
     state.score = 0;
+    state.eventScore = 0;
+    state.elapsed = 0;
 
     // Lives & obstacles
     state.hp = START_HP;
     state.isJumping = false;
     state.invulnerable = false;
-    lastMilestone = 0;
     playerEl.classList.remove('jumping', 'hit');
     spawnObstacles();
     updateHearts();
@@ -463,7 +465,7 @@ function gameOver(normPos) {
     // Save high score
     if (state.score > state.highScore) {
         state.highScore = state.score;
-        lsSet('stayOnLog_highScore', state.highScore);
+        lsSet('stayOnLog_highScore_v2', state.highScore);
         updateHighScoreDisplay();
     }
     newRecordEl.style.display = 'none';

@@ -2,7 +2,7 @@
 // A single obstacle that surfaces from the water at the bottom of the log,
 // rides up to the player as the log rotates, and after it has been passed dives
 // back into the water for 1-3 rotations before surfacing again. There are no
-// obstacles at all until the player reaches OBSTACLE_START_SCORE.
+// obstacles at all for the first OBSTACLE_START_MS of a run (grace period).
 //
 // The obstacle is pinned to the log surface at a fixed angle, so a collision
 // happens when its angle lines up with the player's angle (state.userAngle) —
@@ -11,7 +11,7 @@
 import { state } from './state.js';
 import {
     OBSTACLE_RADIUS,
-    OBSTACLE_START_SCORE,
+    OBSTACLE_START_MS,
     OBSTACLE_COOLDOWN_MIN_ROT,
     OBSTACLE_COOLDOWN_MAX_ROT,
     FIRST_EMERGE_ROT,
@@ -104,29 +104,30 @@ function dive() {
 }
 
 // Advance the obstacle for this frame. `logSpeedAbs` is |deg rotated this frame|.
-// Returns true if the player took a (non-jumped) hit this frame.
+// Returns 'hit' (non-jumped collision), 'cleared' (jumped over), or null.
 export function stepObstacles(logSpeedAbs) {
-    if (!ob) return false;
+    if (!ob) return null;
 
     if (phase === 'submerged') {
-        // Grace period: nothing surfaces until the player has earned enough score.
-        if (state.score < OBSTACLE_START_SCORE) return false;
+        // Grace period: nothing surfaces for the first OBSTACLE_START_MS.
+        if (state.elapsed < OBSTACLE_START_MS) return null;
         accum += logSpeedAbs;
         if (accum >= cooldownTarget) emerge();
-        return false;
+        return null;
     }
 
     // phase === 'active'
-    let hit = false;
+    let event = null;
     const d = Math.abs(normalizeAngle(ob.angle - state.userAngle));
 
     if (ob.armed && d < COLLIDE_WINDOW) {
         ob.armed = false;
         if (state.isJumping) {
             ob.inner.classList.add('cleared');
+            event = 'cleared';
         } else if (!state.invulnerable) {
             ob.inner.classList.add('struck');
-            hit = true;
+            event = 'hit';
         }
     }
 
@@ -140,5 +141,5 @@ export function stepObstacles(logSpeedAbs) {
         dive();
     }
 
-    return hit;
+    return event;
 }

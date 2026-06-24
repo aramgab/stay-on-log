@@ -19,6 +19,7 @@ import {
 } from './config.js';
 
 let sensitivity = parseFloat(lsGet('stayOnLog_sensitivity')) || DEFAULT_SENSITIVITY;
+let smooth = parseFloat(lsGet('stayOnLog_inputSmooth')) || INPUT_SMOOTH;
 
 export function setSensitivity(v) {
     sensitivity = v;
@@ -27,6 +28,15 @@ export function setSensitivity(v) {
 
 export function getSensitivity() {
     return sensitivity;
+}
+
+export function setSmooth(v) {
+    smooth = v;
+    lsSet('stayOnLog_inputSmooth', String(v));
+}
+
+export function getSmooth() {
+    return smooth;
 }
 
 export function handleMotion(event) {
@@ -51,5 +61,5 @@ export function handleMotion(event) {
     state.rawLastAngle = deg;
 
     // Low-pass the position toward the accumulated target — smooth but responsive.
-    state.userAngle += (state.contAngle - state.userAngle) * INPUT_SMOOTH;
+    state.userAngle += (state.contAngle - state.userAngle) * smooth;
 }

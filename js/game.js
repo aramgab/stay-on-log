@@ -37,7 +37,7 @@ import {
     nicknameInput,
     nicknameSaveBtn,
 } from './dom.js';
-import { handleMotion } from './input.js';
+import { handleMotion, getSensitivity, setSensitivity, getSmooth, setSmooth } from './input.js';
 import { animateFall } from './render.js';
 import { spawnObstacles, renderObstacleLayer, stepObstacles, resetObstacles } from './obstacles.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
@@ -483,9 +483,9 @@ nicknameInput.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') saveNickname();
 });
 
-// Tap anywhere during play to jump over obstacles (but not when tapping the mute button).
+// Tap anywhere during play to jump over obstacles (but not on the mute button / dev panel).
 document.addEventListener('pointerdown', function (e) {
-    if (e.target.closest && e.target.closest('#mute-btn')) return;
+    if (e.target.closest && e.target.closest('#mute-btn, #dev-tune')) return;
     if (state.isPlaying) doJump();
 });
 
@@ -518,6 +518,29 @@ if (devMode) {
         if (e.key === 'ArrowLeft') devKeys.left = false;
         else if (e.key === 'ArrowRight') devKeys.right = false;
     });
+    buildTunePanel();
+}
+
+// Live input-tuning panel (?dev=1). Works with the real tilt sensor on a phone —
+// drag the sliders mid-session to find the right feel; values persist in localStorage.
+function buildTunePanel() {
+    const panel = document.createElement('div');
+    panel.id = 'dev-tune';
+    panel.innerHTML =
+        '<label>sens <b id="dt-sv"></b><input id="dt-s" type="range" min="0.3" max="2" step="0.05"></label>' +
+        '<label>smooth <b id="dt-mv"></b><input id="dt-m" type="range" min="0.05" max="0.6" step="0.01"></label>';
+    document.body.appendChild(panel);
+
+    const s = panel.querySelector('#dt-s');
+    const m = panel.querySelector('#dt-m');
+    const sv = panel.querySelector('#dt-sv');
+    const mv = panel.querySelector('#dt-mv');
+    s.value = getSensitivity();
+    m.value = getSmooth();
+    sv.textContent = (+s.value).toFixed(2);
+    mv.textContent = (+m.value).toFixed(2);
+    s.addEventListener('input', () => { setSensitivity(+s.value); sv.textContent = (+s.value).toFixed(2); });
+    m.addEventListener('input', () => { setSmooth(+m.value); mv.textContent = (+m.value).toFixed(2); });
 }
 
 // Show high score and nickname on load

@@ -13,7 +13,8 @@ export const MAX_SPEED = 2.5;
 // The player rotates the phone to wind the stickman around the log; input.js
 // accumulates the continuous rotation. These tune feel without breaking that.
 // Position-domain low-pass toward the accumulated angle (higher = snappier, less lag).
-export const INPUT_SMOOTH = 0.35;
+// Lower = smoother/calmer. 0.35 felt too sharp in playtest; softened to 0.18.
+export const INPUT_SMOOTH = 0.18;
 // Ignore per-sample jitter below this many degrees (kills resting drift).
 export const INPUT_DEADZONE = 0.25;
 // Reject per-sample deltas above this (deg) as sensor glitches / unwrap errors.

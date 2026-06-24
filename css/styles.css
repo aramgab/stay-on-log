@@ -1,0 +1,560 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background: linear-gradient(180deg, #0d1b2a 0%, #1b2838 40%, #1a2a3a 100%);
+    color: white;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+}
+
+/* === UI LAYER === */
+#ui-layer {
+    position: absolute;
+    top: 5%;
+    text-align: center;
+    z-index: 10;
+    width: 100%;
+}
+
+#player-name {
+    font-size: 16px;
+    opacity: 0.7;
+    margin-bottom: 4px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+}
+
+#player-name:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+#score-display {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+#high-score-display {
+    font-size: 14px;
+    opacity: 0.5;
+    margin-top: 2px;
+}
+
+#new-record {
+    font-size: 20px;
+    font-weight: 900;
+    color: #ffd700;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+    display: none;
+    animation: recordPulse 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes recordPulse {
+    from {
+        transform: scale(0.9);
+        opacity: 0.7;
+    }
+
+    to {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+}
+
+#status-text {
+    font-size: 22px;
+    margin-top: 4px;
+    opacity: 0.9;
+    font-weight: 600;
+}
+
+#direction-arrow {
+    font-size: 48px;
+    margin-top: 2px;
+    display: none;
+    animation: pulseArrow 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes pulseArrow {
+    from {
+        opacity: 0.6;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+#speed-indicator {
+    font-size: 14px;
+    opacity: 0.6;
+    margin-top: 4px;
+    display: none;
+}
+
+#start-btn {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+    border: none;
+    padding: 16px 40px;
+    font-size: 22px;
+    font-weight: 700;
+    border-radius: 16px;
+    cursor: pointer;
+    margin-top: 16px;
+    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    letter-spacing: 2px;
+}
+
+#start-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 3px 10px rgba(39, 174, 96, 0.3);
+}
+
+/* === COUNTDOWN OVERLAY === */
+#countdown-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 20, 30, 0.92);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+#countdown-overlay.active {
+    display: flex;
+}
+
+#countdown-text {
+    font-size: 18px;
+    opacity: 0.85;
+    margin-bottom: 30px;
+    text-align: center;
+    padding: 0 20px;
+}
+
+#countdown-number {
+    font-size: 120px;
+    font-weight: 900;
+    text-shadow: 0 0 40px rgba(255, 255, 255, 0.3);
+    animation: countPop 0.5s ease-out;
+}
+
+@keyframes countPop {
+    0% {
+        transform: scale(2);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+#phone-icon {
+    width: 60px;
+    height: 100px;
+    border: 4px solid white;
+    border-radius: 14px;
+    margin-top: 30px;
+    background: transparent;
+    animation: rotatePhone 2s linear infinite;
+    position: relative;
+}
+
+#phone-icon::after {
+    content: '';
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 3px;
+    background: white;
+    border-radius: 2px;
+}
+
+@keyframes rotatePhone {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(-360deg);
+    }
+}
+
+/* === GAME AREA === */
+#game-area {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* === GAME CONTAINER === */
+#game-container {
+    position: relative;
+    width: 280px;
+    height: 280px;
+    isolation: isolate;
+    z-index: 5;
+}
+
+#log-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 280px;
+    height: 280px;
+    z-index: 1;
+    will-change: transform;
+}
+
+#log-svg {
+    display: block;
+}
+
+#player-orbit {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+    will-change: transform;
+}
+
+/* === SIDE-VIEW RUNNING STICKMAN === */
+#player {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 44px;
+    height: 60px;
+    opacity: 0;
+    transition: none;
+}
+
+#player.visible {
+    opacity: 1;
+}
+
+#player.falling {
+    animation: fallDown 0.5s ease-in forwards;
+}
+
+@keyframes fallDown {
+    0% {
+        top: -300px;
+        opacity: 1;
+    }
+
+    70% {
+        top: -20px;
+    }
+
+    85% {
+        top: -30px;
+    }
+
+    100% {
+        top: -25px;
+        opacity: 1;
+    }
+}
+
+/* Running leg animation */
+.leg-back {
+    animation: legSwingBack 0.35s ease-in-out infinite alternate;
+    transform-origin: 22px 32px;
+}
+
+.leg-front {
+    animation: legSwingFront 0.35s ease-in-out infinite alternate;
+    transform-origin: 22px 32px;
+}
+
+.arm-back {
+    animation: armSwingBack 0.35s ease-in-out infinite alternate;
+    transform-origin: 22px 20px;
+}
+
+.arm-front {
+    animation: armSwingFront 0.35s ease-in-out infinite alternate;
+    transform-origin: 22px 20px;
+}
+
+@keyframes legSwingBack {
+    0% {
+        transform: rotate(-25deg);
+    }
+
+    100% {
+        transform: rotate(25deg);
+    }
+}
+
+@keyframes legSwingFront {
+    0% {
+        transform: rotate(25deg);
+    }
+
+    100% {
+        transform: rotate(-25deg);
+    }
+}
+
+@keyframes armSwingBack {
+    0% {
+        transform: rotate(20deg);
+    }
+
+    100% {
+        transform: rotate(-20deg);
+    }
+}
+
+@keyframes armSwingFront {
+    0% {
+        transform: rotate(-20deg);
+    }
+
+    100% {
+        transform: rotate(20deg);
+    }
+}
+
+/* === WATER === */
+#water-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 35%;
+    z-index: 2;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.wave {
+    position: absolute;
+    width: 200%;
+    left: -50%;
+}
+
+.wave-back {
+    top: 15px;
+    animation: waveMove 4s ease-in-out infinite;
+}
+
+.wave-front {
+    top: 0;
+    animation: waveMove 3s ease-in-out infinite reverse;
+}
+
+@keyframes waveMove {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    50% {
+        transform: translateX(5%);
+    }
+}
+
+#water-body {
+    position: absolute;
+    top: 35px;
+    left: 0;
+    width: 100%;
+    height: calc(100% - 35px);
+    background: linear-gradient(180deg, #1a6eb5 0%, #0d3d6b 50%, #082040 100%);
+}
+
+/* === SPLASH === */
+#splash {
+    position: absolute;
+    z-index: 15;
+    display: none;
+    pointer-events: none;
+}
+
+#splash.active {
+    display: block;
+    animation: splashAnim 0.6s ease-out forwards;
+}
+
+@keyframes splashAnim {
+    0% {
+        transform: scale(0.3);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+/* === FALL INTO WATER === */
+#falling-player {
+    position: absolute;
+    z-index: 12;
+    display: none;
+    pointer-events: none;
+}
+
+#falling-player.active {
+    display: block;
+    animation: fallIntoWater 0.8s ease-in forwards;
+}
+
+@keyframes fallIntoWater {
+    0% {
+        opacity: 1;
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+/* === DIRECTION CHANGE WARNING === */
+#direction-warning {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 28px;
+    font-weight: 900;
+    color: #ffd93d;
+    text-shadow: 0 0 20px rgba(255, 217, 61, 0.5);
+    z-index: 50;
+    display: none;
+    animation: flashWarn 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes flashWarn {
+    from {
+        opacity: 0.4;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* === NICKNAME OVERLAY === */
+#nickname-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 20, 30, 0.95);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    gap: 20px;
+}
+
+#nickname-overlay.active {
+    display: flex;
+}
+
+#nickname-overlay h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 0 2px 10px rgba(255, 255, 255, 0.15);
+}
+
+#nickname-overlay p {
+    font-size: 15px;
+    opacity: 0.6;
+    margin: 0;
+}
+
+#nickname-input {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-radius: 12px;
+    padding: 14px 24px;
+    font-size: 20px;
+    color: white;
+    text-align: center;
+    outline: none;
+    width: 260px;
+    max-width: 80vw;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+#nickname-input:focus {
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+#nickname-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+#nickname-save-btn {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+    border: none;
+    padding: 14px 36px;
+    font-size: 18px;
+    font-weight: 700;
+    border-radius: 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(39, 174, 96, 0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    letter-spacing: 1px;
+}
+
+#nickname-save-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+}
+
+#debug {
+    position: absolute;
+    bottom: 10px;
+    font-size: 12px;
+    opacity: 0.4;
+    display: none;
+}

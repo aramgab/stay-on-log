@@ -2,7 +2,7 @@
 // Owns the main loop, game flow, difficulty logic, UI updates, the nickname
 // system, and all event wiring.
 
-import { state, lsSet } from './state.js';
+import { state, lsGet, lsSet } from './state.js';
 import {
     MIN_CHANGE_INTERVAL,
     MAX_CHANGE_INTERVAL,
@@ -25,6 +25,11 @@ import {
     highScoreEl,
     heartsEl,
     muteBtn,
+    howtoBtn,
+    howtoOverlay,
+    howtoGoBtn,
+    howtoSensRange,
+    howtoSensVal,
     newRecordEl,
     statusEl,
     arrowEl,
@@ -500,9 +505,32 @@ nicknameInput.addEventListener('keydown', function (e) {
 
 // Tap anywhere during play to jump over obstacles (but not on the mute button / dev panel).
 document.addEventListener('pointerdown', function (e) {
-    if (e.target.closest && e.target.closest('#mute-btn, #dev-tune')) return;
+    if (e.target.closest && e.target.closest('#mute-btn, #howto-btn, #howto-overlay, #dev-tune')) return;
     if (state.isPlaying) doJump();
 });
+
+// === HOW-TO / ONBOARDING ===
+function syncHowtoSens() {
+    howtoSensRange.value = getSensitivity();
+    howtoSensVal.textContent = (+howtoSensRange.value).toFixed(2);
+}
+function openHowto() {
+    if (state.isPlaying) return;
+    syncHowtoSens();
+    howtoOverlay.classList.add('active');
+}
+function closeHowto() {
+    howtoOverlay.classList.remove('active');
+    lsSet('stayOnLog_seenHowto', '1');
+}
+howtoBtn.addEventListener('click', openHowto);
+howtoGoBtn.addEventListener('click', closeHowto);
+howtoSensRange.addEventListener('input', function () {
+    setSensitivity(+howtoSensRange.value);
+    howtoSensVal.textContent = (+howtoSensRange.value).toFixed(2);
+});
+// First launch: show how-to-play once.
+if (!lsGet('stayOnLog_seenHowto')) openHowto();
 
 // === SOUND TOGGLE ===
 function updateMuteBtn() {

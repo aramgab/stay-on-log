@@ -13,6 +13,7 @@
 <body>
 
     <button id="mute-btn" aria-label="Звук">🔊</button>
+    <button id="howto-btn" aria-label="Как играть">?</button>
 
     <div id="ui-layer">
         <div id="player-name"></div>
@@ -32,6 +33,20 @@
         <p>Как тебя зовут?</p>
         <input id="nickname-input" type="text" placeholder="Введи ник" maxlength="16" autocomplete="off">
         <button id="nickname-save-btn">Играть!</button>
+    </div>
+
+    <!-- How-to-play / settings overlay -->
+    <div id="howto-overlay">
+        <div id="howto-card">
+            <h2>Как играть</h2>
+            <div id="howto-phone"></div>
+            <p>📱 <b>Крути телефон</b> влево-вправо, чтобы удержать человечка наверху бревна.</p>
+            <p>👆 <b>Тапай</b> по экрану — прыжок через препятствие.</p>
+            <label id="howto-sens">Чувствительность <b id="howto-sv">1.0</b>
+                <input id="howto-sens-range" type="range" min="0.3" max="2" step="0.05">
+            </label>
+            <button id="howto-go">Поехали!</button>
+        </div>
     </div>
 
     <div id="game-area">

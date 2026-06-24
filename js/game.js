@@ -11,6 +11,7 @@ import {
     JUMP_DURATION,
     START_HP,
     INVULN_DURATION,
+    FALL_THRESHOLD,
 } from './config.js';
 import {
     logWrapper,
@@ -19,12 +20,12 @@ import {
     scoreEl,
     highScoreEl,
     heartsEl,
+    muteBtn,
     newRecordEl,
     statusEl,
     arrowEl,
     speedEl,
     startBtn,
-    obstacleLayer,
     desktopStub,
     countdownOverlay,
     countdownNumber,
@@ -38,7 +39,9 @@ import {
 } from './dom.js';
 import { handleMotion } from './input.js';
 import { animateFall } from './render.js';
-import { spawnObstacles, renderObstacleLayer, stepObstacles } from './obstacles.js';
+import { spawnObstacles, renderObstacleLayer, stepObstacles, resetObstacles } from './obstacles.js';
+import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
+import { hapticJump, hapticHit, hapticFall } from './haptics.js';
 
 // === TELEGRAM MINI APP (guarded; no-op outside Telegram) ===
 if (window.Telegram && window.Telegram.WebApp) {
@@ -56,6 +59,9 @@ if (window.Telegram && window.Telegram.WebApp) {
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 const isDesktop = !isTouchDevice;
 
+// Highest 100-point milestone reached this run (for the milestone ping).
+let lastMilestone = 0;
+
 // === MAIN GAME LOOP ===
 function gameLoop() {
     if (!state.isPlaying) return;
@@ -70,7 +76,7 @@ function gameLoop() {
 
     // 2b. Obstacles (rotate with the log, then test for a collision)
     renderObstacleLayer();
-    if (stepObstacles() && registerHit(playerPosition)) {
+    if (stepObstacles(Math.abs(state.logSpeed)) && registerHit(playerPosition)) {
         return; // fatal hit — loop stopped inside gameOver
     }
 
@@ -78,6 +84,13 @@ function gameLoop() {
     let now = Date.now();
     state.score = Math.floor((now - state.startTime) / 100);
     scoreEl.innerText = "Очки: " + state.score;
+
+    // Milestone ping every 100 points
+    let milestone = Math.floor(state.score / 100);
+    if (milestone > lastMilestone) {
+        lastMilestone = milestone;
+        sfx.point();
+    }
 
     // Check for new record during gameplay
     if (state.score > state.highScore) {
@@ -99,7 +112,7 @@ function gameLoop() {
 
     // 6. Check loss
     let normPos = ((playerPosition % 360) + 540) % 360 - 180;
-    if (normPos > 90 || normPos < -90) {
+    if (Math.abs(normPos) > FALL_THRESHOLD) {
         gameOver(normPos);
         return;
     }
@@ -206,6 +219,8 @@ function registerHit(playerPosition) {
 
     // Non-fatal: brief invulnerability + visual flash so a single obstacle
     // can't drain two lives in consecutive frames.
+    sfx.hit();
+    hapticHit();
     state.invulnerable = true;
     playerEl.classList.add('hit');
     dirWarning.style.display = 'none';
@@ -220,6 +235,8 @@ function doJump() {
     if (!state.isPlaying || state.isJumping) return;
     state.isJumping = true;
     playerEl.classList.add('jumping');
+    sfx.jump();
+    hapticJump();
     setTimeout(() => {
         state.isJumping = false;
         playerEl.classList.remove('jumping');
@@ -260,6 +277,7 @@ let saveNickname = function () {
 // === GAME FLOW ===
 
 function handleStartClick() {
+    initAudio(); // unlock/resume the AudioContext within this user gesture
     if (!state.playerName) {
         showNicknameOverlay();
         // After saving nickname, auto-start
@@ -305,8 +323,7 @@ function showCountdown() {
     // Reset jump / invulnerability and clear any obstacles from a prev game.
     state.isJumping = false;
     state.invulnerable = false;
-    state.obstacles = [];
-    obstacleLayer.innerHTML = '';
+    resetObstacles();
 
     // Hide falling player & splash from prev game — full reset
     fallingPlayerEl.classList.remove('active');
@@ -383,6 +400,7 @@ function startGame() {
     state.hp = START_HP;
     state.isJumping = false;
     state.invulnerable = false;
+    lastMilestone = 0;
     playerEl.classList.remove('jumping', 'hit');
     spawnObstacles();
     updateHearts();
@@ -392,6 +410,7 @@ function startGame() {
     speedEl.style.display = 'block';
     updateDirectionUI();
     scheduleNextChange();
+    music.start();
     gameLoop();
 }
 
@@ -402,10 +421,12 @@ function gameOver(normPos) {
     speedEl.style.display = 'none';
     heartsEl.style.display = 'none';
     window.removeEventListener('devicemotion', handleMotion);
+    music.stop();
+    sfx.splash();
+    hapticFall();
 
     // Clear obstacles
-    state.obstacles = [];
-    obstacleLayer.innerHTML = '';
+    resetObstacles();
 
     // Hide stickman on log
     playerEl.classList.remove('visible', 'jumping', 'hit');
@@ -434,10 +455,21 @@ nicknameInput.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') saveNickname();
 });
 
-// Tap anywhere during play to jump over obstacles.
-document.addEventListener('pointerdown', function () {
+// Tap anywhere during play to jump over obstacles (but not when tapping the mute button).
+document.addEventListener('pointerdown', function (e) {
+    if (e.target.closest && e.target.closest('#mute-btn')) return;
     if (state.isPlaying) doJump();
 });
+
+// === SOUND TOGGLE ===
+function updateMuteBtn() {
+    muteBtn.innerText = isMuted ? '🔇' : '🔊';
+}
+muteBtn.addEventListener('click', function () {
+    toggleMute();
+    updateMuteBtn();
+});
+updateMuteBtn();
 
 // On desktop (no tilt sensor) show the "play on your phone" stub and disable start.
 if (isDesktop) {

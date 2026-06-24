@@ -17,19 +17,22 @@ export const SMOOTH_ALPHA = 0.15;
 export const ORBIT_RADIUS = 135;
 
 // === OBSTACLES & JUMP ===
-// Radius (px) at which obstacles sit on the rotating log surface.
+// Radius (px) at which the obstacle sits on the rotating log surface.
 export const OBSTACLE_RADIUS = 118;
-// Number of obstacles placed around the log at game start.
-export const OBSTACLE_COUNT = 8;
-// Keep this angular zone (deg) around the player's start clear of obstacles.
-export const OBSTACLE_SAFE_ZONE = 40;
-// Angular window (deg) within which an obstacle collides with the player.
+// No obstacles at all until the player reaches this score (grace period).
+export const OBSTACLE_START_SCORE = 250;
+// After an obstacle is passed it submerges for this many full log rotations.
+export const OBSTACLE_COOLDOWN_MIN_ROT = 1;
+export const OBSTACLE_COOLDOWN_MAX_ROT = 3;
+// Rotations to wait before the very first obstacle surfaces once past the grace score.
+export const FIRST_EMERGE_ROT = 0.7;
+// Angular window (deg) within which the obstacle collides with the player.
 export const COLLIDE_WINDOW = 16;
-// Re-arm an obstacle once the player is this far (deg) past it again.
-export const REARM_WINDOW = 45;
 // How long the jump lasts (ms). Collisions are ignored while airborne.
 export const JUMP_DURATION = 480;
 // Lives. First hit warns, last hit drops the player into the water.
 export const START_HP = 2;
 // Invulnerability window (ms) after a non-fatal hit.
 export const INVULN_DURATION = 900;
+// Slip-off threshold (deg). The player falls past ±this angle (symmetric).
+export const FALL_THRESHOLD = 110;

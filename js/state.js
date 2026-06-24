@@ -38,8 +38,7 @@ export const state = {
     // Direction/speed change timer
     nextChangeTime: 0,
 
-    // Obstacles & jump
-    obstacles: [],
+    // Jump / lives
     isJumping: false,
     invulnerable: false,
     hp: 2,

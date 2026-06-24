@@ -62,6 +62,9 @@ const isDesktop = !isTouchDevice;
 // Highest 100-point milestone reached this run (for the milestone ping).
 let lastMilestone = 0;
 
+// Screen angle the player holds while airborne, so the log spins underneath him.
+let jumpScreenPos = 0;
+
 // === MAIN GAME LOOP ===
 function gameLoop() {
     if (!state.isPlaying) return;
@@ -69,6 +72,13 @@ function gameLoop() {
     // 1. Rotate the log
     state.logAngle += state.logSpeed * state.logDirection;
     logWrapper.style.transform = `rotate(${state.logAngle}deg)`;
+
+    // 1b. While airborne, hold the player's screen position so the log (and the
+    // obstacle pinned to it) keeps rotating underneath — this is what makes a
+    // jump actually clear an obstacle instead of carrying it along.
+    if (state.isJumping) {
+        state.userAngle = jumpScreenPos - state.logAngle;
+    }
 
     // 2. Player position
     let playerPosition = state.logAngle + state.userAngle;
@@ -110,9 +120,9 @@ function gameLoop() {
         dirWarning.style.display = 'none';
     }
 
-    // 6. Check loss
+    // 6. Check loss (can't slip off while airborne)
     let normPos = ((playerPosition % 360) + 540) % 360 - 180;
-    if (Math.abs(normPos) > FALL_THRESHOLD) {
+    if (!state.isJumping && Math.abs(normPos) > FALL_THRESHOLD) {
         gameOver(normPos);
         return;
     }
@@ -234,6 +244,9 @@ function registerHit(playerPosition) {
 function doJump() {
     if (!state.isPlaying || state.isJumping) return;
     state.isJumping = true;
+    // Remember where the player is on screen at take-off; gameLoop holds this
+    // position for the duration of the jump while the log rotates underneath.
+    jumpScreenPos = state.logAngle + state.userAngle;
     playerEl.classList.add('jumping');
     sfx.jump();
     hapticJump();

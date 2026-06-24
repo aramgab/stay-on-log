@@ -32,7 +32,7 @@ export const state = {
     logSpeed: 0.8,
     logDirection: 1,
     userAngle: 0,
-    smoothedDelta: 0,
+    contAngle: 0,        // accumulated phone rotation (winding); userAngle low-passes toward it
     rawLastAngle: null,
 
     // Direction/speed change timer

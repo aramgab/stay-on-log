@@ -91,6 +91,8 @@ function gameLoop() {
     // jump actually clear an obstacle instead of carrying it along.
     if (state.isJumping) {
         state.userAngle = jumpScreenPos - state.logAngle;
+        // Keep the winding accumulator in sync so there's no snap on landing.
+        state.contAngle = state.userAngle;
     }
 
     // 2. Player position
@@ -366,7 +368,7 @@ function showCountdown() {
     // Reset
     state.logAngle = 0;
     state.userAngle = 0;
-    state.smoothedDelta = 0;
+    state.contAngle = 0;
     state.rawLastAngle = null;
     state.logSpeed = 0.8;
     state.logDirection = 1;
@@ -391,7 +393,7 @@ function showCountdown() {
             countdownOverlay.classList.remove('active');
 
             state.userAngle = 0;
-            state.smoothedDelta = 0;
+            state.contAngle = 0;
             state.rawLastAngle = null;
 
             dropPlayer();

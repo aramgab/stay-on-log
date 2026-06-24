@@ -9,8 +9,17 @@ export const MAX_CHANGE_INTERVAL = 10000;
 export const MIN_SPEED = 0.3;
 export const MAX_SPEED = 2.5;
 
-// Low-pass filter coefficient for accelerometer smoothing
-export const SMOOTH_ALPHA = 0.15;
+// === INPUT (phone "winding" control) ===
+// The player rotates the phone to wind the stickman around the log; input.js
+// accumulates the continuous rotation. These tune feel without breaking that.
+// Position-domain low-pass toward the accumulated angle (higher = snappier, less lag).
+export const INPUT_SMOOTH = 0.35;
+// Ignore per-sample jitter below this many degrees (kills resting drift).
+export const INPUT_DEADZONE = 0.25;
+// Reject per-sample deltas above this (deg) as sensor glitches / unwrap errors.
+export const INPUT_MAX_STEP = 80;
+// Default control sensitivity (rotation multiplier); overridable via localStorage.
+export const DEFAULT_SENSITIVITY = 1.0;
 
 // Radius (px) at which the player orbits the center of the log.
 // Matches the outer ring of the log SVG (circle r=135).

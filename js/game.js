@@ -2,12 +2,15 @@
 // Owns the main loop, game flow, difficulty logic, UI updates, the nickname
 // system, and all event wiring.
 
-import { state } from './state.js';
+import { state, lsSet } from './state.js';
 import {
     MIN_CHANGE_INTERVAL,
     MAX_CHANGE_INTERVAL,
     MIN_SPEED,
     MAX_SPEED,
+    JUMP_DURATION,
+    START_HP,
+    INVULN_DURATION,
 } from './config.js';
 import {
     logWrapper,
@@ -15,11 +18,14 @@ import {
     playerEl,
     scoreEl,
     highScoreEl,
+    heartsEl,
     newRecordEl,
     statusEl,
     arrowEl,
     speedEl,
     startBtn,
+    obstacleLayer,
+    desktopStub,
     countdownOverlay,
     countdownNumber,
     dirWarning,
@@ -32,6 +38,23 @@ import {
 } from './dom.js';
 import { handleMotion } from './input.js';
 import { animateFall } from './render.js';
+import { spawnObstacles, renderObstacleLayer, stepObstacles } from './obstacles.js';
+
+// === TELEGRAM MINI APP (guarded; no-op outside Telegram) ===
+if (window.Telegram && window.Telegram.WebApp) {
+    try {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+    } catch (e) {
+        /* not in a Telegram context — ignore */
+    }
+}
+
+// === DESKTOP DETECTION ===
+// The game is driven by the device's tilt sensor, which desktops lack. On a
+// non-touch device we show a "play on your phone" stub and never start play.
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+const isDesktop = !isTouchDevice;
 
 // === MAIN GAME LOOP ===
 function gameLoop() {
@@ -44,6 +67,12 @@ function gameLoop() {
     // 2. Player position
     let playerPosition = state.logAngle + state.userAngle;
     orbitEl.style.transform = `rotate(${playerPosition}deg)`;
+
+    // 2b. Obstacles (rotate with the log, then test for a collision)
+    renderObstacleLayer();
+    if (stepObstacles() && registerHit(playerPosition)) {
+        return; // fatal hit — loop stopped inside gameOver
+    }
 
     // 3. Score
     let now = Date.now();
@@ -153,6 +182,50 @@ function updateHighScoreDisplay() {
     }
 }
 
+// === LIVES / JUMP / OBSTACLE HITS ===
+
+function updateHearts() {
+    heartsEl.innerText = '❤️'.repeat(Math.max(0, state.hp)) +
+        '🤍'.repeat(Math.max(0, START_HP - state.hp));
+}
+
+// Normalize a screen angle to (-180, 180] — same convention as the loss check.
+function normalizePos(playerPosition) {
+    return ((playerPosition % 360) + 540) % 360 - 180;
+}
+
+// Apply an obstacle hit. Returns true if it was fatal (game over triggered).
+function registerHit(playerPosition) {
+    state.hp -= 1;
+    updateHearts();
+
+    if (state.hp <= 0) {
+        gameOver(normalizePos(playerPosition));
+        return true;
+    }
+
+    // Non-fatal: brief invulnerability + visual flash so a single obstacle
+    // can't drain two lives in consecutive frames.
+    state.invulnerable = true;
+    playerEl.classList.add('hit');
+    dirWarning.style.display = 'none';
+    setTimeout(() => {
+        state.invulnerable = false;
+        playerEl.classList.remove('hit');
+    }, INVULN_DURATION);
+    return false;
+}
+
+function doJump() {
+    if (!state.isPlaying || state.isJumping) return;
+    state.isJumping = true;
+    playerEl.classList.add('jumping');
+    setTimeout(() => {
+        state.isJumping = false;
+        playerEl.classList.remove('jumping');
+    }, JUMP_DURATION);
+}
+
 // === NICKNAME SYSTEM ===
 
 function updatePlayerNameDisplay() {
@@ -179,7 +252,7 @@ let saveNickname = function () {
         return;
     }
     state.playerName = name;
-    localStorage.setItem('stayOnLog_playerName', state.playerName);
+    lsSet('stayOnLog_playerName', state.playerName);
     nicknameOverlay.classList.remove('active');
     updatePlayerNameDisplay();
 };
@@ -223,10 +296,17 @@ function showCountdown() {
     startBtn.style.display = 'none';
     arrowEl.style.display = 'none';
     speedEl.style.display = 'none';
+    heartsEl.style.display = 'none';
     newRecordEl.style.display = 'none';
     statusEl.innerText = '';
-    playerEl.classList.remove('visible', 'falling');
+    playerEl.classList.remove('visible', 'falling', 'jumping', 'hit');
     playerEl.style.opacity = '0';
+
+    // Reset jump / invulnerability and clear any obstacles from a prev game.
+    state.isJumping = false;
+    state.invulnerable = false;
+    state.obstacles = [];
+    obstacleLayer.innerHTML = '';
 
     // Hide falling player & splash from prev game — full reset
     fallingPlayerEl.classList.remove('active');
@@ -299,6 +379,15 @@ function startGame() {
     state.startTime = Date.now();
     state.score = 0;
 
+    // Lives & obstacles
+    state.hp = START_HP;
+    state.isJumping = false;
+    state.invulnerable = false;
+    playerEl.classList.remove('jumping', 'hit');
+    spawnObstacles();
+    updateHearts();
+    heartsEl.style.display = 'block';
+
     arrowEl.style.display = 'block';
     speedEl.style.display = 'block';
     updateDirectionUI();
@@ -311,16 +400,21 @@ function gameOver(normPos) {
     dirWarning.style.display = 'none';
     arrowEl.style.display = 'none';
     speedEl.style.display = 'none';
+    heartsEl.style.display = 'none';
     window.removeEventListener('devicemotion', handleMotion);
 
+    // Clear obstacles
+    state.obstacles = [];
+    obstacleLayer.innerHTML = '';
+
     // Hide stickman on log
-    playerEl.classList.remove('visible');
+    playerEl.classList.remove('visible', 'jumping', 'hit');
     playerEl.style.opacity = '0';
 
     // Save high score
     if (state.score > state.highScore) {
         state.highScore = state.score;
-        localStorage.setItem('stayOnLog_highScore', state.highScore);
+        lsSet('stayOnLog_highScore', state.highScore);
         updateHighScoreDisplay();
     }
     newRecordEl.style.display = 'none';
@@ -339,6 +433,17 @@ nicknameSaveBtn.addEventListener('click', () => saveNickname());
 nicknameInput.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') saveNickname();
 });
+
+// Tap anywhere during play to jump over obstacles.
+document.addEventListener('pointerdown', function () {
+    if (state.isPlaying) doJump();
+});
+
+// On desktop (no tilt sensor) show the "play on your phone" stub and disable start.
+if (isDesktop) {
+    desktopStub.classList.add('active');
+    startBtn.disabled = true;
+}
 
 // Show high score and nickname on load
 updateHighScoreDisplay();

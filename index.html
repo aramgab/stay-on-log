@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Stay on Log!</title>
+    <!-- Telegram Mini App SDK (no-op outside Telegram; init is guarded in game.js) -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 
@@ -14,6 +16,7 @@
         <div id="player-name"></div>
         <div id="score-display">Очки: 0</div>
         <div id="high-score-display"></div>
+        <div id="hearts-display"></div>
         <div id="new-record">⭐ Новый рекорд! ⭐</div>
         <div id="status-text">Нажми старт</div>
         <div id="direction-arrow"></div>
@@ -71,6 +74,9 @@
                     </defs>
                 </svg>
             </div>
+
+            <!-- Obstacles pinned to the rotating log (populated by obstacles.js) -->
+            <div id="obstacle-layer"></div>
 
             <!-- Player orbit -->
             <div id="player-orbit">
@@ -166,7 +172,25 @@
     <!-- Direction change warning -->
     <div id="direction-warning">⚠ СМЕНА!</div>
 
-    <div id="debug">Debug info</div>
+    <!-- Desktop stub: the game needs a phone's tilt sensor, so on desktop we
+         show a "play on your phone" screen with a schematically rotating phone. -->
+    <div id="desktop-stub">
+        <div id="desktop-stub-card">
+            <div id="stub-visual">
+                <svg id="stub-arrows" viewBox="0 0 120 120">
+                    <path d="M26,60 A34,34 0 0 1 60,26" fill="none" stroke="rgba(46,204,113,0.8)"
+                        stroke-width="5" stroke-linecap="round" />
+                    <path d="M60,26 l-10,-1 l6,8 z" fill="rgba(46,204,113,0.8)" />
+                    <path d="M94,60 A34,34 0 0 1 60,94" fill="none" stroke="rgba(46,204,113,0.8)"
+                        stroke-width="5" stroke-linecap="round" />
+                    <path d="M60,94 l10,1 l-6,-8 z" fill="rgba(46,204,113,0.8)" />
+                </svg>
+                <div id="stub-phone"></div>
+            </div>
+            <h2>📱 Открой на телефоне</h2>
+            <p>Игра управляется наклоном телефона — поворачивай устройство, чтобы удержаться на бревне.</p>
+        </div>
+    </div>
 
     <script type="module" src="js/game.js"></script>
 </body>

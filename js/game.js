@@ -59,6 +59,13 @@ if (window.Telegram && window.Telegram.WebApp) {
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 const isDesktop = !isTouchDevice;
 
+// Hidden dev mode (open with ?dev=1): lets us play on desktop with the keyboard
+// to inspect mechanics. Real desktop users still get the "play on your phone"
+// stub — the tilt sensor is the whole point of the game.
+const devMode = new URLSearchParams(location.search).has('dev');
+const DEV_KEY_SPEED = 2.5; // deg/frame the arrow keys move the player on the log
+const devKeys = { left: false, right: false };
+
 // Highest 100-point milestone reached this run (for the milestone ping).
 let lastMilestone = 0;
 
@@ -68,6 +75,12 @@ let jumpScreenPos = 0;
 // === MAIN GAME LOOP ===
 function gameLoop() {
     if (!state.isPlaying) return;
+
+    // 0. Dev keyboard control (desktop testing only)
+    if (devMode) {
+        if (devKeys.left) state.userAngle -= DEV_KEY_SPEED;
+        if (devKeys.right) state.userAngle += DEV_KEY_SPEED;
+    }
 
     // 1. Rotate the log
     state.logAngle += state.logSpeed * state.logDirection;
@@ -485,9 +498,24 @@ muteBtn.addEventListener('click', function () {
 updateMuteBtn();
 
 // On desktop (no tilt sensor) show the "play on your phone" stub and disable start.
-if (isDesktop) {
+// Exception: hidden dev mode (?dev=1) keeps desktop playable via the keyboard.
+if (isDesktop && !devMode) {
     desktopStub.classList.add('active');
     startBtn.disabled = true;
+}
+
+// Dev keyboard: ←/→ balance, Space/↑ jump. Active only in dev mode.
+if (devMode) {
+    console.log('[dev] keyboard control: ←/→ balance, Space = jump');
+    window.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowLeft') devKeys.left = true;
+        else if (e.key === 'ArrowRight') devKeys.right = true;
+        else if (e.key === ' ' || e.key === 'ArrowUp') { e.preventDefault(); doJump(); }
+    });
+    window.addEventListener('keyup', function (e) {
+        if (e.key === 'ArrowLeft') devKeys.left = false;
+        else if (e.key === 'ArrowRight') devKeys.right = false;
+    });
 }
 
 // Show high score and nickname on load

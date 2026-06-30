@@ -266,15 +266,22 @@ function registerHit(playerPosition) {
     return false;
 }
 
+let jumpTimer = null;
 function doJump() {
-    if (!state.isPlaying || state.isJumping) return;
+    if (!state.isPlaying) return;
+    // Every tap jumps — even mid-air. Restart the hop animation and re-extend the
+    // airborne window so the player always responds to the tap, no swallowed taps.
     state.isJumping = true;
+    playerEl.classList.remove('jumping');
+    void playerEl.offsetWidth; // reflow so the animation restarts from the top
     playerEl.classList.add('jumping');
     sfx.jump();
     hapticJump();
-    setTimeout(() => {
+    if (jumpTimer) clearTimeout(jumpTimer);
+    jumpTimer = setTimeout(() => {
         state.isJumping = false;
         playerEl.classList.remove('jumping');
+        jumpTimer = null;
     }, JUMP_DURATION);
 }
 
@@ -356,6 +363,7 @@ function showCountdown() {
     playerEl.style.opacity = '0';
 
     // Reset jump / invulnerability and clear any obstacles from a prev game.
+    if (jumpTimer) { clearTimeout(jumpTimer); jumpTimer = null; }
     state.isJumping = false;
     state.invulnerable = false;
     resetObstacles();

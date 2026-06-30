@@ -103,6 +103,7 @@ function gameLoop() {
         state.userAngle = jumpScreenPos - state.logAngle;
         // Keep the winding accumulator in sync so there's no snap on landing.
         state.contAngle = state.userAngle;
+        state.velEMA = 0;
     }
 
     // 2. Player position
@@ -387,6 +388,7 @@ function showCountdown() {
     state.logAngle = 0;
     state.userAngle = 0;
     state.contAngle = 0;
+    state.velEMA = 0;
     state.rawLastAngle = null;
     state.logSpeed = 0.8;
     state.logDirection = 1;
@@ -412,6 +414,7 @@ function showCountdown() {
 
             state.userAngle = 0;
             state.contAngle = 0;
+            state.velEMA = 0;
             state.rawLastAngle = null;
 
             dropPlayer();

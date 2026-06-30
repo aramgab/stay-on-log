@@ -13,6 +13,7 @@
 import { state, lsGet, lsSet } from './state.js';
 import {
     INPUT_SMOOTH,
+    INPUT_VEL_SMOOTH,
     INPUT_DEADZONE,
     INPUT_MAX_STEP,
     DEFAULT_SENSITIVITY,
@@ -55,7 +56,11 @@ export function handleMotion(event) {
         if (Math.abs(delta) <= INPUT_MAX_STEP) {
             // Deadzone removes resting jitter before it accumulates.
             if (Math.abs(delta) < INPUT_DEADZONE) delta = 0;
-            state.contAngle += delta * sensitivity;
+            // Low-pass the RATE before integrating: kills the sensor jitter that
+            // made raw accumulation feel jerky, restoring a smooth, intuitive glide.
+            // The deadzone above still prevents any resting drift through this stage.
+            state.velEMA = state.velEMA * (1 - INPUT_VEL_SMOOTH) + delta * INPUT_VEL_SMOOTH;
+            state.contAngle += state.velEMA * sensitivity;
         }
     }
     state.rawLastAngle = deg;

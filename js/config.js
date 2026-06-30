@@ -15,6 +15,10 @@ export const MAX_SPEED = 2.5;
 // Position-domain low-pass toward the accumulated angle (higher = snappier, less lag).
 // Lower = smoother/calmer. 0.35 felt too sharp in playtest; softened to 0.18.
 export const INPUT_SMOOTH = 0.18;
+// Low-pass on the incoming rotation RATE before it accumulates. This restores the
+// old "floaty"/intuitive glide: without it, raw sensor jitter (hand shake, tap shocks)
+// rides straight into the angle and the control feels twitchy. Lower = calmer.
+export const INPUT_VEL_SMOOTH = 0.2;
 // Ignore per-sample jitter below this many degrees (kills resting drift).
 export const INPUT_DEADZONE = 0.25;
 // Reject per-sample deltas above this (deg) as sensor glitches / unwrap errors.

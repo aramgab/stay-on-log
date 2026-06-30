@@ -36,6 +36,7 @@ export const state = {
     logDirection: 1,
     userAngle: 0,
     contAngle: 0,        // accumulated phone rotation (winding); userAngle low-passes toward it
+    velEMA: 0,           // low-passed rotation rate (deg/sample) fed into contAngle
     rawLastAngle: null,
 
     // Direction/speed change timer

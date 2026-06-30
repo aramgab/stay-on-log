@@ -8,4 +8,7 @@
 
 # Vercel
 .vercel
-.claude/
+
+# Local Claude settings, but keep the shared preview config
+.claude/*
+!.claude/launch.json

@@ -930,7 +930,8 @@ body {
 
 /* Jump (tap) — preserves the translateX(-50%) centering */
 #player.jumping {
-    animation: playerJump 0.48s ease-out;
+    /* easeOutQuint = very fast take-off, so the hop reads as instant on tap */
+    animation: playerJump 0.48s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes playerJump {
@@ -938,8 +939,8 @@ body {
         transform: translateX(-50%) translateY(0);
     }
 
-    40% {
-        transform: translateX(-50%) translateY(-44px);
+    28% {
+        transform: translateX(-50%) translateY(-54px);
     }
 
     100% {

@@ -76,9 +76,6 @@ const devMode = new URLSearchParams(location.search).has('dev');
 const DEV_KEY_SPEED = 2.5; // deg/frame the arrow keys move the player on the log
 const devKeys = { left: false, right: false };
 
-// Screen angle the player holds while airborne, so the log spins underneath him.
-let jumpScreenPos = 0;
-
 // === MAIN GAME LOOP ===
 function gameLoop() {
     if (!state.isPlaying) return;
@@ -96,15 +93,9 @@ function gameLoop() {
     state.logAngle += state.logSpeed * state.logDirection;
     logWrapper.style.transform = `rotate(${state.logAngle}deg)`;
 
-    // 1b. While airborne, hold the player's screen position so the log (and the
-    // obstacle pinned to it) keeps rotating underneath — this is what makes a
-    // jump actually clear an obstacle instead of carrying it along.
-    if (state.isJumping) {
-        state.userAngle = jumpScreenPos - state.logAngle;
-        // Keep the winding accumulator in sync so there's no snap on landing.
-        state.contAngle = state.userAngle;
-        state.velEMA = 0;
-    }
+    // 1b. The jump no longer freezes the player: being airborne only grants the
+    // obstacle clear (via the isJumping flag in obstacles.js), so the player keeps
+    // responding to tilt the whole time — no stuck-in-place feel while hopping.
 
     // 2. Player position
     let playerPosition = state.logAngle + state.userAngle;
@@ -278,9 +269,6 @@ function registerHit(playerPosition) {
 function doJump() {
     if (!state.isPlaying || state.isJumping) return;
     state.isJumping = true;
-    // Remember where the player is on screen at take-off; gameLoop holds this
-    // position for the duration of the jump while the log rotates underneath.
-    jumpScreenPos = state.logAngle + state.userAngle;
     playerEl.classList.add('jumping');
     sfx.jump();
     hapticJump();

@@ -59,6 +59,27 @@ export function burst(x, y, opts = {}) {
     }
 }
 
+// Floating score/combo popup rising from a viewport point (x, y).
+export function floatText(x, y, text, color = '#ffd93d') {
+    const el = document.createElement('div');
+    el.className = 'fx-float';
+    el.textContent = text;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.color = color;
+    layer.appendChild(el);
+
+    const anim = el.animate(
+        [
+            { transform: 'translate(-50%, -50%) scale(0.8)', opacity: 0 },
+            { transform: 'translate(-50%, -110%) scale(1.15)', opacity: 1, offset: 0.25 },
+            { transform: 'translate(-50%, -230%) scale(1)', opacity: 0 },
+        ],
+        { duration: 900, easing: 'cubic-bezier(.2,.7,.4,1)' }
+    );
+    anim.onfinish = () => el.remove();
+}
+
 // Animate a number in `el` from 0 up to `to` (ease-out), with an optional prefix.
 export function countUp(el, to, dur = 700, prefix = '') {
     const start = Date.now();

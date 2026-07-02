@@ -74,6 +74,8 @@ export const FALL_THRESHOLD = 110;
 export const SURVIVAL_MS_PER_POINT = 500;
 // Points awarded for jumping over (clearing) an obstacle.
 export const OBSTACLE_CLEAR_POINTS = 25;
+// Consecutive clears without a hit multiply the clear points, capped here.
+export const COMBO_MAX_MULT = 5;
 
 // === DIFFICULTY PHASES (time-based, ms) ===
 // Decoupled from score now that score is event-based. Timings match the old

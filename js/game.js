@@ -14,6 +14,7 @@ import {
     FALL_THRESHOLD,
     SURVIVAL_MS_PER_POINT,
     OBSTACLE_CLEAR_POINTS,
+    COMBO_MAX_MULT,
     PHASE1_MS,
     PHASE2_MS,
     BIOME_SUNSET_MS,
@@ -63,7 +64,7 @@ import {
 } from './obstacles.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall } from './haptics.js';
-import { screenShake, burst } from './fx.js';
+import { screenShake, burst, floatText } from './fx.js';
 
 // === TELEGRAM MINI APP (guarded; no-op outside Telegram) ===
 if (window.Telegram && window.Telegram.WebApp) {
@@ -136,11 +137,16 @@ function gameLoop() {
     renderObstacleLayer();
     const obEvent = stepObstacles(Math.abs(state.logSpeed));
     if (obEvent === 'cleared') {
-        // Skill reward: jumping an obstacle is worth real points + a ping + chips.
-        state.eventScore += OBSTACLE_CLEAR_POINTS;
+        // Skill reward: consecutive clears build a combo that multiplies the
+        // clear points (reset on hit), + a ping + chips + floating popup.
+        state.combo += 1;
+        const mult = Math.min(state.combo, COMBO_MAX_MULT);
+        const pts = OBSTACLE_CLEAR_POINTS * mult;
+        state.eventScore += pts;
         sfx.point();
         const xy = playerXY();
         burst(xy.x, xy.y, { color: '#6b4423', count: 10, size: 6, up: 50 });
+        floatText(xy.x, xy.y - 26, '+' + pts + (mult > 1 ? ' ×' + mult : ''));
     } else if (obEvent === 'hit' && registerHit(playerPosition)) {
         return; // fatal hit — loop stopped inside gameOver
     }
@@ -294,6 +300,7 @@ function playerXY() {
 // Apply an obstacle hit. Returns true if it was fatal (game over triggered).
 function registerHit(playerPosition) {
     state.hp -= 1;
+    state.combo = 0;
     updateHearts();
 
     if (state.hp <= 0) {
@@ -487,6 +494,7 @@ function startGame() {
     state.startTime = Date.now();
     state.score = 0;
     state.eventScore = 0;
+    state.combo = 0;
     state.elapsed = 0;
 
     // Lives & obstacles

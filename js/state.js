@@ -42,6 +42,9 @@ export const state = {
     // Direction/speed change timer
     nextChangeTime: 0,
 
+    // Combo: consecutive obstacle clears without a hit (multiplies clear points)
+    combo: 0,
+
     // Jump / lives
     isJumping: false,
     jumpStartTime: 0,   // Date.now() of the last jump start (branch timing check)

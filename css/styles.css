@@ -1414,6 +1414,16 @@ body.biome-storm .lightning {
     will-change: transform, opacity;
 }
 
+.fx-float {
+    position: fixed;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    white-space: nowrap;
+    will-change: transform, opacity;
+}
+
 .shake-sm {
     animation: shakeSm 0.3s ease-in-out;
 }

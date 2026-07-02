@@ -1168,6 +1168,42 @@ body.biome-storm .lightning {
     }
 }
 
+/* Approach-side hint: pulsing arrow at the water's edge on the side the
+   obstacle will come from. Never intercepts the tap-to-jump. */
+#ob-side-hint {
+    position: absolute;
+    bottom: 33%;
+    font-size: 26px;
+    z-index: 8;
+    display: none;
+    pointer-events: none;
+    color: var(--warn);
+    text-shadow: 0 0 12px rgba(255, 217, 61, 0.6);
+    animation: hintPulse 0.7s ease-in-out infinite alternate;
+}
+
+#ob-side-hint.left {
+    left: 10%;
+    display: block;
+}
+
+#ob-side-hint.right {
+    right: 10%;
+    display: block;
+}
+
+@keyframes hintPulse {
+    from {
+        opacity: 0.5;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(-6px);
+    }
+}
+
 /* Splash at the waterline when the obstacle surfaces / dives */
 #obstacle-splash {
     position: absolute;

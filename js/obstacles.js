@@ -98,6 +98,20 @@ export function renderObstacleLayer() {
     obstacleLayer.style.transform = `rotate(${state.logAngle}deg)`;
 }
 
+// Fairness probes for game.js (reversal gating + approach-side hint).
+export function isObstacleActive() {
+    return phase === 'active';
+}
+
+export function activeObstacleType() {
+    return phase === 'active' ? ob.type : null;
+}
+
+// Approaching = riding the log and not yet past the player's top position.
+export function isObstacleApproaching() {
+    return phase === 'active' && !ob.passedTop;
+}
+
 function emerge() {
     ob.type = pickType();
     ob.def = OBSTACLE_TYPES[ob.type];

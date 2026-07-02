@@ -48,10 +48,19 @@ import {
     nicknameOverlay,
     nicknameInput,
     nicknameSaveBtn,
+    obSideHint,
 } from './dom.js';
 import { handleMotion, getSensitivity, setSensitivity, getSmooth, setSmooth } from './input.js';
 import { animateFall } from './render.js';
-import { spawnObstacles, renderObstacleLayer, stepObstacles, resetObstacles } from './obstacles.js';
+import {
+    spawnObstacles,
+    renderObstacleLayer,
+    stepObstacles,
+    resetObstacles,
+    isObstacleActive,
+    activeObstacleType,
+    isObstacleApproaching,
+} from './obstacles.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall } from './haptics.js';
 import { screenShake, burst } from './fx.js';
@@ -139,6 +148,12 @@ function gameLoop() {
     // 2c. Scene palette follows elapsed time (day -> sunset -> night -> storm)
     applyBiome(state.elapsed);
 
+    // 2d. Approach-side hint: while an obstacle is riding up, show which side
+    // of the log it will come from.
+    obSideHint.className = isObstacleApproaching()
+        ? (state.logDirection === 1 ? 'left' : 'right')
+        : '';
+
     // 3. Score = small survival trickle + event points (skill-weighted)
     state.score = Math.floor(state.elapsed / SURVIVAL_MS_PER_POINT) + state.eventScore;
     scoreEl.innerText = "Очки: " + state.score;
@@ -183,9 +198,21 @@ function getSpeedPercent(speed) {
 }
 
 function changeDirectionOrSpeed() {
+    // Fairness: while a double is riding the log its gap was computed for the
+    // current speed — freeze both speed and direction until it dives.
+    if (activeObstacleType() === 'double') return;
+
     let rand = Math.random();
     let wantsReverse = rand < 0.4 || rand >= 0.7;
     let wantsSpeedChange = rand >= 0.4;
+
+    // Fairness: a reversal while an obstacle is approaching would swing it
+    // back down / flip its side — convert reversals into speed-only changes
+    // (skipping entirely would leave long stretches without any variety).
+    if (isObstacleActive() && wantsReverse) {
+        wantsReverse = false;
+        wantsSpeedChange = true;
+    }
 
     let newSpeed = state.logSpeed;
     let newDirection = state.logDirection;
@@ -482,6 +509,7 @@ function startGame() {
 function gameOver(normPos) {
     state.isPlaying = false;
     dirWarning.style.display = 'none';
+    obSideHint.className = '';
     arrowEl.style.display = 'none';
     speedEl.style.display = 'none';
     heartsEl.style.display = 'none';

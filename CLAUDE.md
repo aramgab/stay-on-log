@@ -38,22 +38,33 @@ mini-app** (совместимость заложена: `window.Telegram.WebApp
 | `state.js` | Единый мутабельный объект `state` + обёртки `lsGet/lsSet` (localStorage, гард от исключений в webview). |
 | `dom.js` | Кэш ссылок на DOM (резолвятся один раз; модули deferred). |
 | `input.js` | Акселерометр → угол. Двухступенчатое сглаживание: EMA по **скорости** (`velEMA`) перед накоплением в `contAngle`, затем low-pass по **позиции** в `userAngle`. Дедзона, глитч-гард, чувствительность. Слайдеры sens/smooth. |
-| `game.js` | Точка входа: главный цикл (`gameLoop`), поток игры, сложность, UI, ник, онбординг, dev-режим, привязка событий. |
-| `obstacles.js` | Одно препятствие со стейт-машиной `submerged ⇄ active`: всплывает у воды снизу, едет к игроку, ныряет на 1–3 оборота. Возвращает `'hit' | 'cleared' | null`. |
+| `game.js` | Точка входа: главный цикл (`gameLoop`), поток игры, сложность, биомы (`applyBiome`), комбо, UI, ник, онбординг, dev-режим, привязка событий. |
+| `obstacles.js` | Одно препятствие со стейт-машиной `submerged ⇄ active`, **3 типа** (`knot`/`branch`/`double` из `OBSTACLE_TYPES`), многоточечные коллизии (`parts`). Возвращает `'hit' | 'cleared' | null`. Пробы для честности: `isObstacleActive/activeObstacleType/isObstacleApproaching`. |
 | `render.js` | Анимация падения в воду + брызги. |
-| `audio.js` | Синтез-SFX (Web Audio): `jump/hit/splash/point`. Опц. музыка `audio/music.mp3` (нет файла — тихо игнор). Mute в localStorage. `AudioContext` ленивый, резюм по жесту. |
+| `audio.js` | Синтез-SFX (Web Audio): `jump/hit/splash/point/combo/whoosh`. Опц. музыка `audio/music.mp3` (нет файла — тихо игнор). Mute в localStorage. `AudioContext` ленивый, резюм по жесту. |
 | `haptics.js` | Вибрация: сначала Telegram `HapticFeedback`, иначе `navigator.vibrate`. На десктопе/iOS Safari — no-op. |
-| `fx.js` | «Сочность»: `screenShake`, `burst` (частицы, Web Animations API), `countUp`. DOM-based, без canvas. |
+| `fx.js` | «Сочность»: `screenShake`, `burst` (частицы, Web Animations API), `floatText` (попап «+50 ×2»), `countUp`. DOM-based, без canvas. |
+
+Визуал: палитра сцены — CSS-переменные, зарегистрированные через `@property` (`styles.css`);
+биом = класс `biome-*` на `<body>` (день→закат 40с→ночь 80с→шторм 140с), градиенты кроссфейдятся
+сами. Небо/вода/бревно/лицо персонажа — чистый SVG/CSS, анимации только transform/opacity.
 
 ## Текущие механики и константы (сверяй с `config.js`!)
 - **Scoring событийный**: `score = floor(elapsed / SURVIVAL_MS_PER_POINT=500) + eventScore`
-  (≈2 очка/сек выживания + `OBSTACLE_CLEAR_POINTS=25` за каждое перепрыгнутое препятствие).
+  (≈2 очка/сек выживания + `OBSTACLE_CLEAR_POINTS=25` × комбо-множитель за перепрыгнутое).
+  **Комбо**: серия `cleared` без удара, множитель `min(combo, COMBO_MAX_MULT=5)`, сброс на hit.
   Рекорд под ключом `stayOnLog_highScore_v2` (старый таймерный рекорд ретайрнут).
 - **Сложность по времени** (не по очкам): фаза 1 < `PHASE1_MS=40s` (скорость ≤50%),
   фаза 2 < `PHASE2_MS=80s` (блок «разворот + высокая скорость с обеих сторон»), дальше без ограничений.
-- **Препятствия**: грейс `OBSTACLE_START_MS=25s` (ничего не всплывает), затем одно за раз;
-  окно столкновения `COLLIDE_WINDOW=16°`; после прохода ныряет на `1–3` оборота.
-- **Прыжок**: `JUMP_DURATION=480ms`; в воздухе столкновение засчитывается как `cleared`.
+  Биомы привязаны к тем же вехам (+шторм на 140с).
+- **Препятствия**: грейс `OBSTACLE_START_MS=12s`, затем одно за раз; окно `COLLIDE_WINDOW=16°`;
+  кулдаун `1–3` оборота × `OBSTACLE_COOLDOWN_PHASE_SCALE=[1,0.7,0.5]` по фазам.
+  Типы: `knot` (с фазы 1), `branch` (с фазы 2, `cleared` только в средней части прыжка,
+  маржа `midAirMarginMs=80`), `double` (с фазы 3, только при `|speed|≤1.2`, гэп от скорости).
+  **Честность**: при активном препятствии реверс → смена только скорости; при активном double
+  заморожено всё; стрелка `#ob-side-hint` показывает сторону подхода.
+- **Прыжок**: `JUMP_DURATION=480ms`; в воздухе столкновение засчитывается как `cleared`
+  (кроме `branch` — см. выше); `doJump()` пишет `state.jumpStartTime`.
 - **Жизни**: `START_HP=2`, после не-смертельного удара неуязвимость `INVULN_DURATION=900ms`.
 - **Инпут**: `INPUT_SMOOTH=0.18` (поз. low-pass), `INPUT_VEL_SMOOTH=0.2` (EMA скорости),
   `INPUT_DEADZONE=0.25°`, `INPUT_MAX_STEP=80°` (глитч-гард), `DEFAULT_SENSITIVITY=1.0`.

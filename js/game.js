@@ -37,7 +37,8 @@ import {
     newRecordEl,
     statusEl,
     arrowEl,
-    speedEl,
+    speedFillEl,
+    directionPill,
     startBtn,
     desktopStub,
     countdownOverlay,
@@ -270,7 +271,7 @@ function updateDirectionUI() {
         arrowEl.innerText = "→";
     }
     let speedPercent = Math.round(getSpeedPercent(state.logSpeed));
-    speedEl.innerText = "Скорость: " + speedPercent + "%";
+    speedFillEl.style.width = speedPercent + "%";
 }
 
 function updateHighScoreDisplay() {
@@ -410,8 +411,7 @@ function requestPermissionAndStart() {
 
 function showCountdown() {
     startBtn.style.display = 'none';
-    arrowEl.style.display = 'none';
-    speedEl.style.display = 'none';
+    directionPill.style.display = 'none';
     heartsEl.style.display = 'none';
     newRecordEl.style.display = 'none';
     statusEl.innerText = '';
@@ -509,8 +509,7 @@ function startGame() {
     updateHearts();
     heartsEl.style.display = 'block';
 
-    arrowEl.style.display = 'block';
-    speedEl.style.display = 'block';
+    directionPill.style.display = 'flex';
     updateDirectionUI();
     scheduleNextChange();
     music.start();
@@ -521,8 +520,7 @@ function gameOver(normPos) {
     state.isPlaying = false;
     dirWarning.style.display = 'none';
     obSideHint.className = '';
-    arrowEl.style.display = 'none';
-    speedEl.style.display = 'none';
+    directionPill.style.display = 'none';
     heartsEl.style.display = 'none';
     window.removeEventListener('devicemotion', handleMotion);
     music.stop();

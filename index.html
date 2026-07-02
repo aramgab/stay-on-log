@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Stay on Log!</title>
     <!-- Telegram Mini App SDK (no-op outside Telegram; init is guarded in game.js) -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -22,19 +23,31 @@
         <div class="lightning"></div>
     </div>
 
-    <button id="mute-btn" aria-label="Звук">🔊</button>
-    <button id="howto-btn" aria-label="Как играть">?</button>
-
+    <!-- HUD: three-column top bar; nothing here overlaps the log anymore -->
     <div id="ui-layer">
-        <div id="player-name"></div>
-        <div id="score-display">Очки: 0</div>
-        <div id="high-score-display"></div>
-        <div id="hearts-display"></div>
-        <div id="new-record">⭐ Новый рекорд! ⭐</div>
-        <div id="status-text">Нажми старт</div>
-        <div id="direction-arrow"></div>
-        <div id="speed-indicator"></div>
-        <button id="start-btn">СТАРТ</button>
+        <div id="hud-left">
+            <div id="hearts-display"></div>
+            <div id="high-score-display"></div>
+        </div>
+        <div id="hud-center">
+            <div id="score-display">Очки: 0</div>
+            <div id="new-record">⭐ Новый рекорд! ⭐</div>
+            <button id="start-btn">СТАРТ</button>
+        </div>
+        <div id="hud-right">
+            <div id="hud-buttons">
+                <button id="howto-btn" aria-label="Как играть">?</button>
+                <button id="mute-btn" aria-label="Звук">🔊</button>
+            </div>
+            <div id="player-name"></div>
+        </div>
+    </div>
+
+    <!-- Direction & speed pill floating over the water -->
+    <div id="direction-pill">
+        <span id="direction-arrow"></span>
+        <span id="status-text">Нажми старт</span>
+        <span id="speed-indicator"><span id="speed-fill"></span></span>
     </div>
 
     <!-- Nickname overlay -->

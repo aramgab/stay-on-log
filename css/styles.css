@@ -138,6 +138,9 @@ body {
     align-items: center;
     justify-content: center;
     height: 100vh;
+    /* Real visible viewport in mobile/Telegram webviews (100vh over-reports
+       under collapsing browser chrome and pushed the HUD onto the log). */
+    height: 100dvh;
     margin: 0;
     overflow: hidden;
     touch-action: none;
@@ -343,21 +346,55 @@ body.biome-storm .lightning {
     }
 }
 
-/* === UI LAYER === */
+/* === UI LAYER (top bar: left = lives/record, center = score, right = buttons/name) === */
 #ui-layer {
     position: absolute;
-    top: 5%;
-    text-align: center;
+    top: 0;
+    left: 0;
+    right: 0;
     z-index: 10;
-    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 8px;
+    align-items: start;
+    padding: max(10px, env(safe-area-inset-top)) 12px 0;
+    pointer-events: none;
+}
+
+#ui-layer button,
+#player-name {
+    pointer-events: auto;
+}
+
+#hud-left {
+    text-align: left;
+}
+
+#hud-center {
+    text-align: center;
+}
+
+#hud-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+#hud-buttons {
+    display: flex;
+    gap: 8px;
 }
 
 #player-name {
-    font-size: 16px;
+    font-size: 13px;
     opacity: 0.7;
-    margin-bottom: 4px;
     cursor: pointer;
     letter-spacing: 0.5px;
+    max-width: 26vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 #player-name:hover {
@@ -373,9 +410,9 @@ body.biome-storm .lightning {
 }
 
 #high-score-display {
-    font-size: 14px;
-    opacity: 0.5;
-    margin-top: 2px;
+    font-size: 13px;
+    opacity: 0.55;
+    margin-top: 4px;
 }
 
 #new-record {
@@ -399,17 +436,34 @@ body.biome-storm .lightning {
     }
 }
 
+/* Direction & speed pill floating over the water (shown only during play) */
+#direction-pill {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 21%;
+    z-index: 20;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    pointer-events: none;
+}
+
 #status-text {
-    font-size: 22px;
-    margin-top: 4px;
+    font-size: 13px;
     opacity: 0.9;
     font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 #direction-arrow {
-    font-size: 48px;
-    margin-top: 2px;
-    display: none;
+    font-size: 24px;
+    line-height: 1;
     animation: pulseArrow 0.8s ease-in-out infinite alternate;
 }
 
@@ -425,11 +479,22 @@ body.biome-storm .lightning {
     }
 }
 
+/* Speed bar inside the pill */
 #speed-indicator {
-    font-size: 14px;
-    opacity: 0.6;
-    margin-top: 4px;
-    display: none;
+    width: 64px;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.18);
+    overflow: hidden;
+}
+
+#speed-fill {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #2ecc71, var(--warn));
+    transition: width 0.3s ease;
 }
 
 #start-btn {
@@ -536,6 +601,7 @@ body.biome-storm .lightning {
     position: relative;
     width: 100%;
     height: 100vh;
+    height: 100dvh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -914,13 +980,13 @@ body.biome-storm .lightning {
     }
 }
 
-/* === DIRECTION CHANGE WARNING === */
+/* === DIRECTION CHANGE WARNING (above the direction pill, off the log) === */
 #direction-warning {
     position: fixed;
-    top: 50%;
+    bottom: 27%;
     left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 28px;
+    transform: translateX(-50%);
+    font-size: 22px;
     font-weight: 900;
     color: var(--warn);
     text-shadow: 0 0 20px rgba(255, 217, 61, 0.5);
@@ -1016,9 +1082,8 @@ body.biome-storm .lightning {
 
 /* === HEARTS (lives) === */
 #hearts-display {
-    font-size: 18px;
-    margin-top: 4px;
-    letter-spacing: 3px;
+    font-size: 16px;
+    letter-spacing: 2px;
     display: none;
 }
 
@@ -1236,37 +1301,9 @@ body.biome-storm .lightning {
     }
 }
 
-/* === SOUND TOGGLE === */
-#mute-btn {
-    position: fixed;
-    top: 12px;
-    right: 12px;
-    z-index: 120;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    border: none;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    font-size: 20px;
-    line-height: 1;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-#mute-btn:active {
-    transform: scale(0.92);
-}
-
-/* === HOW-TO BUTTON === */
+/* === SOUND / HOW-TO BUTTONS (live in the HUD top-right) === */
+#mute-btn,
 #howto-btn {
-    position: fixed;
-    top: 12px;
-    right: 60px;
-    z-index: 120;
     width: 40px;
     height: 40px;
     padding: 0;
@@ -1275,7 +1312,6 @@ body.biome-storm .lightning {
     background: rgba(255, 255, 255, 0.1);
     color: white;
     font-size: 20px;
-    font-weight: 700;
     line-height: 1;
     cursor: pointer;
     display: flex;
@@ -1283,6 +1319,11 @@ body.biome-storm .lightning {
     justify-content: center;
 }
 
+#howto-btn {
+    font-weight: 700;
+}
+
+#mute-btn:active,
 #howto-btn:active {
     transform: scale(0.92);
 }

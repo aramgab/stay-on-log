@@ -16,9 +16,12 @@ import {
     OBSTACLE_COOLDOWN_MAX_ROT,
     FIRST_EMERGE_ROT,
     OBSTACLE_TYPES,
+    OBSTACLE_COOLDOWN_PHASE_SCALE,
     BRANCH_FROM_MS,
     DOUBLE_FROM_MS,
     JUMP_DURATION,
+    PHASE1_MS,
+    PHASE2_MS,
 } from './config.js';
 import { obstacleLayer, obstacleSplash } from './dom.js';
 
@@ -37,9 +40,16 @@ let cooldownTarget = 0;   // deg of rotation to wait before surfacing
 // a second part trailing the first by a speed-scaled gap.
 let ob = null;
 
+// Obstacles surface more often as the difficulty phases progress.
+function cooldownScale() {
+    if (state.elapsed >= PHASE2_MS) return OBSTACLE_COOLDOWN_PHASE_SCALE[2];
+    if (state.elapsed >= PHASE1_MS) return OBSTACLE_COOLDOWN_PHASE_SCALE[1];
+    return OBSTACLE_COOLDOWN_PHASE_SCALE[0];
+}
+
 function randomCooldownDeg() {
     const span = OBSTACLE_COOLDOWN_MAX_ROT - OBSTACLE_COOLDOWN_MIN_ROT;
-    return (OBSTACLE_COOLDOWN_MIN_ROT + Math.random() * span) * 360;
+    return (OBSTACLE_COOLDOWN_MIN_ROT + Math.random() * span) * 360 * cooldownScale();
 }
 
 // Which type surfaces next: variety unlocks with the difficulty phases.

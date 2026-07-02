@@ -34,10 +34,14 @@ export const ORBIT_RADIUS = 135;
 // Radius (px) at which the obstacle sits on the rotating log surface.
 export const OBSTACLE_RADIUS = 118;
 // No obstacles at all for this long after the start (grace period, ms).
-export const OBSTACLE_START_MS = 25000;
+// 25s felt empty for a hyper-casual opening; 12s keeps the warm-up short.
+export const OBSTACLE_START_MS = 12000;
 // After an obstacle is passed it submerges for this many full log rotations.
 export const OBSTACLE_COOLDOWN_MIN_ROT = 1;
 export const OBSTACLE_COOLDOWN_MAX_ROT = 3;
+// Cooldown multiplier per difficulty phase — obstacles come denser over time
+// (phase 1: 1-3 rotations, phase 2: ~0.7-2.1, phase 3: 0.5-1.5).
+export const OBSTACLE_COOLDOWN_PHASE_SCALE = [1, 0.7, 0.5];
 // Rotations to wait before the very first obstacle surfaces once past the grace score.
 export const FIRST_EMERGE_ROT = 0.7;
 // Angular window (deg) within which the obstacle collides with the player.

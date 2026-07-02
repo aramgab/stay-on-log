@@ -16,6 +16,9 @@ import {
     OBSTACLE_COOLDOWN_MAX_ROT,
     FIRST_EMERGE_ROT,
     OBSTACLE_TYPES,
+    BRANCH_FROM_MS,
+    DOUBLE_FROM_MS,
+    JUMP_DURATION,
 } from './config.js';
 import { obstacleLayer, obstacleSplash } from './dom.js';
 
@@ -28,16 +31,34 @@ function normalizeAngle(deg) {
 let phase = 'submerged';
 let accum = 0;            // accumulated |rotation| (deg) while submerged
 let cooldownTarget = 0;   // deg of rotation to wait before surfacing
-let ob = null;            // { angle, armed, traveled, passedTop, type, def, el, inner }
+// ob = { angle, traveled, passedTop, type, def, el,
+//        parts: [{ off, armed, passed, inner }] }
+// Types with one collision point have a single part at off 0; the double has
+// a second part trailing the first by a speed-scaled gap.
+let ob = null;
 
 function randomCooldownDeg() {
     const span = OBSTACLE_COOLDOWN_MAX_ROT - OBSTACLE_COOLDOWN_MIN_ROT;
     return (OBSTACLE_COOLDOWN_MIN_ROT + Math.random() * span) * 360;
 }
 
-// Which type surfaces next (single type for now; weights come with new types).
+// Which type surfaces next: variety unlocks with the difficulty phases.
 function pickType() {
-    return 'knot';
+    const pool = ['knot'];
+    if (state.elapsed >= BRANCH_FROM_MS) pool.push('branch');
+    if (state.elapsed >= DOUBLE_FROM_MS &&
+        Math.abs(state.logSpeed) <= OBSTACLE_TYPES.double.maxSpeed) {
+        pool.push('double');
+    }
+    return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// A jump clears a part unless the type demands mid-air timing (branch): being
+// within the first/last midAirMarginMs of the jump counts as clipping it.
+function jumpClears(def) {
+    if (!def.midAirMarginMs) return true;
+    const t = Date.now() - state.jumpStartTime;
+    return t >= def.midAirMarginMs && t <= JUMP_DURATION - def.midAirMarginMs;
 }
 
 function showSplash() {
@@ -46,18 +67,16 @@ function showSplash() {
     obstacleSplash.classList.add('active');
 }
 
-// Build the (hidden) obstacle element once per game.
+// Build the (hidden) obstacle container once per game; parts are built on
+// each emerge because their count/offsets depend on the rolled type.
 export function spawnObstacles() {
     obstacleLayer.innerHTML = '';
 
     const el = document.createElement('div');
     el.className = 'obstacle';
-    const inner = document.createElement('div');
-    inner.className = 'obstacle-inner';
-    el.appendChild(inner);
     obstacleLayer.appendChild(el);
 
-    ob = { angle: 0, armed: false, traveled: 0, passedTop: false, type: null, def: null, el, inner };
+    ob = { angle: 0, traveled: 0, passedTop: false, type: null, def: null, parts: [], el };
     el.style.display = 'none';
 
     phase = 'submerged';
@@ -85,25 +104,43 @@ function emerge() {
 
     // Pin to the log's bottom point (screen angle 180) so it surfaces at the water.
     ob.angle = normalizeAngle(180 - state.logAngle);
-    ob.armed = true;
     ob.traveled = 0;
     ob.passedTop = false;
 
+    // Part offsets. The double's second knot trails the first (against the
+    // rotation direction) by a gap the current jump can't cover in one hop.
+    const offsets = [0];
+    if (ob.type === 'double') {
+        const jumpCoverDeg = Math.abs(state.logSpeed) * 60 * (JUMP_DURATION / 1000);
+        const gap = Math.max(24, jumpCoverDeg * 1.5);
+        offsets.push(-state.logDirection * gap);
+    }
+
     ob.el.style.display = 'block';
-    ob.el.style.transform =
-        `translate(-50%, -50%) rotate(${ob.angle}deg) translateY(-${OBSTACLE_RADIUS}px)`;
-    // Reset all state classes and apply the type skin in one go.
-    ob.inner.className = 'obstacle-inner ' + ob.def.cssClass;
-    void ob.inner.offsetWidth;
-    ob.inner.classList.add('emerging');
+    ob.el.innerHTML = '';
+    ob.parts = offsets.map((off) => {
+        const holder = document.createElement('div');
+        holder.className = 'ob-part';
+        holder.style.transform =
+            `rotate(${ob.angle + off}deg) translateY(-${OBSTACLE_RADIUS}px)`;
+        const inner = document.createElement('div');
+        inner.className = 'obstacle-inner ' + ob.def.cssClass;
+        holder.appendChild(inner);
+        ob.el.appendChild(holder);
+        void inner.offsetWidth;
+        inner.classList.add('emerging');
+        return { off, armed: true, passed: false, inner };
+    });
     showSplash();
 
     phase = 'active';
 }
 
 function dive() {
-    ob.inner.classList.remove('emerging');
-    ob.inner.classList.add('diving');
+    for (const part of ob.parts) {
+        part.inner.classList.remove('emerging');
+        part.inner.classList.add('diving');
+    }
     showSplash();
 
     phase = 'submerged';
@@ -126,25 +163,36 @@ export function stepObstacles(logSpeedAbs) {
 
     // phase === 'active'
     let event = null;
-    const d = Math.abs(normalizeAngle(ob.angle - state.userAngle));
-
-    if (ob.armed && d < ob.def.collideWindow) {
-        ob.armed = false;
-        if (state.isJumping) {
-            ob.inner.classList.add('cleared');
-            event = 'cleared';
-        } else if (!state.invulnerable) {
-            ob.inner.classList.add('struck');
-            event = 'hit';
+    for (const part of ob.parts) {
+        if (!part.armed) continue;
+        const d = Math.abs(normalizeAngle(ob.angle + part.off - state.userAngle));
+        if (d < ob.def.collideWindow) {
+            part.armed = false;
+            if (state.isJumping && jumpClears(ob.def)) {
+                part.inner.classList.add('cleared');
+                event = 'cleared';
+            } else if (!state.invulnerable) {
+                part.inner.classList.add('struck');
+                event = 'hit';
+            }
+            break; // at most one collision event per frame
         }
     }
 
     // Track the trip around the log to decide when to dive back into the water.
     ob.traveled += logSpeedAbs;
-    const screenAngle = normalizeAngle(state.logAngle + ob.angle);
-    if (!ob.passedTop && Math.abs(screenAngle) < 30) {
-        ob.passedTop = true;
+    if (!ob.passedTop) {
+        let allPassed = true;
+        for (const part of ob.parts) {
+            if (!part.passed) {
+                const sa = normalizeAngle(state.logAngle + ob.angle + part.off);
+                if (Math.abs(sa) < 30) part.passed = true;
+                else allPassed = false;
+            }
+        }
+        if (allPassed) ob.passedTop = true;
     }
+    const screenAngle = normalizeAngle(state.logAngle + ob.angle);
     if (ob.passedTop && ob.traveled > 200 && Math.abs(normalizeAngle(screenAngle - 180)) < 25) {
         dive();
     }

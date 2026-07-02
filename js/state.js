@@ -44,6 +44,7 @@ export const state = {
 
     // Jump / lives
     isJumping: false,
+    jumpStartTime: 0,   // Date.now() of the last jump start (branch timing check)
     invulnerable: false,
     hp: 2,
 };

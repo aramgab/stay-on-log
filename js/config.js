@@ -45,8 +45,14 @@ export const COLLIDE_WINDOW = 16;
 // Obstacle type table. Each type carries its collision window and CSS class;
 // obstacles.js reads geometry/behavior from here so new types stay data-driven.
 export const OBSTACLE_TYPES = {
-    // Classic mossy knot: any well-timed jump clears it.
+    // Classic mossy knot: any jump clears it.
     knot: { cssClass: 'ob-knot', collideWindow: COLLIDE_WINDOW },
+    // Tall branch: needs a well-timed jump — contact during the very first or
+    // last midAirMarginMs of the jump counts as clipping it (= hit).
+    branch: { cssClass: 'ob-branch', collideWindow: COLLIDE_WINDOW, midAirMarginMs: 80 },
+    // Double knot: two collision points, one jump each (rhythm). Spawns only
+    // below maxSpeed so the speed-scaled gap stays sane.
+    double: { cssClass: 'ob-knot', collideWindow: COLLIDE_WINDOW, maxSpeed: 1.2 },
 };
 // How long the jump lasts (ms). Collisions are ignored while airborne.
 export const JUMP_DURATION = 480;
@@ -70,6 +76,11 @@ export const OBSTACLE_CLEAR_POINTS = 25;
 // 250/400/800-score thresholds (~25/40/80 s).
 export const PHASE1_MS = 40000;
 export const PHASE2_MS = 80000;
+
+// When the new obstacle types join the spawn pool (elapsed ms) — aligned with
+// the difficulty phases so variety ramps with skill.
+export const BRANCH_FROM_MS = PHASE1_MS;
+export const DOUBLE_FROM_MS = PHASE2_MS;
 
 // === BIOMES (time-based scene palette: day -> sunset -> night -> storm) ===
 // Sunset/night are aligned with the difficulty phases so the difficulty ramp

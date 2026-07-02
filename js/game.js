@@ -294,6 +294,7 @@ function registerHit(playerPosition) {
 function doJump() {
     if (!state.isPlaying || state.isJumping) return;
     state.isJumping = true;
+    state.jumpStartTime = Date.now();
     playerEl.classList.add('jumping');
     sfx.jump();
     hapticJump();

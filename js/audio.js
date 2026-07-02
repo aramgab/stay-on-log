@@ -11,27 +11,57 @@ let masterGain = null;
 let noiseBuffer = null;
 let musicEl = null;
 let musicUnavailable = false; // set once the file is found missing, to stop retrying
+let iosUnlocked = false; // set once the zero-gain unlock buffer has been played
 
 export let isMuted = lsGet('stayOnLog_muted') === '1';
 
-// Lazily create the context (call from a user gesture, e.g. the Start tap).
-export function initAudio() {
-    if (ctx) {
-        if (ctx.state === 'suspended') ctx.resume();
-        return;
-    }
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    ctx = new AC();
-    masterGain = ctx.createGain();
-    masterGain.gain.value = isMuted ? 0 : 1;
-    masterGain.connect(ctx.destination);
+// Play a near-silent zero-length buffer once, inside a user gesture. This is
+// the classic iOS Safari/WebKit trick to fully unlock audio output — resuming
+// the context alone doesn't always get real sound flowing on iOS.
+function unlockIOSAudio() {
+    if (iosUnlocked || !ctx) return;
+    iosUnlocked = true;
+    try {
+        const buffer = ctx.createBuffer(1, 1, 22050);
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        src.connect(ctx.destination);
+        if (src.start) src.start(0);
+        else if (src.noteOn) src.noteOn(0);
+    } catch (e) { /* ignore */ }
+}
 
-    // Pre-build a short white-noise buffer for splash / hit textures.
-    const len = Math.floor(ctx.sampleRate * 0.5);
-    noiseBuffer = ctx.createBuffer(1, len, ctx.sampleRate);
-    const data = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+// Lazily create the context (call from a user gesture, e.g. the Start tap).
+// Safe to call from EVERY user gesture (tap-to-jump, how-to "Go", nickname
+// save, mute toggle, Start): iOS can suspend/interrupt the context at any
+// time (app switch, notification, phone call, silent-switch flip), so a
+// single resume() at Start isn't enough — we need to re-resume on demand.
+export function initAudio() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!ctx) {
+        if (!AC) return;
+        ctx = new AC();
+        masterGain = ctx.createGain();
+        masterGain.gain.value = isMuted ? 0 : 1;
+        masterGain.connect(ctx.destination);
+
+        // Pre-build a short white-noise buffer for splash / hit textures.
+        const len = Math.floor(ctx.sampleRate * 0.5);
+        noiseBuffer = ctx.createBuffer(1, len, ctx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    }
+
+    // 'suspended' happens before first resume or after some backgrounding;
+    // 'interrupted' is WebKit-specific (phone call, Siri, control center...).
+    if (ctx.state === 'suspended' || ctx.state === 'interrupted') {
+        try {
+            const p = ctx.resume();
+            if (p && p.catch) p.catch(() => { /* ignore — will retry on next gesture */ });
+        } catch (e) { /* ignore */ }
+    }
+
+    unlockIOSAudio();
 }
 
 // One-shot tone with an attack/decay envelope.

@@ -552,15 +552,22 @@ function gameOver(normPos) {
 startBtn.addEventListener('click', handleStartClick);
 playerNameEl.addEventListener('click', showNicknameOverlay);
 // Arrow wrapper so the re-assignable `saveNickname` (auto-start trick) is
-// resolved at click time, not at wiring time.
-nicknameSaveBtn.addEventListener('click', () => saveNickname());
+// resolved at click time, not at wiring time. Also unlocks audio: for a
+// first-time player this "Играть!" tap can be the first gesture of the
+// whole session (nickname overlay appears before Start ever gets clicked).
+nicknameSaveBtn.addEventListener('click', () => { initAudio(); saveNickname(); });
 nicknameInput.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') saveNickname();
 });
 
 // Tap anywhere during play to jump over obstacles (but not on the mute button / dev panel).
+// Also doubles as a cheap audio-unlock hook: iOS can suspend/interrupt the
+// AudioContext after it was first created (backgrounding, notifications, the
+// silent-switch), so re-running initAudio() on every tap keeps it resumed
+// instead of relying solely on the one-time unlock at Start.
 document.addEventListener('pointerdown', function (e) {
     if (e.target.closest && e.target.closest('#mute-btn, #howto-btn, #howto-overlay, #dev-tune')) return;
+    initAudio();
     if (state.isPlaying) doJump();
 });
 
@@ -579,7 +586,10 @@ function closeHowto() {
     lsSet('stayOnLog_seenHowto', '1');
 }
 howtoBtn.addEventListener('click', openHowto);
-howtoGoBtn.addEventListener('click', closeHowto);
+howtoGoBtn.addEventListener('click', function () {
+    initAudio(); // this "Поехали!" tap may be the very first user gesture
+    closeHowto();
+});
 howtoSensRange.addEventListener('input', function () {
     setSensitivity(+howtoSensRange.value);
     howtoSensVal.textContent = (+howtoSensRange.value).toFixed(2);

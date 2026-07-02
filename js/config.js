@@ -59,7 +59,9 @@ export const OBSTACLE_TYPES = {
     double: { cssClass: 'ob-knot', collideWindow: COLLIDE_WINDOW, maxSpeed: 1.2 },
 };
 // How long the jump lasts (ms). Collisions are ignored while airborne.
-export const JUMP_DURATION = 480;
+// Must equal the #player.jumping CSS animation duration (playerJump keyframes
+// in css/styles.css) — keep both in sync when tuning.
+export const JUMP_DURATION = 620;
 // Lives. First hit warns, last hit drops the player into the water.
 export const START_HP = 2;
 // Invulnerability window (ms) after a non-fatal hit.

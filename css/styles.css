@@ -1542,23 +1542,29 @@ body.biome-storm .lightning {
     }
 }
 
-/* Jump (tap) — preserves the translateX(-50%) centering */
+/* Jump (tap) — preserves the translateX(-50%) centering.
+   Natural parabolic arc: rising half eases out (fast leave-ground, slowing
+   into the apex), falling half eases in (accelerating like real gravity into
+   the landing). Per-keyframe timing-functions shape the arc, so the
+   shorthand below carries no easing of its own. Duration must match
+   JUMP_DURATION in js/config.js. */
 #player.jumping {
-    /* easeOutQuint = very fast take-off, so the hop reads as instant on tap */
-    animation: playerJump 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+    animation: playerJump 0.62s;
 }
 
 @keyframes playerJump {
     0% {
-        transform: translateX(-50%) translateY(0);
+        transform: translateX(-50%) translateY(0) scaleY(1);
+        animation-timing-function: cubic-bezier(0.33, 0.66, 0.66, 1);
     }
 
-    28% {
-        transform: translateX(-50%) translateY(-54px);
+    50% {
+        transform: translateX(-50%) translateY(-58px) scaleY(1.04);
+        animation-timing-function: cubic-bezier(0.33, 0, 0.66, 0.33);
     }
 
     100% {
-        transform: translateX(-50%) translateY(0);
+        transform: translateX(-50%) translateY(0) scaleY(1);
     }
 }
 

@@ -16,6 +16,9 @@ import {
     OBSTACLE_CLEAR_POINTS,
     PHASE1_MS,
     PHASE2_MS,
+    BIOME_SUNSET_MS,
+    BIOME_NIGHT_MS,
+    BIOME_STORM_MS,
 } from './config.js';
 import {
     logWrapper,
@@ -76,6 +79,25 @@ const devMode = new URLSearchParams(location.search).has('dev');
 const DEV_KEY_SPEED = 2.5; // deg/frame the arrow keys move the player on the log
 const devKeys = { left: false, right: false };
 
+// === BIOMES (scene palette follows the difficulty ramp) ===
+const BIOME_CLASSES = ['biome-day', 'biome-sunset', 'biome-night', 'biome-storm'];
+let currentBiome = '';
+
+function biomeFor(elapsed) {
+    if (elapsed >= BIOME_STORM_MS) return 'biome-storm';
+    if (elapsed >= BIOME_NIGHT_MS) return 'biome-night';
+    if (elapsed >= BIOME_SUNSET_MS) return 'biome-sunset';
+    return 'biome-day';
+}
+
+function applyBiome(elapsed) {
+    const next = biomeFor(elapsed);
+    if (next === currentBiome) return;
+    currentBiome = next;
+    document.body.classList.remove(...BIOME_CLASSES);
+    document.body.classList.add(next);
+}
+
 // === MAIN GAME LOOP ===
 function gameLoop() {
     if (!state.isPlaying) return;
@@ -113,6 +135,9 @@ function gameLoop() {
     } else if (obEvent === 'hit' && registerHit(playerPosition)) {
         return; // fatal hit — loop stopped inside gameOver
     }
+
+    // 2c. Scene palette follows elapsed time (day -> sunset -> night -> storm)
+    applyBiome(state.elapsed);
 
     // 3. Score = small survival trickle + event points (skill-weighted)
     state.score = Math.floor(state.elapsed / SURVIVAL_MS_PER_POINT) + state.eventScore;
@@ -359,6 +384,7 @@ function showCountdown() {
     state.isJumping = false;
     state.invulnerable = false;
     resetObstacles();
+    applyBiome(0); // back to day for the new run
 
     // Hide falling player & splash from prev game — full reset
     fallingPlayerEl.classList.remove('active');
@@ -580,3 +606,4 @@ function buildTunePanel() {
 // Show high score and nickname on load
 updateHighScoreDisplay();
 updatePlayerNameDisplay();
+applyBiome(0);

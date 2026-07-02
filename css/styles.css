@@ -4,11 +4,63 @@
 
 /* === PALETTE ===
    Central color tokens so biomes/skins can retint the scene by swapping
-   variables instead of touching individual rules. */
+   variables instead of touching individual rules.
+   Registered via @property so the biome swap crossfades smoothly even though
+   the colors live inside gradients (falls back to an instant swap in old
+   webviews that lack @property). */
+@property --sky-top {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #2a5f9e;
+}
+
+@property --sky-mid {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #4a85c2;
+}
+
+@property --sky-bottom {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #7fb2d9;
+}
+
+@property --water-1 {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #1a6eb5;
+}
+
+@property --water-2 {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #0d3d6b;
+}
+
+@property --water-3 {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #082040;
+}
+
+@property --wave-back {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(30, 100, 180, 0.5);
+}
+
+@property --wave-front {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(40, 130, 210, 0.6);
+}
+
 :root {
-    --sky-top: #0d1b2a;
-    --sky-mid: #1b2838;
-    --sky-bottom: #1a2a3a;
+    /* Day (default biome) */
+    --sky-top: #2a5f9e;
+    --sky-mid: #4a85c2;
+    --sky-bottom: #7fb2d9;
     --water-1: #1a6eb5;
     --water-2: #0d3d6b;
     --water-3: #082040;
@@ -17,8 +69,47 @@
     --warn: #ffd93d;
 }
 
+/* === BIOMES (game.js swaps these classes on <body> over elapsed time) === */
+body.biome-sunset {
+    --sky-top: #3d2c66;
+    --sky-mid: #a04a3f;
+    --sky-bottom: #e0954f;
+    --water-1: #6e4a8c;
+    --water-2: #3a2a5e;
+    --water-3: #1a1232;
+    --wave-back: rgba(200, 110, 70, 0.45);
+    --wave-front: rgba(235, 150, 90, 0.55);
+}
+
+body.biome-night {
+    --sky-top: #0d1b2a;
+    --sky-mid: #1b2838;
+    --sky-bottom: #1a2a3a;
+    --water-1: #14528a;
+    --water-2: #0a3055;
+    --water-3: #051a30;
+    --wave-back: rgba(40, 90, 150, 0.5);
+    --wave-front: rgba(70, 120, 190, 0.55);
+}
+
+body.biome-storm {
+    --sky-top: #10131a;
+    --sky-mid: #2a2f3d;
+    --sky-bottom: #232834;
+    --water-1: #2e4a5a;
+    --water-2: #16262e;
+    --water-3: #0a1216;
+    --wave-back: rgba(140, 160, 175, 0.5);
+    --wave-front: rgba(170, 195, 210, 0.6);
+}
+
 body {
     background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 40%, var(--sky-bottom) 100%);
+    /* Smooth biome crossfade: the registered custom properties interpolate,
+       and every gradient/fill built from them follows along. */
+    transition: --sky-top 2.5s ease, --sky-mid 2.5s ease, --sky-bottom 2.5s ease,
+        --water-1 2.5s ease, --water-2 2.5s ease, --water-3 2.5s ease,
+        --wave-back 2.5s ease, --wave-front 2.5s ease;
     color: white;
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
     display: flex;

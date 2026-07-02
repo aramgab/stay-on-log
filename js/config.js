@@ -64,3 +64,10 @@ export const OBSTACLE_CLEAR_POINTS = 25;
 // 250/400/800-score thresholds (~25/40/80 s).
 export const PHASE1_MS = 40000;
 export const PHASE2_MS = 80000;
+
+// === BIOMES (time-based scene palette: day -> sunset -> night -> storm) ===
+// Sunset/night are aligned with the difficulty phases so the difficulty ramp
+// is visible in the scenery; storm is the "you are good" late-game look.
+export const BIOME_SUNSET_MS = PHASE1_MS;
+export const BIOME_NIGHT_MS = PHASE2_MS;
+export const BIOME_STORM_MS = 140000;

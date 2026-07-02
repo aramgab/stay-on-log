@@ -615,6 +615,60 @@ body.biome-storm .lightning {
     }
 }
 
+/* === CHARACTER FACE / EXPRESSIONS ===
+   Toggled purely in CSS off the existing .jumping / .hit classes; the
+   jump/hit keyframes themselves are untouched. */
+#player .head {
+    animation: headBob 0.7s ease-in-out infinite alternate;
+}
+
+@keyframes headBob {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(-1.2px);
+    }
+}
+
+/* Default: open eyes + smile; alt mouths/eyes hidden */
+#player .eye-shut,
+#player .mouth-o,
+#player .mouth-sad {
+    opacity: 0;
+}
+
+/* Jump: wide eyes + "o" mouth */
+#player.jumping .mouth-smile {
+    opacity: 0;
+}
+
+#player.jumping .mouth-o {
+    opacity: 1;
+}
+
+#player.jumping .eye-open {
+    transform: scale(1.18);
+    transform-origin: 26px 8px;
+}
+
+/* Hit: eyes shut, brow down, sad mouth */
+#player.hit .eye-open,
+#player.hit .mouth-smile {
+    opacity: 0;
+}
+
+#player.hit .eye-shut,
+#player.hit .mouth-sad {
+    opacity: 1;
+}
+
+#player.hit .brow {
+    transform: rotate(14deg);
+    transform-origin: 26px 5px;
+}
+
 /* Running leg animation */
 .leg-back {
     animation: legSwingBack 0.35s ease-in-out infinite alternate;

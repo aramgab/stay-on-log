@@ -62,6 +62,12 @@
     initial-value: rgba(255, 255, 255, 0.75);
 }
 
+@property --wave-far {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(20, 80, 150, 0.35);
+}
+
 :root {
     /* Day (default biome) */
     --sky-top: #2a5f9e;
@@ -72,6 +78,7 @@
     --water-3: #082040;
     --wave-back: rgba(30, 100, 180, 0.5);
     --wave-front: rgba(40, 130, 210, 0.6);
+    --wave-far: rgba(20, 80, 150, 0.35);
     --cloud: rgba(255, 255, 255, 0.75);
     --warn: #ffd93d;
 }
@@ -86,6 +93,7 @@ body.biome-sunset {
     --water-3: #1a1232;
     --wave-back: rgba(200, 110, 70, 0.45);
     --wave-front: rgba(235, 150, 90, 0.55);
+    --wave-far: rgba(170, 90, 60, 0.3);
     --cloud: rgba(255, 200, 160, 0.65);
 }
 
@@ -98,6 +106,7 @@ body.biome-night {
     --water-3: #051a30;
     --wave-back: rgba(40, 90, 150, 0.5);
     --wave-front: rgba(70, 120, 190, 0.55);
+    --wave-far: rgba(30, 70, 120, 0.35);
     --cloud: rgba(140, 160, 190, 0.3);
 }
 
@@ -110,6 +119,7 @@ body.biome-storm {
     --water-3: #0a1216;
     --wave-back: rgba(140, 160, 175, 0.5);
     --wave-front: rgba(170, 195, 210, 0.6);
+    --wave-far: rgba(110, 130, 145, 0.35);
     --cloud: rgba(85, 95, 110, 0.85);
 }
 
@@ -119,7 +129,8 @@ body {
        and every gradient/fill built from them follows along. */
     transition: --sky-top 2.5s ease, --sky-mid 2.5s ease, --sky-bottom 2.5s ease,
         --water-1 2.5s ease, --water-2 2.5s ease, --water-3 2.5s ease,
-        --wave-back 2.5s ease, --wave-front 2.5s ease, --cloud 2.5s ease;
+        --wave-back 2.5s ease, --wave-front 2.5s ease, --wave-far 2.5s ease,
+        --cloud 2.5s ease;
     color: white;
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
     display: flex;
@@ -699,6 +710,81 @@ body.biome-storm .lightning {
 
 .wave-front path {
     fill: var(--wave-front);
+}
+
+.wave-far {
+    top: 6px;
+    animation: waveMove 6s ease-in-out infinite;
+}
+
+.wave-far path {
+    fill: var(--wave-far);
+}
+
+/* Foam line drifting along the waterline crest */
+#foam-line {
+    position: absolute;
+    top: 30px;
+    left: -10%;
+    width: 120%;
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35) 15%,
+            rgba(255, 255, 255, 0.18) 50%, rgba(255, 255, 255, 0.35) 85%, transparent);
+    filter: blur(1px);
+    animation: foamDrift 5s ease-in-out infinite alternate;
+}
+
+@keyframes foamDrift {
+    from {
+        transform: translateX(-2%);
+    }
+
+    to {
+        transform: translateX(2%);
+    }
+}
+
+/* Elongated light reflections breathing on the water (under the sun/moon) */
+.reflection {
+    position: absolute;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    filter: blur(2px);
+    animation: reflectBreathe 5s ease-in-out infinite alternate;
+}
+
+.reflection.r1 {
+    top: 52px;
+    left: 58%;
+    width: 90px;
+}
+
+.reflection.r2 {
+    top: 74px;
+    left: 63%;
+    width: 60px;
+    animation-duration: 6.5s;
+}
+
+.reflection.r3 {
+    top: 98px;
+    left: 55%;
+    width: 110px;
+    animation-duration: 7.5s;
+}
+
+@keyframes reflectBreathe {
+    from {
+        opacity: 0.35;
+        transform: scaleX(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scaleX(1.06);
+    }
 }
 
 @keyframes waveMove {

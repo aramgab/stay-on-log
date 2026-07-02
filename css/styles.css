@@ -56,6 +56,12 @@
     initial-value: rgba(40, 130, 210, 0.6);
 }
 
+@property --cloud {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.75);
+}
+
 :root {
     /* Day (default biome) */
     --sky-top: #2a5f9e;
@@ -66,6 +72,7 @@
     --water-3: #082040;
     --wave-back: rgba(30, 100, 180, 0.5);
     --wave-front: rgba(40, 130, 210, 0.6);
+    --cloud: rgba(255, 255, 255, 0.75);
     --warn: #ffd93d;
 }
 
@@ -79,6 +86,7 @@ body.biome-sunset {
     --water-3: #1a1232;
     --wave-back: rgba(200, 110, 70, 0.45);
     --wave-front: rgba(235, 150, 90, 0.55);
+    --cloud: rgba(255, 200, 160, 0.65);
 }
 
 body.biome-night {
@@ -90,6 +98,7 @@ body.biome-night {
     --water-3: #051a30;
     --wave-back: rgba(40, 90, 150, 0.5);
     --wave-front: rgba(70, 120, 190, 0.55);
+    --cloud: rgba(140, 160, 190, 0.3);
 }
 
 body.biome-storm {
@@ -101,6 +110,7 @@ body.biome-storm {
     --water-3: #0a1216;
     --wave-back: rgba(140, 160, 175, 0.5);
     --wave-front: rgba(170, 195, 210, 0.6);
+    --cloud: rgba(85, 95, 110, 0.85);
 }
 
 body {
@@ -109,7 +119,7 @@ body {
        and every gradient/fill built from them follows along. */
     transition: --sky-top 2.5s ease, --sky-mid 2.5s ease, --sky-bottom 2.5s ease,
         --water-1 2.5s ease, --water-2 2.5s ease, --water-3 2.5s ease,
-        --wave-back 2.5s ease, --wave-front 2.5s ease;
+        --wave-back 2.5s ease, --wave-front 2.5s ease, --cloud 2.5s ease;
     color: white;
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
     display: flex;
@@ -121,6 +131,205 @@ body {
     overflow: hidden;
     touch-action: none;
     user-select: none;
+}
+
+/* === SKY DECOR (behind the play field; biome-tinted) === */
+#sky {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* Sun by day/sunset, moon by night, hidden in the storm. */
+#celestial {
+    position: absolute;
+    top: 10%;
+    left: 72%;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #ffd75e;
+    box-shadow: 0 0 60px 22px rgba(255, 215, 94, 0.45);
+    transition: top 2.5s ease, left 2.5s ease, background-color 2.5s ease,
+        box-shadow 2.5s ease, opacity 2.5s ease;
+}
+
+body.biome-sunset #celestial {
+    top: 44%;
+    left: 60%;
+    background: #ff9440;
+    box-shadow: 0 0 70px 28px rgba(255, 130, 60, 0.5);
+}
+
+body.biome-night #celestial {
+    top: 9%;
+    left: 66%;
+    background: #e8eef5;
+    box-shadow: 0 0 40px 12px rgba(200, 220, 255, 0.35);
+}
+
+body.biome-storm #celestial {
+    opacity: 0;
+}
+
+/* Drifting clouds (pill + two lumps), tinted per biome via --cloud. */
+.cloud {
+    position: absolute;
+    left: -200px;
+    height: 26px;
+    border-radius: 999px;
+    background: var(--cloud);
+    will-change: transform;
+}
+
+.cloud::before,
+.cloud::after {
+    content: '';
+    position: absolute;
+    background: inherit;
+    border-radius: 50%;
+}
+
+.cloud::before {
+    width: 34px;
+    height: 34px;
+    top: -16px;
+    left: 18%;
+}
+
+.cloud::after {
+    width: 24px;
+    height: 24px;
+    top: -10px;
+    right: 18%;
+}
+
+.cloud.c1 {
+    top: 8%;
+    width: 120px;
+    animation: cloudDrift 75s linear infinite;
+    animation-delay: -30s;
+}
+
+.cloud.c2 {
+    top: 18%;
+    width: 160px;
+    height: 30px;
+    animation: cloudDrift 105s linear infinite;
+    animation-delay: -70s;
+}
+
+.cloud.c3 {
+    top: 30%;
+    width: 90px;
+    height: 20px;
+    opacity: 0.7;
+    animation: cloudDrift 55s linear infinite;
+    animation-delay: -12s;
+}
+
+@keyframes cloudDrift {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(calc(100vw + 400px));
+    }
+}
+
+/* Stars: two dot layers (one twinkles), visible at night, faint in the storm. */
+.stars {
+    position: absolute;
+    inset: 0 0 40% 0;
+    opacity: 0;
+    transition: opacity 2.5s ease;
+}
+
+.stars::before,
+.stars::after {
+    content: '';
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: #fff;
+}
+
+.stars::before {
+    box-shadow: 4vw 6vh 0 #fff, 11vw 14vh 0 #fff, 18vw 4vh 0 #fff, 26vw 18vh 0 #fff,
+        33vw 8vh 0 #fff, 41vw 15vh 0 #fff, 49vw 5vh 0 #fff, 57vw 12vh 0 #fff,
+        64vw 3vh 0 #fff, 72vw 17vh 0 #fff, 80vw 7vh 0 #fff, 88vw 13vh 0 #fff,
+        95vw 5vh 0 #fff, 8vw 24vh 0 #fff, 22vw 28vh 0 #fff, 38vw 25vh 0 #fff,
+        55vw 30vh 0 #fff, 70vw 26vh 0 #fff, 85vw 29vh 0 #fff, 93vw 22vh 0 #fff;
+}
+
+.stars::after {
+    width: 3px;
+    height: 3px;
+    box-shadow: 15vw 9vh 0 #fff, 30vw 20vh 0 #fff, 46vw 11vh 0 #fff,
+        61vw 22vh 0 #fff, 76vw 4vh 0 #fff, 90vw 16vh 0 #fff, 6vw 31vh 0 #fff,
+        50vw 34vh 0 #fff, 82vw 33vh 0 #fff;
+    animation: twinkle 3.4s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.35;
+    }
+}
+
+body.biome-night .stars {
+    opacity: 1;
+}
+
+body.biome-storm .stars {
+    opacity: 0.15;
+}
+
+/* Storm lightning: a periodic double flash across the top of the sky. */
+.lightning {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.9),
+            rgba(180, 200, 255, 0.35) 45%, transparent 75%);
+    opacity: 0;
+}
+
+body.biome-storm .lightning {
+    animation: lightningFlash 8s linear infinite;
+}
+
+@keyframes lightningFlash {
+
+    0%,
+    91% {
+        opacity: 0;
+    }
+
+    92% {
+        opacity: 0.85;
+    }
+
+    93.5% {
+        opacity: 0.1;
+    }
+
+    95% {
+        opacity: 0.6;
+    }
+
+    100% {
+        opacity: 0;
+    }
 }
 
 /* === UI LAYER === */

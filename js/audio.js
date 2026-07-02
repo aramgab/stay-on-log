@@ -77,6 +77,15 @@ export const sfx = {
     hit() { tone('sawtooth', 280, 90, 0.25, 0.25); noise(0.18, 1800, 400, 0.18); },
     splash() { noise(0.5, 2400, 200, 0.35); },
     point() { tone('sine', 880, 1320, 0.12, 0.2); },
+    // Combo reward: two quick rising notes; pitch climbs with the multiplier.
+    combo(mult) {
+        if (!ctx) return;
+        const base = 880 * (1 + 0.12 * Math.min(mult, 8));
+        tone('sine', base, base * 1.5, 0.1, 0.2);
+        setTimeout(() => tone('sine', base * 1.25, base * 1.9, 0.12, 0.2), 90);
+    },
+    // Soft filtered-noise up-sweep for biome/scene transitions.
+    whoosh() { noise(0.6, 300, 2800, 0.12); },
 };
 
 export const music = {

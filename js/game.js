@@ -106,6 +106,8 @@ function applyBiome(elapsed) {
     currentBiome = next;
     document.body.classList.remove(...BIOME_CLASSES);
     document.body.classList.add(next);
+    // Mark the transition audibly mid-run (not on the reset back to day).
+    if (state.isPlaying && elapsed > 0) sfx.whoosh();
 }
 
 // === MAIN GAME LOOP ===
@@ -143,7 +145,8 @@ function gameLoop() {
         const mult = Math.min(state.combo, COMBO_MAX_MULT);
         const pts = OBSTACLE_CLEAR_POINTS * mult;
         state.eventScore += pts;
-        sfx.point();
+        if (mult > 1) sfx.combo(mult);
+        else sfx.point();
         const xy = playerXY();
         burst(xy.x, xy.y, { color: '#6b4423', count: 10, size: 6, up: 50 });
         floatText(xy.x, xy.y - 26, '+' + pts + (mult > 1 ? ' ×' + mult : ''));

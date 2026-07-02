@@ -15,7 +15,7 @@ import {
     OBSTACLE_COOLDOWN_MIN_ROT,
     OBSTACLE_COOLDOWN_MAX_ROT,
     FIRST_EMERGE_ROT,
-    COLLIDE_WINDOW,
+    OBSTACLE_TYPES,
 } from './config.js';
 import { obstacleLayer, obstacleSplash } from './dom.js';
 
@@ -28,11 +28,16 @@ function normalizeAngle(deg) {
 let phase = 'submerged';
 let accum = 0;            // accumulated |rotation| (deg) while submerged
 let cooldownTarget = 0;   // deg of rotation to wait before surfacing
-let ob = null;            // { angle, armed, traveled, passedTop, inner }
+let ob = null;            // { angle, armed, traveled, passedTop, type, def, el, inner }
 
 function randomCooldownDeg() {
     const span = OBSTACLE_COOLDOWN_MAX_ROT - OBSTACLE_COOLDOWN_MIN_ROT;
     return (OBSTACLE_COOLDOWN_MIN_ROT + Math.random() * span) * 360;
+}
+
+// Which type surfaces next (single type for now; weights come with new types).
+function pickType() {
+    return 'knot';
 }
 
 function showSplash() {
@@ -52,7 +57,7 @@ export function spawnObstacles() {
     el.appendChild(inner);
     obstacleLayer.appendChild(el);
 
-    ob = { angle: 0, armed: false, traveled: 0, passedTop: false, el, inner };
+    ob = { angle: 0, armed: false, traveled: 0, passedTop: false, type: null, def: null, el, inner };
     el.style.display = 'none';
 
     phase = 'submerged';
@@ -75,6 +80,9 @@ export function renderObstacleLayer() {
 }
 
 function emerge() {
+    ob.type = pickType();
+    ob.def = OBSTACLE_TYPES[ob.type];
+
     // Pin to the log's bottom point (screen angle 180) so it surfaces at the water.
     ob.angle = normalizeAngle(180 - state.logAngle);
     ob.armed = true;
@@ -84,8 +92,8 @@ function emerge() {
     ob.el.style.display = 'block';
     ob.el.style.transform =
         `translate(-50%, -50%) rotate(${ob.angle}deg) translateY(-${OBSTACLE_RADIUS}px)`;
-    ob.inner.classList.remove('cleared', 'struck', 'diving');
-    ob.inner.classList.remove('emerging');
+    // Reset all state classes and apply the type skin in one go.
+    ob.inner.className = 'obstacle-inner ' + ob.def.cssClass;
     void ob.inner.offsetWidth;
     ob.inner.classList.add('emerging');
     showSplash();
@@ -120,7 +128,7 @@ export function stepObstacles(logSpeedAbs) {
     let event = null;
     const d = Math.abs(normalizeAngle(ob.angle - state.userAngle));
 
-    if (ob.armed && d < COLLIDE_WINDOW) {
+    if (ob.armed && d < ob.def.collideWindow) {
         ob.armed = false;
         if (state.isJumping) {
             ob.inner.classList.add('cleared');

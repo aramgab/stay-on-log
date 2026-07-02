@@ -1043,19 +1043,37 @@ body.biome-storm .lightning {
     height: 0;
 }
 
-/* The visible spike. Triangle pointing outward from the log surface. */
+/* The visible obstacle. Type skins (.ob-*) draw the actual shape; the base
+   only positions and animates. Grows outward from the log surface. */
 .obstacle-inner {
     position: absolute;
     left: -11px;
     bottom: 0;
-    width: 0;
-    height: 0;
-    border-left: 11px solid transparent;
-    border-right: 11px solid transparent;
-    border-bottom: 28px solid #2e1a0a;
+    width: 22px;
+    height: 26px;
     transform-origin: 50% 100%;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
     transition: opacity 0.2s ease;
+}
+
+/* Mossy knot: dark stump with a bright moss cap and a light contrast ring
+   so it reads against the bark in any biome. */
+.obstacle-inner.ob-knot {
+    background: linear-gradient(180deg, #5a3a1c, #3a2410);
+    border-radius: 45% 45% 30% 30%;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+
+.obstacle-inner.ob-knot::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: -3px;
+    right: -3px;
+    height: 12px;
+    background: #7cb342;
+    border-radius: 50% 50% 40% 40%;
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25);
 }
 
 .obstacle-inner.cleared {
@@ -1063,7 +1081,8 @@ body.biome-storm .lightning {
 }
 
 .obstacle-inner.struck {
-    border-bottom-color: #ff5252;
+    background: linear-gradient(180deg, #a03226, #5a1a10);
+    box-shadow: 0 0 0 2px rgba(255, 80, 80, 0.9);
 }
 
 /* Surface out of the water (grow up from the log surface + fade in) */

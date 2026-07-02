@@ -42,6 +42,12 @@ export const OBSTACLE_COOLDOWN_MAX_ROT = 3;
 export const FIRST_EMERGE_ROT = 0.7;
 // Angular window (deg) within which the obstacle collides with the player.
 export const COLLIDE_WINDOW = 16;
+// Obstacle type table. Each type carries its collision window and CSS class;
+// obstacles.js reads geometry/behavior from here so new types stay data-driven.
+export const OBSTACLE_TYPES = {
+    // Classic mossy knot: any well-timed jump clears it.
+    knot: { cssClass: 'ob-knot', collideWindow: COLLIDE_WINDOW },
+};
 // How long the jump lasts (ms). Collisions are ignored while airborne.
 export const JUMP_DURATION = 480;
 // Lives. First hit warns, last hit drops the player into the water.

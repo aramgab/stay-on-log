@@ -2,8 +2,23 @@
     box-sizing: border-box;
 }
 
+/* === PALETTE ===
+   Central color tokens so biomes/skins can retint the scene by swapping
+   variables instead of touching individual rules. */
+:root {
+    --sky-top: #0d1b2a;
+    --sky-mid: #1b2838;
+    --sky-bottom: #1a2a3a;
+    --water-1: #1a6eb5;
+    --water-2: #0d3d6b;
+    --water-3: #082040;
+    --wave-back: rgba(30, 100, 180, 0.5);
+    --wave-front: rgba(40, 130, 210, 0.6);
+    --warn: #ffd93d;
+}
+
 body {
-    background: linear-gradient(180deg, #0d1b2a 0%, #1b2838 40%, #1a2a3a 100%);
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 40%, var(--sky-bottom) 100%);
     color: white;
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
     display: flex;
@@ -378,6 +393,14 @@ body {
     animation: waveMove 3s ease-in-out infinite reverse;
 }
 
+.wave-back path {
+    fill: var(--wave-back);
+}
+
+.wave-front path {
+    fill: var(--wave-front);
+}
+
 @keyframes waveMove {
 
     0%,
@@ -396,7 +419,7 @@ body {
     left: 0;
     width: 100%;
     height: calc(100% - 35px);
-    background: linear-gradient(180deg, #1a6eb5 0%, #0d3d6b 50%, #082040 100%);
+    background: linear-gradient(180deg, var(--water-1) 0%, var(--water-2) 50%, var(--water-3) 100%);
 }
 
 /* === SPLASH === */
@@ -459,7 +482,7 @@ body {
     transform: translate(-50%, -50%);
     font-size: 28px;
     font-weight: 900;
-    color: #ffd93d;
+    color: var(--warn);
     text-shadow: 0 0 20px rgba(255, 217, 61, 0.5);
     z-index: 50;
     display: none;

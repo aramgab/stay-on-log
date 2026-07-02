@@ -607,6 +607,25 @@ body.biome-storm .lightning {
     justify-content: center;
 }
 
+/* === SCENE (camera wrapper for the camera-lock experiment) ===
+   A large square centered on the log center: gameLoop counter-rotates it so
+   the player stays at the screen top and the world tilts instead. 170vmax
+   leaves no screen-corner gaps at any rotation. Centered with margins, NOT a
+   translate transform — JS overwrites the inline transform with rotate()
+   every frame. With CAMERA_LOCK_TOP=false it just sits unrotated. */
+#scene {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 170vmax;
+    height: 170vmax;
+    margin: -85vmax 0 0 -85vmax;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    will-change: transform;
+}
+
 /* === GAME CONTAINER === */
 #game-container {
     position: relative;
@@ -797,12 +816,16 @@ body.biome-storm .lightning {
 }
 
 /* === WATER === */
+/* Anchored to the log center (scene center) instead of the viewport bottom:
+   the top edge sits at center + 15dvh — exactly where bottom:0/height:35%
+   put it before — and the body extends to the scene's bottom so no gaps
+   show at any camera rotation. */
 #water-container {
     position: absolute;
+    top: calc(50% + 15dvh);
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 35%;
     z-index: 2;
     overflow: hidden;
     pointer-events: none;

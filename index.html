@@ -73,6 +73,11 @@
     </div>
 
     <div id="game-area">
+        <!-- Camera wrapper: gameLoop counter-rotates it in camera-lock mode so
+             the player stays at the screen top and the world tilts instead.
+             Only the log block and the water live here — fall/splash/hints
+             stay outside, in unrotated screen space. -->
+        <div id="scene">
         <div id="game-container">
             <!-- Log wrapper for rotation -->
             <div id="log-wrapper">
@@ -214,6 +219,7 @@
             <div class="reflection r1"></div>
             <div class="reflection r2"></div>
             <div class="reflection r3"></div>
+        </div>
         </div>
 
         <!-- Falling player clone (for fall animation) -->

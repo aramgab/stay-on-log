@@ -1,16 +1,16 @@
 // === AUDIO ===
-// Synthesized sound effects via the Web Audio API (no asset files needed), plus
-// an optional background music track loaded from audio/music.mp3 if present.
+// Synthesized sound effects AND a fully procedural background soundtrack, both
+// via the Web Audio API — no asset files anywhere in this project. The music
+// mood (tempo, scale, root note, texture density) follows the current biome.
 // Everything respects a persisted mute flag. The AudioContext is created lazily
 // and resumed on the first user gesture (mobile browsers require this).
 
-import { lsGet, lsSet } from './state.js';
+import { lsGet, lsSet, state } from './state.js';
 
 let ctx = null;
 let masterGain = null;
+let musicGain = null; // separate bus so the soundtrack stays under the SFX
 let noiseBuffer = null;
-let musicEl = null;
-let musicUnavailable = false; // set once the file is found missing, to stop retrying
 let iosUnlocked = false; // set once the zero-gain unlock buffer has been played
 
 export let isMuted = lsGet('stayOnLog_muted') === '1';
@@ -44,6 +44,12 @@ export function initAudio() {
         masterGain = ctx.createGain();
         masterGain.gain.value = isMuted ? 0 : 1;
         masterGain.connect(ctx.destination);
+
+        // Music bus: scales the whole soundtrack down relative to SFX, sits
+        // in front of masterGain so mute silences both in one place.
+        musicGain = ctx.createGain();
+        musicGain.gain.value = 1;
+        musicGain.connect(masterGain);
 
         // Pre-build a short white-noise buffer for splash / hit textures.
         const len = Math.floor(ctx.sampleRate * 0.5);
@@ -118,31 +124,152 @@ export const sfx = {
     whoosh() { noise(0.6, 300, 2800, 0.12); },
 };
 
-export const music = {
-    start() {
-        if (isMuted || musicUnavailable) return;
-        if (!musicEl) {
-            musicEl = new Audio('audio/music.mp3');
-            musicEl.loop = true;
-            musicEl.volume = 0.5;
-            // No file yet → mark unavailable so we don't keep re-requesting it.
-            musicEl.addEventListener('error', () => { musicUnavailable = true; }, { once: true });
-        }
-        const p = musicEl.play();
-        if (p && p.catch) p.catch(() => { /* missing file / autoplay block */ });
-    },
-    stop() {
-        if (musicEl) {
-            musicEl.pause();
-            musicEl.currentTime = 0;
-        }
-    },
+// === PROCEDURAL MUSIC ===
+// A tiny generative backing track: a 4-bar chord loop (scale-degree
+// progression) with a bass note, an arpeggio "pluck" and a soft pad layer,
+// all synthesized live. Mood (tempo/scale/root/density) swaps per biome
+// without ever restarting the scheduler — each scheduled step just reads
+// whatever the current mood is at that instant.
+const MOODS = {
+    'biome-day':    { bpm: 96,  root: 262, scale: [0, 2, 4, 7, 9],  arpDensity: 0.5,  bassSteps: [0, 4] },
+    'biome-sunset': { bpm: 88,  root: 233, scale: [0, 2, 4, 7, 9],  arpDensity: 0.4,  bassSteps: [0, 4] },
+    'biome-night':  { bpm: 76,  root: 220, scale: [0, 3, 5, 7, 10], arpDensity: 0.25, bassSteps: [0] },
+    'biome-storm':  { bpm: 116, root: 196, scale: [0, 3, 5, 6, 10], arpDensity: 0.6,  bassSteps: [0, 2, 4, 6] },
 };
+const DEFAULT_MOOD = 'biome-day';
+
+// Chord progression expressed as scale-degree indices (into the current
+// mood's `scale`), one chord per bar, looping every 4 bars.
+const PROGRESSION = [0, 5 % 5, 3 % 5, 4 % 5]; // -> [0, 0, 3, 4] within a 5-note scale
+
+const SCHEDULE_AHEAD = 0.3;   // schedule notes up to this far into the future (s)
+const SCHEDULER_INTERVAL = 125; // lookahead tick (ms)
+
+function noteFreq(root, scale, degree, octaveShift = 0) {
+    const scaleLen = scale.length;
+    const octave = Math.floor(degree / scaleLen) + octaveShift;
+    const semitone = scale[((degree % scaleLen) + scaleLen) % scaleLen];
+    return root * Math.pow(2, octave) * Math.pow(2, semitone / 12);
+}
+
+// Short plucked/percussive voice (bass, arpeggio).
+function playVoice(type, freq, startAt, dur, peakGain) {
+    if (!ctx || !musicGain) return;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, startAt);
+    g.gain.setValueAtTime(0, startAt);
+    g.gain.linearRampToValueAtTime(peakGain, startAt + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, startAt + dur);
+    osc.connect(g);
+    g.connect(musicGain);
+    osc.start(startAt);
+    osc.stop(startAt + dur + 0.02);
+}
+
+// Long soft pad: two sines (root + fifth), slow attack/release, sustained
+// for a whole bar.
+function playPad(root, fifthFreq, startAt, dur, peakGain) {
+    if (!ctx || !musicGain) return;
+    [root, fifthFreq].forEach((freq) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, startAt);
+        g.gain.setValueAtTime(0, startAt);
+        g.gain.linearRampToValueAtTime(peakGain, startAt + dur * 0.3);
+        g.gain.linearRampToValueAtTime(0.0001, startAt + dur);
+        osc.connect(g);
+        g.connect(musicGain);
+        osc.start(startAt);
+        osc.stop(startAt + dur + 0.02);
+    });
+}
+
+export const music = (function () {
+    let schedulerId = null;
+    let currentMood = DEFAULT_MOOD;
+    let nextStepTime = 0; // ctx.currentTime target for the next eighth-note
+    let stepIndex = 0;    // 0..7 within the current bar (8 eighth-notes/bar)
+    let barIndex = 0;     // 0..3 within the 4-bar progression loop
+
+    function scheduleStep(mood, time) {
+        const chordDegree = PROGRESSION[barIndex % PROGRESSION.length];
+
+        // Bass: root of the current chord, low octave, on this mood's bass steps.
+        if (mood.bassSteps.includes(stepIndex)) {
+            const freq = noteFreq(mood.root, mood.scale, chordDegree, -1);
+            playVoice('triangle', freq, time, 0.22, 0.07);
+        }
+
+        // Arpeggio: random chance per step, random scale note 1-2 octaves up.
+        if (Math.random() < mood.arpDensity) {
+            const degree = chordDegree + Math.floor(Math.random() * 3) * 2; // spread across the chord/scale
+            const octaveShift = Math.random() < 0.5 ? 1 : 2;
+            const freq = noteFreq(mood.root, mood.scale, degree, octaveShift - 1);
+            playVoice('sine', freq, time, 0.15, 0.035);
+        }
+
+        // Pad: once per bar (on step 0), root + fifth, sustained the whole bar.
+        if (stepIndex === 0) {
+            const barDur = (60 / mood.bpm) * 4; // 4 beats/bar in seconds
+            const rootFreq = noteFreq(mood.root, mood.scale, chordDegree, 0);
+            const fifthFreq = noteFreq(mood.root, mood.scale, chordDegree + 2, 0);
+            playPad(rootFreq, fifthFreq, time, barDur, 0.02);
+        }
+    }
+
+    function advance(mood) {
+        const eighthDur = (60 / mood.bpm) / 2; // one eighth-note, seconds
+        nextStepTime += eighthDur;
+        stepIndex++;
+        if (stepIndex >= 8) {
+            stepIndex = 0;
+            barIndex = (barIndex + 1) % PROGRESSION.length;
+        }
+    }
+
+    function tick() {
+        if (!ctx) return;
+        while (nextStepTime < ctx.currentTime + SCHEDULE_AHEAD) {
+            const mood = MOODS[currentMood] || MOODS[DEFAULT_MOOD];
+            scheduleStep(mood, nextStepTime);
+            advance(mood);
+        }
+    }
+
+    return {
+        start() {
+            if (isMuted || !ctx || schedulerId) return;
+            stepIndex = 0;
+            barIndex = 0;
+            nextStepTime = ctx.currentTime + 0.05;
+            tick();
+            schedulerId = setInterval(tick, SCHEDULER_INTERVAL);
+        },
+        stop() {
+            if (schedulerId) {
+                clearInterval(schedulerId);
+                schedulerId = null;
+            }
+            // Long pad notes are left to ring out / are already ramping to
+            // silence on their own envelopes — no hard cutoff needed.
+        },
+        setMood(biomeClass) {
+            currentMood = MOODS[biomeClass] ? biomeClass : DEFAULT_MOOD;
+        },
+    };
+})();
 
 export function toggleMute() {
     isMuted = !isMuted;
     lsSet('stayOnLog_muted', isMuted ? '1' : '0');
     if (masterGain) masterGain.gain.value = isMuted ? 0 : 1;
-    if (isMuted) music.stop();
+    if (isMuted) {
+        music.stop();
+    } else if (state.isPlaying) {
+        music.start();
+    }
     return isMuted;
 }

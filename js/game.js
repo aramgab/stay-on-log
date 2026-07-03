@@ -124,6 +124,7 @@ function applyBiome(elapsed) {
     currentBiome = next;
     document.body.classList.remove(...BIOME_CLASSES);
     document.body.classList.add(next);
+    music.setMood(next);
     // Mark the transition audibly mid-run (not on the reset back to day).
     if (state.isPlaying && elapsed > 0) sfx.whoosh();
 }

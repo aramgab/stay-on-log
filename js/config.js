@@ -90,14 +90,6 @@ export const PHASE2_MS = 80000;
 export const BRANCH_FROM_MS = PHASE1_MS;
 export const DOUBLE_FROM_MS = PHASE2_MS;
 
-// === CAMERA (experiment) ===
-// When true, the stickman is visually pinned to the astronomical top of the
-// log and the whole scene (log + water/horizon) counter-rotates to show the
-// player's true deviation — "the world tips as you lose balance". Pure
-// presentation: physics, collisions and FALL_THRESHOLD are untouched.
-// Instant rollback: set to false (old view) — no other changes needed.
-export const CAMERA_LOCK_TOP = true;
-
 // === BIOMES (time-based scene palette: day -> sunset -> night -> storm) ===
 // Sunset/night are aligned with the difficulty phases so the difficulty ramp
 // is visible in the scenery; storm is the "you are good" late-game look.

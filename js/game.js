@@ -20,7 +20,6 @@ import {
     BIOME_SUNSET_MS,
     BIOME_NIGHT_MS,
     BIOME_STORM_MS,
-    CAMERA_LOCK_TOP,
 } from './config.js';
 import {
     logWrapper,
@@ -52,7 +51,6 @@ import {
     nicknameInput,
     nicknameSaveBtn,
     obSideHint,
-    sceneEl,
 } from './dom.js';
 import { handleMotion, getSensitivity, setSensitivity, getSmooth, setSmooth } from './input.js';
 import { animateFall } from './render.js';
@@ -190,15 +188,6 @@ function gameLoop() {
 
     // 6. Check loss (can't slip off while airborne)
     let normPos = ((playerPosition % 360) + 540) % 360 - 180;
-
-    // 6b. Camera-lock: counter-rotate the scene by the player's deviation so
-    // the stickman stays pinned to the astronomical top and the tilting
-    // world/water shows how far off balance they are. normPos (not the raw,
-    // endlessly winding playerPosition) keeps the angle in (-180, 180].
-    if (CAMERA_LOCK_TOP) {
-        sceneEl.style.transform = `rotate(${-normPos}deg)`;
-    }
-
     if (!state.isJumping && Math.abs(normPos) > FALL_THRESHOLD) {
         gameOver(normPos);
         return;
@@ -457,7 +446,6 @@ function showCountdown() {
     state.logDirection = 1;
     logWrapper.style.transform = 'rotate(0deg)';
     orbitEl.style.transform = 'rotate(0deg)';
-    sceneEl.style.transform = 'rotate(0deg)';
 
     let count = 3;
     countdownNumber.innerText = count;
@@ -556,10 +544,6 @@ function gameOver(normPos) {
     newRecordEl.style.display = 'none';
 
     // === FALL ANIMATION ===
-    // Camera back to neutral first: animateFall computes its center from
-    // gameContainer.getBoundingClientRect(), which must be unrotated. The
-    // loop is already stopped, so this is purely cosmetic.
-    sceneEl.style.transform = 'rotate(0deg)';
     animateFall(normPos);
 }
 

@@ -44,8 +44,8 @@ mini-app** (совместимость заложена: `window.Telegram.WebApp
 | `game.js` | Точка входа: главный цикл (`gameLoop`), поток игры, сложность, биомы (`applyBiome`), комбо, UI, ник, онбординг, dev-режим, привязка событий. |
 | `obstacles.js` | Одно препятствие со стейт-машиной `submerged ⇄ active`, **3 типа** (`knot`/`branch`/`double` из `OBSTACLE_TYPES`), многоточечные коллизии (`parts`). Возвращает `'hit' | 'cleared' | null`. Пробы для честности: `isObstacleActive/activeObstacleType/isObstacleApproaching`. |
 | `render.js` | Анимация падения в воду + брызги. |
-| `audio.js` | Синтез-SFX (Web Audio): `jump/hit/splash/point/combo/whoosh`. Опц. музыка `audio/music.mp3` (нет файла — тихо игнор). Mute в localStorage. `AudioContext` ленивый, резюм по жесту. |
-| `haptics.js` | Вибрация: сначала Telegram `HapticFeedback`, иначе `navigator.vibrate`. На десктопе/iOS Safari — no-op. |
+| `audio.js` | Синтез-SFX (Web Audio): `jump/hit/splash/point/combo/whoosh` + **процедурная музыка** (бас/арпеджио/пад, lookahead-планировщик; `music.setMood(biome)` меняет BPM/лад/плотность по биому, ассетов нет). Mute в localStorage, unmute возвращает музыку сразу. `AudioContext` ленивый, резюм по жесту. |
+| `haptics.js` | Вибрация: сначала Telegram `HapticFeedback`, иначе `navigator.vibrate`. События: jump/hit/fall/clear(combo)/tick/record. На десктопе/iOS Safari — no-op. |
 | `fx.js` | «Сочность»: `screenShake`, `burst` (частицы, Web Animations API), `floatText` (попап «+50 ×2»), `countUp`. DOM-based, без canvas. |
 
 Визуал: палитра сцены — CSS-переменные, зарегистрированные через `@property` (`styles.css`);
@@ -72,6 +72,12 @@ mini-app** (совместимость заложена: `window.Telegram.WebApp
 - **Инпут**: `INPUT_SMOOTH=0.18` (поз. low-pass), `INPUT_VEL_SMOOTH=0.2` (EMA скорости),
   `INPUT_DEADZONE=0.25°`, `INPUT_MAX_STEP=80°` (глитч-гард), `DEFAULT_SENSITIVITY=1.0`.
   localStorage: `stayOnLog_sensitivity`, `stayOnLog_inputSmooth`.
+- **Steering assist**: игра компенсирует долю вращения бревна за игрока —
+  `ASSIST_PHASE_FACTOR=[0.30,0.18,0.10]` по фазам × слайдер «assist» в `?dev=1`
+  (`stayOnLog_assistMult`). В `gameLoop` правится **оба** угла (`contAngle`+`userAngle`),
+  иначе low-pass инпута съедает поправку.
+- **Danger-виньетка**: `#danger-vignette` — красный градиент со стороны сноса, прозрачность
+  0→1 от `DANGER_WARN_FROM=55°` до `FALL_THRESHOLD`; сбрасывается в `gameOver`/`showCountdown`.
 
 ## Грабли
 - **Репозиторий публичный** — не клади сюда секреты/приватное.

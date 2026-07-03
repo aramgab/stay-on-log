@@ -24,6 +24,7 @@ export const howtoSensVal = document.getElementById('howto-sv');
 export const obstacleLayer = document.getElementById('obstacle-layer');
 export const obstacleSplash = document.getElementById('obstacle-splash');
 export const obSideHint = document.getElementById('ob-side-hint');
+export const dangerVignette = document.getElementById('danger-vignette');
 export const desktopStub = document.getElementById('desktop-stub');
 export const countdownOverlay = document.getElementById('countdown-overlay');
 export const countdownNumber = document.getElementById('countdown-number');

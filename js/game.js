@@ -21,6 +21,7 @@ import {
     BIOME_NIGHT_MS,
     BIOME_STORM_MS,
     ASSIST_PHASE_FACTOR,
+    DANGER_WARN_FROM,
 } from './config.js';
 import {
     logWrapper,
@@ -52,6 +53,7 @@ import {
     nicknameInput,
     nicknameSaveBtn,
     obSideHint,
+    dangerVignette,
 } from './dom.js';
 import { handleMotion, getSensitivity, setSensitivity, getSmooth, setSmooth } from './input.js';
 import { animateFall } from './render.js';
@@ -218,6 +220,16 @@ function gameLoop() {
 
     // 6. Check loss (can't slip off while airborne)
     let normPos = ((playerPosition % 360) + 540) % 360 - 180;
+
+    // 6b. Danger vignette: red glow on the screen edge the player is sliding
+    // toward, ramping in from DANGER_WARN_FROM to full at FALL_THRESHOLD.
+    // normPos > 0 = player has drifted clockwise = to the RIGHT of the top
+    // (matches render.js animateFall, where normPos > 0 sets fallDirection = 1
+    // and moves the falling stickman toward increasing X = screen right).
+    const danger = Math.min(1, Math.max(0, (Math.abs(normPos) - DANGER_WARN_FROM) / (FALL_THRESHOLD - DANGER_WARN_FROM)));
+    dangerVignette.style.opacity = danger;
+    dangerVignette.className = danger > 0 ? (normPos > 0 ? 'right' : 'left') : '';
+
     if (!state.isJumping && Math.abs(normPos) > FALL_THRESHOLD) {
         gameOver(normPos);
         return;
@@ -447,6 +459,8 @@ function showCountdown() {
     statusEl.innerText = '';
     playerEl.classList.remove('visible', 'falling', 'jumping', 'hit');
     playerEl.style.opacity = '0';
+    dangerVignette.style.opacity = 0;
+    dangerVignette.className = '';
 
     // Reset jump / invulnerability and clear any obstacles from a prev game.
     state.isJumping = false;
@@ -550,6 +564,8 @@ function gameOver(normPos) {
     state.isPlaying = false;
     dirWarning.style.display = 'none';
     obSideHint.className = '';
+    dangerVignette.style.opacity = 0;
+    dangerVignette.className = '';
     directionPill.style.display = 'none';
     heartsEl.style.display = 'none';
     window.removeEventListener('devicemotion', handleMotion);

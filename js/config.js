@@ -75,6 +75,9 @@ export const START_HP = 2;
 export const INVULN_DURATION = 900;
 // Slip-off threshold (deg). The player falls past ±this angle (symmetric).
 export const FALL_THRESHOLD = 110;
+// Deg from the top where the danger vignette starts fading in; full opacity
+// at FALL_THRESHOLD. Gives players a visual cue for why they're about to fall.
+export const DANGER_WARN_FROM = 55;
 
 // === SCORING (event-based) ===
 // Score = a small survival trickle + bonuses for actually doing things, so that

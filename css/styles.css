@@ -1233,6 +1233,25 @@ body.biome-storm .lightning {
     }
 }
 
+/* Danger vignette: red glow on the screen edge the player is drifting toward
+   past DANGER_WARN_FROM, full intensity at FALL_THRESHOLD. Opacity is set
+   every frame from JS (transform/opacity-only, cheap) — no CSS transition. */
+#danger-vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 9;
+    opacity: 0;
+    pointer-events: none;
+}
+
+#danger-vignette.left {
+    background: linear-gradient(to right, rgba(255, 64, 64, 0.55), transparent 45%);
+}
+
+#danger-vignette.right {
+    background: linear-gradient(to left, rgba(255, 64, 64, 0.55), transparent 45%);
+}
+
 /* Approach-side hint: pulsing arrow at the water's edge on the side the
    obstacle will come from. Never intercepts the tap-to-jump. */
 #ob-side-hint {

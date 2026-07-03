@@ -20,6 +20,7 @@ import {
     BIOME_SUNSET_MS,
     BIOME_NIGHT_MS,
     BIOME_STORM_MS,
+    ASSIST_PHASE_FACTOR,
 } from './config.js';
 import {
     logWrapper,
@@ -90,6 +91,20 @@ const devMode = new URLSearchParams(location.search).has('dev');
 const DEV_KEY_SPEED = 2.5; // deg/frame the arrow keys move the player on the log
 const devKeys = { left: false, right: false };
 
+// Global multiplier on ASSIST_PHASE_FACTOR (steering assist), tunable live via
+// the ?dev=1 panel. Loaded the same way input.js loads sensitivity/smooth.
+let assistMult = parseFloat(lsGet('stayOnLog_assistMult'));
+if (isNaN(assistMult)) assistMult = 1;
+
+function setAssistMult(v) {
+    assistMult = v;
+    lsSet('stayOnLog_assistMult', String(v));
+}
+
+function getAssistMult() {
+    return assistMult;
+}
+
 // === BIOMES (scene palette follows the difficulty ramp) ===
 const BIOME_CLASSES = ['biome-day', 'biome-sunset', 'biome-night', 'biome-storm'];
 let currentBiome = '';
@@ -131,6 +146,21 @@ function gameLoop() {
     // 1b. The jump no longer freezes the player: being airborne only grants the
     // obstacle clear (via the isJumping flag in obstacles.js), so the player keeps
     // responding to tilt the whole time — no stuck-in-place feel while hopping.
+
+    // 1c. Steering assist ("power steering" for newcomers): the game quietly
+    // compensates a fraction of the log's own rotation each frame, so a
+    // beginner who isn't tilting perfectly still drifts back toward the top
+    // instead of sliding off. Strongest in phase 1, nearly gone by phase 3 so
+    // late-game (once the player has learned the controls) stays skill-based.
+    const phase = state.elapsed < PHASE1_MS ? 0 : (state.elapsed < PHASE2_MS ? 1 : 2);
+    const assist = ASSIST_PHASE_FACTOR[phase] * assistMult;
+    if (assist > 0) {
+        // Must adjust BOTH angles: input.js low-passes userAngle toward
+        // contAngle every sample, so nudging only one gets smoothed away —
+        // the assist would be silently eaten by the very next devicemotion tick.
+        state.contAngle -= state.logSpeed * state.logDirection * assist;
+        state.userAngle -= state.logSpeed * state.logDirection * assist;
+    }
 
     // 2. Player position
     let playerPosition = state.logAngle + state.userAngle;
@@ -636,19 +666,25 @@ function buildTunePanel() {
     panel.id = 'dev-tune';
     panel.innerHTML =
         '<label>sens <b id="dt-sv"></b><input id="dt-s" type="range" min="0.3" max="2" step="0.05"></label>' +
-        '<label>smooth <b id="dt-mv"></b><input id="dt-m" type="range" min="0.05" max="0.6" step="0.01"></label>';
+        '<label>smooth <b id="dt-mv"></b><input id="dt-m" type="range" min="0.05" max="0.6" step="0.01"></label>' +
+        '<label>assist <b id="dt-av"></b><input id="dt-a" type="range" min="0" max="2" step="0.05"></label>';
     document.body.appendChild(panel);
 
     const s = panel.querySelector('#dt-s');
     const m = panel.querySelector('#dt-m');
+    const a = panel.querySelector('#dt-a');
     const sv = panel.querySelector('#dt-sv');
     const mv = panel.querySelector('#dt-mv');
+    const av = panel.querySelector('#dt-av');
     s.value = getSensitivity();
     m.value = getSmooth();
+    a.value = getAssistMult();
     sv.textContent = (+s.value).toFixed(2);
     mv.textContent = (+m.value).toFixed(2);
+    av.textContent = (+a.value).toFixed(2);
     s.addEventListener('input', () => { setSensitivity(+s.value); sv.textContent = (+s.value).toFixed(2); });
     m.addEventListener('input', () => { setSmooth(+m.value); mv.textContent = (+m.value).toFixed(2); });
+    a.addEventListener('input', () => { setAssistMult(+a.value); av.textContent = (+a.value).toFixed(2); });
 }
 
 // Show high score and nickname on load

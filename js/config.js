@@ -26,6 +26,13 @@ export const INPUT_MAX_STEP = 80;
 // Default control sensitivity (rotation multiplier); overridable via localStorage.
 export const DEFAULT_SENSITIVITY = 1.0;
 
+// === STEERING ASSIST ("power steering" for newcomers) ===
+// Fraction of the log's own rotation the game silently compensates for the
+// player each frame, indexed by difficulty phase (see PHASE1_MS/PHASE2_MS
+// below). Strongest early so beginners don't fall in the first few seconds;
+// eases off toward phase 3 so late-game stays skill-based. 0 = disabled.
+export const ASSIST_PHASE_FACTOR = [0.30, 0.18, 0.10];
+
 // Radius (px) at which the player orbits the center of the log.
 // Matches the outer ring of the log SVG (circle r=135).
 export const ORBIT_RADIUS = 135;

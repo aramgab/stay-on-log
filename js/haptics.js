@@ -38,3 +38,26 @@ export function hapticFall() {
     if (h) { try { h.notificationOccurred('error'); return; } catch (e) { /* fall through */ } }
     vibrate([60, 40, 80]);
 }
+
+// Obstacle cleared. Stronger buzz once a combo (mult > 1) kicks in so the
+// escalating reward is felt, not just seen/heard.
+export function hapticClear(mult) {
+    const h = tgHaptics();
+    if (h) { try { h.impactOccurred(mult > 1 ? 'medium' : 'light'); return; } catch (e) { /* fall through */ } }
+    vibrate(mult > 1 ? [12, 40, 18] : 12);
+}
+
+// Countdown tick (3-2-1) and biome transitions — a light pulse so the game
+// keeps feeling "alive" between the sparser jump/hit/clear events.
+export function hapticTick() {
+    const h = tgHaptics();
+    if (h) { try { h.selectionChanged(); return; } catch (e) { /* fall through */ } }
+    vibrate(8);
+}
+
+// First time this run the player beats their all-time high score.
+export function hapticRecord() {
+    const h = tgHaptics();
+    if (h) { try { h.notificationOccurred('success'); return; } catch (e) { /* fall through */ } }
+    vibrate([20, 40, 20, 40, 35]);
+}

@@ -67,7 +67,7 @@ import {
     isObstacleApproaching,
 } from './obstacles.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
-import { hapticJump, hapticHit, hapticFall } from './haptics.js';
+import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
 
 // === TELEGRAM MINI APP (guarded; no-op outside Telegram) ===
@@ -126,7 +126,7 @@ function applyBiome(elapsed) {
     document.body.classList.add(next);
     music.setMood(next);
     // Mark the transition audibly mid-run (not on the reset back to day).
-    if (state.isPlaying && elapsed > 0) sfx.whoosh();
+    if (state.isPlaying && elapsed > 0) { sfx.whoosh(); hapticTick(); }
 }
 
 // === MAIN GAME LOOP ===
@@ -181,6 +181,7 @@ function gameLoop() {
         state.eventScore += pts;
         if (mult > 1) sfx.combo(mult);
         else sfx.point();
+        hapticClear(mult);
         const xy = playerXY();
         burst(xy.x, xy.y, { color: '#6b4423', count: 10, size: 6, up: 50 });
         floatText(xy.x, xy.y - 26, '+' + pts + (mult > 1 ? ' ×' + mult : ''));
@@ -204,6 +205,12 @@ function gameLoop() {
     // Check for new record during gameplay
     if (state.score > state.highScore) {
         newRecordEl.style.display = 'block';
+        // Celebrate once per run — skip on a brand-new player's very first run
+        // (highScore === 0), otherwise this fires within the first second.
+        if (!state.recordCelebrated && state.highScore > 0) {
+            state.recordCelebrated = true;
+            hapticRecord();
+        }
     }
 
     // 4. Direction/speed change
@@ -497,6 +504,7 @@ function showCountdown() {
     countdownNumber.style.animation = 'none';
     void countdownNumber.offsetWidth;
     countdownNumber.style.animation = 'countPop 0.5s ease-out';
+    hapticTick();
 
     let interval = setInterval(() => {
         count--;
@@ -505,6 +513,7 @@ function showCountdown() {
             countdownNumber.style.animation = 'none';
             void countdownNumber.offsetWidth;
             countdownNumber.style.animation = 'countPop 0.5s ease-out';
+            hapticTick();
         } else {
             clearInterval(interval);
             countdownOverlay.classList.remove('active');
@@ -544,6 +553,7 @@ function startGame() {
     state.eventScore = 0;
     state.combo = 0;
     state.elapsed = 0;
+    state.recordCelebrated = false;
 
     // Lives & obstacles
     state.hp = START_HP;

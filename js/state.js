@@ -45,6 +45,9 @@ export const state = {
     // Combo: consecutive obstacle clears without a hit (multiplies clear points)
     combo: 0,
 
+    // Whether the "new record" haptic has already fired this run (fire once, not every frame)
+    recordCelebrated: false,
+
     // Jump / lives
     isJumping: false,
     jumpStartTime: 0,   // Date.now() of the last jump start (branch timing check)

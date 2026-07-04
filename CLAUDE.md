@@ -7,8 +7,8 @@
 ## Что это
 «Stay on Log» — мобильная мини-игра на **чистом HTML/CSS/ES-модулях, без сборки и зависимостей**.
 Вид с торца на крутящееся бревно (круг), человечек балансирует сверху. Задумана как **Telegram
-mini-app** (совместимость заложена: `window.Telegram.WebApp.ready()/expand()`, haptics через TG;
-полноценной TG-интеграции — лидерборд/CloudStorage — пока нет).
+mini-app**. TG-интеграция сейчас: `ready()/expand()`, haptics, ник из TG-профиля, рекорд/ник в
+`CloudStorage`, кнопка «Похвастаться» (t.me/share). Нет лидерборда — ждёт бэкенда (этап 3).
 
 Деплой: **Vercel из ветки `main`**, без конфигурации → https://stay-on-log.vercel.app
 
@@ -16,9 +16,11 @@ mini-app** (совместимость заложена: `window.Telegram.WebApp
 - Управление — **наклон/вращение телефона** (`devicemotion` → `accelerationIncludingGravity`).
   Игрок «подкручивает» телефон, компенсируя вращение бревна, чтобы удержаться у верхней точки.
 - Уход дальше **±`FALL_THRESHOLD` (110°)** от верха → падение в воду.
-- **Десктоп заблокирован** заглушкой «играй на телефоне» — сенсора нет.
-  Исключение: **`?dev=1`** включает клавиатуру (←/→ — баланс, Space/↑ — прыжок) и живую панель
-  тюнинга инпута. iOS требует HTTPS и `DeviceMotionEvent.requestPermission()` (вызывается в жесте Start).
+- **Десктоп**: заглушка «играй на телефоне», но в ней кнопка «🎹 Играть с клавиатурой»
+  (←/→ — баланс, Space/↑ — прыжок) — честный запасной режим, чтобы расшаренные ссылки в
+  Desktop Telegram/браузере не упирались в тупик. **`?dev=1`** скипает заглушку и добавляет
+  живую панель тюнинга инпута. iOS требует HTTPS и `DeviceMotionEvent.requestPermission()`
+  (вызывается в жесте Start).
 
 ## Рабочий процесс (важно!)
 Геймплей **нельзя проверить локально/в песочнице**: нужен реальный сенсор телефона, а превью-сервер
@@ -46,6 +48,7 @@ mini-app** (совместимость заложена: `window.Telegram.WebApp
 | `render.js` | Анимация падения в воду + брызги. |
 | `audio.js` | Синтез-SFX (Web Audio): `jump/hit/splash/point/combo/whoosh` + **процедурная музыка** (бас/арпеджио/пад, lookahead-планировщик; `music.setMood(biome)` меняет BPM/лад/плотность по биому, ассетов нет). Mute в localStorage, unmute возвращает музыку сразу. `AudioContext` ленивый, резюм по жесту. |
 | `haptics.js` | Вибрация: сначала Telegram `HapticFeedback`, иначе `navigator.vibrate`. События: jump/hit/fall/clear(combo)/tick/record. На десктопе/iOS Safari — no-op. |
+| `tg.js` | Мост к Telegram WebApp SDK (весь доступ к `window.Telegram` — только отсюда): `initTelegram`, `isInTelegram` (по непустой `initData`!), `tgUser`, `cloudGet/cloudSet` (CloudStorage, гард версии ≥6.9), `shareScore` (TG share → Web Share → clipboard). Вне TG всё деградирует в no-op. |
 | `fx.js` | «Сочность»: `screenShake`, `burst` (частицы, Web Animations API), `floatText` (попап «+50 ×2»), `countUp`. DOM-based, без canvas. |
 
 Визуал: палитра сцены — CSS-переменные, зарегистрированные через `@property` (`styles.css`);
@@ -66,8 +69,9 @@ mini-app** (совместимость заложена: `window.Telegram.WebApp
   маржа `midAirMarginMs=80`), `double` (с фазы 3, только при `|speed|≤1.2`, гэп от скорости).
   **Честность**: при активном препятствии реверс → смена только скорости; при активном double
   заморожено всё; стрелка `#ob-side-hint` показывает сторону подхода.
-- **Прыжок**: `JUMP_DURATION=480ms`; в воздухе столкновение засчитывается как `cleared`
-  (кроме `branch` — см. выше); `doJump()` пишет `state.jumpStartTime`.
+- **Прыжок**: `JUMP_DURATION=620ms` (параболическая дуга, синхронизирован с CSS `playerJump`);
+  в воздухе столкновение засчитывается как `cleared` (кроме `branch` — см. выше);
+  `doJump()` пишет `state.jumpStartTime`.
 - **Жизни**: `START_HP=2`, после не-смертельного удара неуязвимость `INVULN_DURATION=900ms`.
 - **Инпут**: `INPUT_SMOOTH=0.18` (поз. low-pass), `INPUT_VEL_SMOOTH=0.2` (EMA скорости),
   `INPUT_DEADZONE=0.25°`, `INPUT_MAX_STEP=80°` (глитч-гард), `DEFAULT_SENSITIVITY=1.0`.
@@ -78,6 +82,14 @@ mini-app** (совместимость заложена: `window.Telegram.WebApp
   иначе low-pass инпута съедает поправку.
 - **Danger-виньетка**: `#danger-vignette` — красный градиент со стороны сноса, прозрачность
   0→1 от `DANGER_WARN_FROM=55°` до `FALL_THRESHOLD`; сбрасывается в `gameOver`/`showCountdown`.
+- **Delta-time**: скорости (`logSpeed`, `DEV_KEY_SPEED`) = «градусы за кадр 60 Гц»; `gameLoop`
+  масштабирует весь шаг мира на `dtF` (клэмп дельты 50мс) — темп одинаков на 60/90/120 Гц.
+  `state.elapsed` копится по живым кадрам: фон/свёртывание не фармит очки и не двигает фазы.
+  Таймер смены направления — в elapsed-домене.
+- **TG-нативность**: ник по умолчанию из TG-профиля (приоритет: введённый вручную >
+  CloudStorage > профиль; см. `nameSource` в game.js); рекорд/ник синхронятся с CloudStorage
+  (merge: больший рекорд побеждает). Шаринг: `SHARE_URL` в config.js — заменить на
+  `t.me/<bot>/<app>?startapp=…`, когда появится бот.
 
 ## Грабли
 - **Репозиторий публичный** — не клади сюда секреты/приватное.

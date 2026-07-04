@@ -249,6 +249,11 @@
              from JS (depends on drift side + active control scheme). -->
         <div id="steer-hint" aria-hidden="true"></div>
 
+        <!-- Interactive tutorial banner: step-by-step coaching text (?tut=1 only
+             for now). Sits above the #tap-hint slot in the top third; text
+             changes often, so no pulsing (unlike tap-hint/steer-hint). -->
+        <div id="tutorial-banner" aria-hidden="true"></div>
+
         <!-- Splash effect -->
         <svg id="splash" width="80" height="60" viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg">
             <ellipse cx="40" cy="45" rx="35" ry="8" fill="rgba(100,180,255,0.4)" />
@@ -277,6 +282,10 @@
 
     <!-- Direction change warning -->
     <div id="direction-warning">⚠ СМЕНА!</div>
+
+    <!-- Interactive tutorial: skip button, bottom-right, visible only while the
+         tutorial is running (game.js toggles display). -->
+    <button id="tutorial-skip" aria-hidden="true">Пропустить →</button>
 
     <!-- Desktop stub: the game needs a phone's tilt sensor, so on desktop we
          show a "play on your phone" screen with a schematically rotating phone. -->

@@ -1386,6 +1386,63 @@ body.biome-storm .lightning {
     }
 }
 
+/* Interactive tutorial banner: same slot family as #tap-hint (top third,
+   above the scene, below full-screen overlays), sits one step higher since
+   it's the tutorial's primary instruction line. No pulsing — unlike the
+   coach banners above, this text changes frequently (once per tutorial
+   step/second), so a constant scale/opacity animation would fight the
+   text swaps instead of reinforcing a static message. Always
+   pointer-events:none: taps must fall through to the game (that's the
+   tutorial's whole point — tap to jump). */
+#tutorial-banner {
+    position: fixed;
+    top: 8%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    color: white;
+    text-align: center;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.85), 0 0 20px rgba(0, 0, 0, 0.6),
+        0 2px 4px rgba(0, 0, 0, 0.9);
+    -webkit-text-stroke: 1px rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+#tutorial-banner.visible {
+    opacity: 1;
+}
+
+/* Interactive tutorial: "skip" button, bottom-right corner. Unlike the coach
+   banners, this IS clickable (pointer-events:auto) — it's an escape hatch,
+   not an instruction. Hidden by default; game.js toggles display only while
+   tutorialMode is active. */
+#tutorial-skip {
+    position: fixed;
+    right: 16px;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    z-index: 51;
+    display: none;
+    background: rgba(0, 0, 0, 0.4);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    border-radius: 999px;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+#tutorial-skip:active {
+    transform: scale(0.95);
+}
+
 /* Splash at the waterline when the obstacle surfaces / dives */
 #obstacle-splash {
     position: absolute;

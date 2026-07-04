@@ -31,6 +31,9 @@ import {
     TILT_RATE_MAX,
     TILT_EXPO,
     TILT_DEADZONE_DEG,
+    TUT_LOG_SPEED,
+    TUT_BALANCE_HOLD_MS,
+    TUT_BALANCE_ZONE_DEG,
 } from './config.js';
 import {
     logWrapper,
@@ -68,6 +71,8 @@ import {
     dangerVignette,
     tapHint,
     steerHint,
+    tutorialBanner,
+    tutorialSkipBtn,
 } from './dom.js';
 import { handleMotion, getSensitivity, setSensitivity, getSmooth, setSmooth, getScheme, setScheme } from './input.js';
 import { animateFall } from './render.js';
@@ -79,6 +84,7 @@ import {
     isObstacleActive,
     activeObstacleType,
     isObstacleApproaching,
+    forceEmerge,
 } from './obstacles.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord } from './haptics.js';
@@ -104,6 +110,12 @@ if (isDesktop) document.body.classList.add('is-desktop'); // flips on desktop-on
 const devMode = new URLSearchParams(location.search).has('dev');
 const DEV_KEY_SPEED = 2.5; // deg per 60 Hz frame (dt-scaled in the loop)
 const devKeys = { left: false, right: false };
+
+// Interactive tutorial (?tut=1): opt-in only for now — the flow is wired up
+// end-to-end (including the "seen" flag write), but auto-launching it for
+// every newcomer is a separate follow-up commit once this has been played on
+// a real device.
+const tutParam = new URLSearchParams(location.search).has('tut');
 
 // Timestamp of the previous gameLoop frame (performance.now() domain), for
 // delta-time normalization of all per-frame world stepping.
@@ -193,6 +205,36 @@ function getTiltDeadzone() {
     return tiltDeadzone;
 }
 
+// === INTERACTIVE TUTORIAL ===
+// A guided first run, gated behind ?tut=1 for now (see tutParam above). Runs
+// its own mini game-flow instead of startGame()'s normal one: slow log,
+// scripted obstacle prompts, no scoring/gameOver, an explicit step counter.
+let tutorialMode = false;
+let tutStep = 0;       // 0 = inactive, 1 = balance, 2 = jump, 3 = done/outro
+let tutHoldMs = 0;     // step 1: accumulated in-zone time
+let tutLastEmergeAt = -Infinity; // step 2: performance.now() of the last forceEmerge('knot')
+let tutBannerText = ''; // mirrors the DOM text so we only touch it on change
+let tutBannerLastSec = -1; // step 1: last whole second shown, to avoid re-rendering every frame
+
+function setTutorialBanner(text) {
+    if (text === tutBannerText) return;
+    tutBannerText = text;
+    tutorialBanner.innerText = text;
+}
+
+function showTutorialBanner(text) {
+    setTutorialBanner(text);
+    tutorialBanner.classList.add('visible');
+}
+
+function hideTutorialUI() {
+    tutorialBanner.classList.remove('visible');
+    tutorialBanner.setAttribute('aria-hidden', 'true');
+    tutBannerText = '';
+    tutorialSkipBtn.style.display = 'none';
+    tutorialSkipBtn.setAttribute('aria-hidden', 'true');
+}
+
 // === BIOMES (scene palette follows the difficulty ramp) ===
 const BIOME_CLASSES = ['biome-day', 'biome-sunset', 'biome-night', 'biome-storm'];
 let currentBiome = '';
@@ -231,7 +273,11 @@ function gameLoop() {
     const dtMs = Math.min(50, Math.max(0, nowTs - lastFrameTs));
     lastFrameTs = nowTs;
     const dtF = dtMs / (1000 / 60);
-    state.elapsed += dtMs;
+    // Tutorial: elapsed stays frozen at 0 — this alone disables obstacle
+    // auto-spawn (obstacles.js gates on state.elapsed < OBSTACLE_START_MS,
+    // which stays permanently true), the direction-change timer, biomes, and
+    // survival scoring, without touching any of that logic directly.
+    if (!tutorialMode) state.elapsed += dtMs;
 
     // 0. Keyboard control: dev mode (debugging) or the honest desktop mode
     // reached via the stub's "play with keyboard" button.
@@ -286,7 +332,21 @@ function gameLoop() {
     // 2b. Obstacles (rotate with the log, then handle the collision event)
     renderObstacleLayer();
     const obEvent = stepObstacles(Math.abs(state.logSpeed) * dtF);
-    if (obEvent === 'cleared') {
+    if (tutorialMode) {
+        // Step 2 only: no score/combo, no hp/gameOver — soft feedback either
+        // way, and the step counter is what actually advances. If the knot
+        // dives unbeaten, tutorialTick() re-summons it (no event needed here).
+        if (obEvent === 'cleared') {
+            tutStep = 3;
+            tutBannerLastSec = -1;
+            showTutorialBanner('Готов! Погнали по-настоящему 🎉');
+            lsSet('stayOnLog_seenTutorial_v1', '1');
+            setTimeout(exitTutorial, 1400);
+        } else if (obEvent === 'hit') {
+            sfx.hit();
+            showTutorialBanner('Ой! Попробуй ещё раз — тапни ПЕРЕД сучком');
+        }
+    } else if (obEvent === 'cleared') {
         // Skill reward: consecutive clears build a combo that multiplies the
         // clear points (reset on hit), + a ping + chips + floating popup.
         state.combo += 1;
@@ -316,29 +376,37 @@ function gameLoop() {
     // HINT_JUMP_RUNS runs and only until the player has jumped this run.
     // classList is only touched on an actual state change (mirrors the
     // obSideHint pattern above, adapted to a single boolean flag).
-    const wantsTapHint = isObstacleApproaching() && runCount <= HINT_JUMP_RUNS && !jumpedThisRun;
+    const wantsTapHint = !tutorialMode && isObstacleApproaching() && runCount <= HINT_JUMP_RUNS && !jumpedThisRun;
     if (wantsTapHint !== tapHintVisible) {
         tapHintVisible = wantsTapHint;
         tapHint.classList.toggle('visible', tapHintVisible);
     }
 
-    // 3. Score = small survival trickle + event points (skill-weighted)
-    state.score = Math.floor(state.elapsed / SURVIVAL_MS_PER_POINT) + state.eventScore;
-    scoreEl.innerText = "Очки: " + state.score;
+    // 3. Score = small survival trickle + event points (skill-weighted).
+    // Skipped in the tutorial: no run should end in a false "new record".
+    if (!tutorialMode) {
+        state.score = Math.floor(state.elapsed / SURVIVAL_MS_PER_POINT) + state.eventScore;
+        scoreEl.innerText = "Очки: " + state.score;
 
-    // Check for new record during gameplay
-    if (state.score > state.highScore) {
-        newRecordEl.style.display = 'block';
-        // Celebrate once per run — skip on a brand-new player's very first run
-        // (highScore === 0), otherwise this fires within the first second.
-        if (!state.recordCelebrated && state.highScore > 0) {
-            state.recordCelebrated = true;
-            hapticRecord();
+        // Check for new record during gameplay
+        if (state.score > state.highScore) {
+            newRecordEl.style.display = 'block';
+            // Celebrate once per run — skip on a brand-new player's very first run
+            // (highScore === 0), otherwise this fires within the first second.
+            if (!state.recordCelebrated && state.highScore > 0) {
+                state.recordCelebrated = true;
+                hapticRecord();
+            }
         }
     }
 
-    // 4. Direction/speed change
-    if (state.elapsed >= state.nextChangeTime) {
+    // 4. Direction/speed change. Elapsed is frozen at 0 in the tutorial, which
+    // normally keeps this from firing (nextChangeTime is always scheduled in
+    // the future) — EXCEPT on a brand-new session with ?tut=1 as the very
+    // first run ever, before scheduleNextChange() has run once: state.js
+    // defaults nextChangeTime to 0, so 0 >= 0 would be true on the tutorial's
+    // first frame. The explicit gate closes that edge case.
+    if (!tutorialMode && state.elapsed >= state.nextChangeTime) {
         scheduleNextChange();
         changeDirectionOrSpeed();
     }
@@ -362,6 +430,9 @@ function gameLoop() {
     dangerVignette.style.opacity = danger;
     dangerVignette.className = danger > 0 ? (normPos > 0 ? 'right' : 'left') : '';
 
+    // 6b2. Tutorial step logic (balance hold / jump prompt / outro timing).
+    if (tutorialMode) tutorialTick(dtMs, normPos);
+
     // 6c. Newcomer coach banner: "steer back" while drifting dangerously off
     // the top, for the first HINT_STEER_RUNS runs only. Hysteresis (appear
     // above HINT_STEER_FROM, disappear only below 0.2) stops it flickering
@@ -369,7 +440,7 @@ function gameLoop() {
     // APPEARED) stops it re-popping on every little wobble during one close
     // call. While visible, the text keeps following whichever side the
     // player is currently drifting toward.
-    if (runCount <= HINT_STEER_RUNS) {
+    if (!tutorialMode && runCount <= HINT_STEER_RUNS) {
         const nowMs = performance.now();
         if (!steerHintVisible) {
             if (danger > HINT_STEER_FROM && nowMs - steerHintShownAt >= HINT_STEER_COOLDOWN_MS) {
@@ -398,8 +469,12 @@ function gameLoop() {
     }
 
     if (!state.isJumping && Math.abs(normPos) > FALL_THRESHOLD) {
-        gameOver(normPos);
-        return;
+        if (tutorialMode) {
+            tutorialSoftReset();
+        } else {
+            gameOver(normPos);
+            return;
+        }
     }
 
     requestAnimationFrame(gameLoop);
@@ -560,6 +635,102 @@ function doJump() {
     }, JUMP_DURATION);
 }
 
+// === INTERACTIVE TUTORIAL: STEP LOGIC ===
+// Advances the scripted 3-step flow. Called once per frame from gameLoop,
+// AFTER obstacles have been stepped for this frame (so step 2 can react to
+// this frame's stepObstacles() result) but the obEvent itself is handled by
+// the caller (gameLoop's own tutorialMode branch) — this function only owns
+// the step counter / banner text / forceEmerge scheduling.
+function tutorialTick(dtMs, normPos) {
+    const nowMs = performance.now();
+
+    if (tutStep === 1) {
+        if (Math.abs(normPos) <= TUT_BALANCE_ZONE_DEG) {
+            tutHoldMs += dtMs;
+            const secLeft = Math.ceil((TUT_BALANCE_HOLD_MS - tutHoldMs) / 1000);
+            if (secLeft !== tutBannerLastSec) {
+                tutBannerLastSec = secLeft;
+                showTutorialBanner('Держись наверху! ' + Math.max(0, secLeft) + ' сек');
+            }
+        }
+        // Outside the zone: progress just freezes (no reset) — see design note
+        // in the task, this keeps step 1 from feeling punishing.
+        if (tutHoldMs >= TUT_BALANCE_HOLD_MS) {
+            tutStep = 2;
+            tutBannerLastSec = -1;
+            showTutorialBanner('Сучок! ТАПНИ — прыжок!');
+            forceEmerge('knot');
+            tutLastEmergeAt = nowMs;
+        }
+        return;
+    }
+
+    if (tutStep === 2) {
+        // Re-summon the knot if it dove back under unbeaten (dive() clears
+        // isObstacleActive()) — give the dive/splash animation ~1.2s to play
+        // out before forcing it back up, matching the task's guidance.
+        if (!isObstacleActive() && nowMs - tutLastEmergeAt > 1200) {
+            forceEmerge('knot');
+            tutLastEmergeAt = nowMs;
+        }
+        return;
+    }
+
+    if (tutStep === 3) {
+        // Outro: nothing to tick — exitTutorial() is scheduled by whoever set
+        // tutStep to 3 (see the 'cleared' handling in gameLoop).
+        return;
+    }
+}
+
+// Soft "fall" recovery for the tutorial: replaces gameOver() while
+// tutorialMode is active (see the gameLoop gate). Re-centers the CHARACTER,
+// rewinds progress to step 1 (falling mid-step-2 means the player hasn't
+// really learned to balance yet either), and leaves tiltZero alone — that's
+// the scheme-B neutral-posture calibration, unrelated to a fall and still valid.
+function tutorialSoftReset() {
+    if (tutStep === 3) return; // outro is already wrapping up via exitTutorial's setTimeout
+
+    // playerPosition = logAngle + userAngle, and unlike the countdown reset
+    // the log has been spinning here (logAngle is arbitrary) — zeroing
+    // userAngle would drop the character wherever the log happens to point,
+    // possibly still past FALL_THRESHOLD and re-triggering this reset every
+    // frame. Counter-rotate instead so the character lands back on top.
+    state.userAngle = -state.logAngle;
+    state.contAngle = state.userAngle;
+    state.velEMA = 0;
+    state.rawLastAngle = null;
+
+    tutStep = 1;
+    tutHoldMs = 0;
+    tutBannerLastSec = -1;
+    screenShake(false);
+    showTutorialBanner('Оп! Ещё раз — держись наверху');
+}
+
+// Ends the tutorial (either completed or skipped) and hands off to the
+// normal game flow's own full reset (showCountdown does resetObstacles,
+// score, angles, etc. — no need to duplicate any of that here).
+// Idempotent: the step-3 outro schedules this via setTimeout, but a skip-tap
+// during that same 1400ms window would otherwise fire it a second time and
+// re-launch the countdown on top of the just-started real run.
+function exitTutorial() {
+    if (!tutorialMode) return;
+    tutorialMode = false;
+    tutStep = 0;
+    tutHoldMs = 0;
+    tutLastEmergeAt = -Infinity;
+    tutBannerLastSec = -1;
+    hideTutorialUI();
+    directionPill.style.display = '';
+    showCountdown();
+}
+
+tutorialSkipBtn.addEventListener('click', function () {
+    lsSet('stayOnLog_seenTutorial_v1', '1');
+    exitTutorial();
+});
+
 // === NICKNAME SYSTEM ===
 
 function updatePlayerNameDisplay() {
@@ -614,29 +785,34 @@ function handleStartClick() {
 }
 
 function requestPermissionAndStart() {
+    // ?tut=1: launch the guided tutorial instead of a normal run. Only wired
+    // up for this explicit opt-in flag for now — auto-launching it for real
+    // newcomers (based on the stayOnLog_seenTutorial_v1 flag) is a follow-up.
     if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
         DeviceMotionEvent.requestPermission()
             .then(response => {
                 if (response === 'granted') {
-                    showCountdown();
+                    showCountdown(tutParam);
                 } else {
                     alert("Нужен доступ к датчикам, чтобы крутить бревно!");
                 }
             })
             .catch(console.error);
     } else {
-        showCountdown();
+        showCountdown(tutParam);
     }
 }
 
-function showCountdown() {
+function showCountdown(startTutorialMode) {
     // Desktop plays with the keyboard (dev mode too — a keyboard is the only
     // input desktop ever has), so the countdown copy should match what the
     // player is about to do instead of always mentioning the phone. On a
     // phone, the wording also depends on the active control scheme.
-    countdownTextEl.innerText = isDesktop
-        ? 'Клавиатура: ←/→ — баланс, пробел — прыжок!'
-        : schemeText('Готовься крутить телефон!', 'Наклоняй телефон и держись наверху!');
+    countdownTextEl.innerText = startTutorialMode
+        ? 'Сейчас потренируемся!'
+        : (isDesktop
+            ? 'Клавиатура: ←/→ — баланс, пробел — прыжок!'
+            : schemeText('Готовься крутить телефон!', 'Наклоняй телефон и держись наверху!'));
 
     startBtn.style.display = 'none';
     shareBtn.style.display = 'none';
@@ -654,6 +830,9 @@ function showCountdown() {
     steerHintVisible = false;
     steerHintShownAt = -Infinity;
     steerHintSide = '';
+    // Defensive: the normal flow never shows these, but guard anyway (mirrors
+    // the tap/steer-hint resets right above).
+    hideTutorialUI();
 
     // Reset jump / invulnerability and clear any obstacles from a prev game.
     state.isJumping = false;
@@ -709,12 +888,12 @@ function showCountdown() {
             state.rawLastAngle = null;
             state.tiltZero = state.tiltEMA; // scheme B: current posture becomes neutral
 
-            dropPlayer();
+            dropPlayer(startTutorialMode);
         }
     }, 1000);
 }
 
-function dropPlayer() {
+function dropPlayer(startTutorialMode) {
     playerEl.classList.remove('visible', 'falling');
     playerEl.style.opacity = '0';
 
@@ -727,7 +906,8 @@ function dropPlayer() {
             playerEl.classList.add('visible');
             playerEl.style.opacity = '';
             playerEl.style.top = '-25px';
-            startGame();
+            if (startTutorialMode) startTutorial();
+            else startGame();
         }, { once: true });
     });
 }
@@ -763,6 +943,44 @@ function startGame() {
     gameLoop();
 }
 
+// Guided first run (?tut=1 only for now, see tutParam/requestPermissionAndStart).
+// Runs the same rAF loop as startGame() but gameLoop's tutorialMode gates skip
+// the score/difficulty/gameOver machinery — see the gameLoop gates below and
+// tutorialTick() for the actual 3-step script.
+function startTutorial() {
+    tutorialMode = true;
+    tutStep = 1;
+    tutHoldMs = 0;
+    tutLastEmergeAt = -Infinity;
+    tutBannerLastSec = -1;
+
+    state.isPlaying = true;
+    state.logSpeed = TUT_LOG_SPEED;
+    state.logDirection = 1;
+    // Lives are full but hidden — the tutorial's soft hit-feedback (see
+    // gameLoop's 'hit' handling) never actually spends them, so a lives
+    // display would just be inert chrome. Hidden alongside directionPill,
+    // which the tutorial banner replaces as the "what do I do" cue.
+    state.hp = START_HP;
+    state.isJumping = false;
+    state.invulnerable = false;
+    playerEl.classList.remove('jumping', 'hit');
+    heartsEl.style.display = 'none';
+    directionPill.style.display = 'none';
+
+    spawnObstacles(); // container for forceEmerge('knot') in step 2
+
+    tutorialSkipBtn.style.display = 'block';
+    tutorialSkipBtn.removeAttribute('aria-hidden');
+    tutorialBanner.removeAttribute('aria-hidden');
+    showTutorialBanner(isDesktop
+        ? 'Держи ←/→ — держись наверху!'
+        : schemeText('Крути — держись наверху!', 'Наклоняй — держись наверху!'));
+
+    lastFrameTs = performance.now();
+    gameLoop();
+}
+
 function gameOver(normPos) {
     state.isPlaying = false;
     dirWarning.style.display = 'none';
@@ -777,6 +995,9 @@ function gameOver(normPos) {
     dangerVignette.className = '';
     directionPill.style.display = 'none';
     heartsEl.style.display = 'none';
+    // Defensive: the normal flow never reaches gameOver while tutorialMode is
+    // active (see the gameLoop gates), but guard the UI anyway.
+    hideTutorialUI();
     window.removeEventListener('devicemotion', handleMotion);
     music.stop();
     sfx.splash();
@@ -832,7 +1053,7 @@ nicknameInput.addEventListener('keydown', function (e) {
 // silent-switch), so re-running initAudio() on every tap keeps it resumed
 // instead of relying solely on the one-time unlock at Start.
 document.addEventListener('pointerdown', function (e) {
-    if (e.target.closest && e.target.closest('#mute-btn, #howto-btn, #howto-overlay, #dev-tune')) return;
+    if (e.target.closest && e.target.closest('#mute-btn, #howto-btn, #howto-overlay, #dev-tune, #tutorial-skip')) return;
     initAudio();
     if (state.isPlaying) doJump();
 });

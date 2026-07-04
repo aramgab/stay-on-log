@@ -128,6 +128,11 @@ export const HINT_STEER_RUNS = 5;         // steering hint only during the first
 export const HINT_STEER_FROM = 0.45;      // danger fraction (0..1) at which the hint appears
 export const HINT_STEER_COOLDOWN_MS = 6000; // don't re-show more often than this
 
+// === INTERACTIVE TUTORIAL ===
+export const TUT_LOG_SPEED = 0.5;        // slow log speed during the tutorial
+export const TUT_BALANCE_HOLD_MS = 4000; // total in-zone time to pass step 1
+export const TUT_BALANCE_ZONE_DEG = 45;  // "in zone" = within ±this of the top
+
 // === SHARING ===
 // Landing URL for the "brag" share button. Once the game gets its own
 // Telegram bot / mini-app handle, swap this for the t.me deep link

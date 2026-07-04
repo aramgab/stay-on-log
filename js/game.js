@@ -23,6 +23,9 @@ import {
     ASSIST_PHASE_FACTOR,
     DANGER_WARN_FROM,
     HINT_JUMP_RUNS,
+    HINT_STEER_RUNS,
+    HINT_STEER_FROM,
+    HINT_STEER_COOLDOWN_MS,
     SHARE_URL,
     TILT_RANGE_DEG,
     TILT_RATE_MAX,
@@ -64,6 +67,7 @@ import {
     obSideHint,
     dangerVignette,
     tapHint,
+    steerHint,
 } from './dom.js';
 import { handleMotion, getSensitivity, setSensitivity, getSmooth, setSmooth, getScheme, setScheme } from './input.js';
 import { animateFall } from './render.js';
@@ -128,6 +132,15 @@ let jumpedThisRun = false;
 // Mirrors the DOM's current .visible state so gameLoop only touches
 // classList on an actual change, same pattern as obSideHint's className diff.
 let tapHintVisible = false;
+
+// "Steer back" coach banner: shown only during a newcomer's first
+// HINT_STEER_RUNS runs, when the danger vignette crosses HINT_STEER_FROM.
+// Hysteresis (show above HINT_STEER_FROM, hide only below 0.2) keeps it from
+// flickering right at the threshold; the cooldown keeps it from re-popping
+// every time danger dips and spikes again in the same close call.
+let steerHintVisible = false;
+let steerHintShownAt = -Infinity; // performance.now() of the last time it appeared
+let steerHintSide = ''; // side the visible hint currently points to ('' = unset)
 
 // Scheme B (tilt-rate) tuning, loaded/persisted the same way as assistMult
 // above. Not wired to a UI yet — the ?dev=1 sliders for these land in a
@@ -348,6 +361,41 @@ function gameLoop() {
     const danger = Math.min(1, Math.max(0, (Math.abs(normPos) - DANGER_WARN_FROM) / (FALL_THRESHOLD - DANGER_WARN_FROM)));
     dangerVignette.style.opacity = danger;
     dangerVignette.className = danger > 0 ? (normPos > 0 ? 'right' : 'left') : '';
+
+    // 6c. Newcomer coach banner: "steer back" while drifting dangerously off
+    // the top, for the first HINT_STEER_RUNS runs only. Hysteresis (appear
+    // above HINT_STEER_FROM, disappear only below 0.2) stops it flickering
+    // right at the threshold; the cooldown (measured from the moment it last
+    // APPEARED) stops it re-popping on every little wobble during one close
+    // call. While visible, the text keeps following whichever side the
+    // player is currently drifting toward.
+    if (runCount <= HINT_STEER_RUNS) {
+        const nowMs = performance.now();
+        if (!steerHintVisible) {
+            if (danger > HINT_STEER_FROM && nowMs - steerHintShownAt >= HINT_STEER_COOLDOWN_MS) {
+                steerHintVisible = true;
+                steerHintShownAt = nowMs;
+                steerHint.classList.add('visible');
+            }
+        } else if (danger < 0.2) {
+            steerHintVisible = false;
+            steerHintSide = '';
+            steerHint.classList.remove('visible');
+        }
+        if (steerHintVisible) {
+            // Steer opposite the drift: normPos > 0 = blown to the RIGHT of
+            // the top (same convention as the vignette/animateFall above),
+            // so the way back is LEFT — and symmetrically for normPos < 0.
+            // Rewrite the text only when the side actually flips, not per frame.
+            const side = normPos > 0 ? 'left' : 'right';
+            if (side !== steerHintSide) {
+                steerHintSide = side;
+                steerHint.innerText = side === 'left'
+                    ? (isDesktop ? '⬅ ЖМИ ВЛЕВО' : schemeText('⟲ КРУТИ ВЛЕВО', '⬅ НАКЛОНЯЙ ВЛЕВО'))
+                    : (isDesktop ? 'ЖМИ ВПРАВО ➡' : schemeText('КРУТИ ВПРАВО ⟳', 'НАКЛОНЯЙ ВПРАВО ➡'));
+            }
+        }
+    }
 
     if (!state.isJumping && Math.abs(normPos) > FALL_THRESHOLD) {
         gameOver(normPos);
@@ -602,6 +650,10 @@ function showCountdown() {
     dangerVignette.className = '';
     tapHint.classList.remove('visible');
     tapHintVisible = false;
+    steerHint.classList.remove('visible');
+    steerHintVisible = false;
+    steerHintShownAt = -Infinity;
+    steerHintSide = '';
 
     // Reset jump / invulnerability and clear any obstacles from a prev game.
     state.isJumping = false;
@@ -717,6 +769,10 @@ function gameOver(normPos) {
     obSideHint.className = '';
     tapHint.classList.remove('visible');
     tapHintVisible = false;
+    steerHint.classList.remove('visible');
+    steerHintVisible = false;
+    steerHintShownAt = -Infinity;
+    steerHintSide = '';
     dangerVignette.style.opacity = 0;
     dangerVignette.className = '';
     directionPill.style.display = 'none';

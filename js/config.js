@@ -124,6 +124,10 @@ export const BIOME_STORM_MS = 140000;
 // Coach banners for the first runs only; veterans never see them.
 export const HINT_JUMP_RUNS = 3;   // show the "tap to jump" banner during the first N runs
 
+export const HINT_STEER_RUNS = 5;         // steering hint only during the first N runs
+export const HINT_STEER_FROM = 0.45;      // danger fraction (0..1) at which the hint appears
+export const HINT_STEER_COOLDOWN_MS = 6000; // don't re-show more often than this
+
 // === SHARING ===
 // Landing URL for the "brag" share button. Once the game gets its own
 // Telegram bot / mini-app handle, swap this for the t.me deep link

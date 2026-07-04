@@ -244,6 +244,11 @@
              an obstacle is approaching, to teach "tap = jump". -->
         <div id="tap-hint" aria-hidden="true">👆 ТАПНИ — ПРЫЖОК!</div>
 
+        <!-- Newcomer coach banner: shown for the first HINT_STEER_RUNS runs when
+             drifting into danger, to teach which way to steer back. Text is set
+             from JS (depends on drift side + active control scheme). -->
+        <div id="steer-hint" aria-hidden="true"></div>
+
         <!-- Splash effect -->
         <svg id="splash" width="80" height="60" viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg">
             <ellipse cx="40" cy="45" rx="35" ry="8" fill="rgba(100,180,255,0.4)" />

@@ -10,6 +10,7 @@ import {
     splashEl,
     statusEl,
     startBtn,
+    shareBtn,
 } from './dom.js';
 import { countUp } from './fx.js';
 
@@ -85,5 +86,6 @@ export function animateFall(normPos) {
         }
         startBtn.style.display = 'inline-block';
         startBtn.innerText = "Попробовать снова";
+        if (state.highScore > 0) shareBtn.style.display = 'inline-block';
     }, 1200);
 }

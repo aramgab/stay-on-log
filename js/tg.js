@@ -86,3 +86,36 @@ export function cloudSet(key, value) {
         /* ignore — best-effort sync */
     }
 }
+
+// Three tiers of sharing, best available wins: Telegram's own share sheet ->
+// Web Share API -> clipboard fallback. Returns which one fired ('tg' / 'web'
+// / 'copy'), or null if the platform offers none of them, so the caller can
+// show its own "copied!" feedback for the clipboard case.
+export function shareScore(text, url) {
+    const app = tgApp();
+    if (isInTelegram() && app && typeof app.openTelegramLink === 'function') {
+        try {
+            app.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text));
+            return 'tg';
+        } catch (e) {
+            /* fall through to the next tier */
+        }
+    }
+    if (typeof navigator.share === 'function') {
+        try {
+            navigator.share({ text: text, url: url }).catch(function () {
+                /* user closed the share sheet — not an error */
+            });
+            return 'web';
+        } catch (e) {
+            /* some desktop browsers throw synchronously — fall through */
+        }
+    }
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(text + '\n' + url).catch(function () {
+            /* ignore — best-effort copy */
+        });
+        return 'copy';
+    }
+    return null;
+}

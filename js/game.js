@@ -22,6 +22,7 @@ import {
     BIOME_STORM_MS,
     ASSIST_PHASE_FACTOR,
     DANGER_WARN_FROM,
+    SHARE_URL,
 } from './config.js';
 import {
     logWrapper,
@@ -42,6 +43,7 @@ import {
     speedFillEl,
     directionPill,
     startBtn,
+    shareBtn,
     desktopStub,
     countdownOverlay,
     countdownNumber,
@@ -69,7 +71,7 @@ import {
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
-import { initTelegram, tgUser, cloudGet, cloudSet } from './tg.js';
+import { initTelegram, tgUser, cloudGet, cloudSet, shareScore } from './tg.js';
 
 initTelegram();
 
@@ -456,6 +458,7 @@ function requestPermissionAndStart() {
 
 function showCountdown() {
     startBtn.style.display = 'none';
+    shareBtn.style.display = 'none';
     directionPill.style.display = 'none';
     heartsEl.style.display = 'none';
     newRecordEl.style.display = 'none';
@@ -603,6 +606,16 @@ function gameOver(normPos) {
 // === EVENT WIRING ===
 // (Replaces the inline onclick handlers from the original single-file version.)
 startBtn.addEventListener('click', handleStartClick);
+shareBtn.addEventListener('click', function () {
+    initAudio(); // any tap may be the session's first gesture
+    const text = 'Я набрал ' + state.highScore + ' очков в «Stay on Log» 🪵 Удержишься дольше?';
+    const method = shareScore(text, SHARE_URL);
+    if (method === 'copy') {
+        // No share sheet on this platform — we copied instead; say so.
+        const r = shareBtn.getBoundingClientRect();
+        floatText(r.left + r.width / 2, r.top - 8, 'Скопировано!');
+    }
+});
 playerNameEl.addEventListener('click', showNicknameOverlay);
 // Arrow wrapper so the re-assignable `saveNickname` (auto-start trick) is
 // resolved at click time, not at wiring time. Also unlocks audio: for a
@@ -752,5 +765,6 @@ cloudGet('stayOnLog_playerName', function (v) {
 
 // Show high score and nickname on load
 updateHighScoreDisplay();
+shareBtn.style.display = state.highScore > 0 ? 'inline-block' : 'none';
 updatePlayerNameDisplay();
 applyBiome(0);

@@ -14,6 +14,7 @@ export const speedEl = document.getElementById('speed-indicator');
 export const speedFillEl = document.getElementById('speed-fill');
 export const directionPill = document.getElementById('direction-pill');
 export const startBtn = document.getElementById('start-btn');
+export const shareBtn = document.getElementById('share-btn');
 export const heartsEl = document.getElementById('hearts-display');
 export const muteBtn = document.getElementById('mute-btn');
 export const howtoBtn = document.getElementById('howto-btn');

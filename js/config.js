@@ -106,3 +106,9 @@ export const DOUBLE_FROM_MS = PHASE2_MS;
 export const BIOME_SUNSET_MS = PHASE1_MS;
 export const BIOME_NIGHT_MS = PHASE2_MS;
 export const BIOME_STORM_MS = 140000;
+
+// === SHARING ===
+// Landing URL for the "brag" share button. Once the game gets its own
+// Telegram bot / mini-app handle, swap this for the t.me deep link
+// (t.me/<bot>/<app>?startapp=...) so shares open straight inside Telegram.
+export const SHARE_URL = 'https://stay-on-log.vercel.app';

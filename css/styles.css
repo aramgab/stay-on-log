@@ -517,6 +517,27 @@ body.biome-storm .lightning {
     box-shadow: 0 3px 10px rgba(39, 174, 96, 0.3);
 }
 
+/* Secondary action next to START — quieter styling, shown only once the
+   player has a record worth sharing (display toggled from JS). */
+#share-btn {
+    display: none;
+    background: rgba(0, 0, 0, 0.35);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    padding: 8px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    border-radius: 16px;
+    cursor: pointer;
+    margin-top: 10px;
+    letter-spacing: 1px;
+}
+
+#share-btn:active {
+    transform: scale(0.95);
+}
+
 /* === COUNTDOWN OVERLAY === */
 #countdown-overlay {
     position: fixed;

@@ -785,21 +785,23 @@ function handleStartClick() {
 }
 
 function requestPermissionAndStart() {
-    // ?tut=1: launch the guided tutorial instead of a normal run. Only wired
-    // up for this explicit opt-in flag for now — auto-launching it for real
-    // newcomers (based on the stayOnLog_seenTutorial_v1 flag) is a follow-up.
+    // Guided tutorial: forced via ?tut=1 (re-testable anytime), and launched
+    // automatically for a newcomer who hasn't completed/skipped it yet. The
+    // flag is written by the tutorial itself (finish or skip), so a player
+    // who bails mid-tutorial by reloading gets offered it again.
+    const wantsTutorial = tutParam || !lsGet('stayOnLog_seenTutorial_v1');
     if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
         DeviceMotionEvent.requestPermission()
             .then(response => {
                 if (response === 'granted') {
-                    showCountdown(tutParam);
+                    showCountdown(wantsTutorial);
                 } else {
                     alert("Нужен доступ к датчикам, чтобы крутить бревно!");
                 }
             })
             .catch(console.error);
     } else {
-        showCountdown(tutParam);
+        showCountdown(wantsTutorial);
     }
 }
 
@@ -1081,8 +1083,10 @@ howtoSensRange.addEventListener('input', function () {
     setSensitivity(+howtoSensRange.value);
     howtoSensVal.textContent = (+howtoSensRange.value).toFixed(2);
 });
-// First launch: show how-to-play once.
-if (!lsGet('stayOnLog_seenHowto')) openHowto();
+// The one-time how-to auto-popup is retired: newcomers now get the
+// interactive tutorial on their first Start instead (see
+// requestPermissionAndStart), which teaches by doing rather than by reading.
+// The ? button still opens this overlay as reference + settings.
 
 // === SOUND TOGGLE ===
 function updateMuteBtn() {

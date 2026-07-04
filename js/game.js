@@ -63,7 +63,7 @@ import {
     obSideHint,
     dangerVignette,
 } from './dom.js';
-import { handleMotion, getSensitivity, setSensitivity, getSmooth, setSmooth, getScheme } from './input.js';
+import { handleMotion, getSensitivity, setSensitivity, getSmooth, setSmooth, getScheme, setScheme } from './input.js';
 import { animateFall } from './render.js';
 import {
     spawnObstacles,
@@ -849,6 +849,65 @@ function buildTunePanel() {
     s.addEventListener('input', () => { setSensitivity(+s.value); sv.textContent = (+s.value).toFixed(2); });
     m.addEventListener('input', () => { setSmooth(+m.value); mv.textContent = (+m.value).toFixed(2); });
     a.addEventListener('input', () => { setAssistMult(+a.value); av.textContent = (+a.value).toFixed(2); });
+
+    // Scheme B ("hold the tilt") controls — a wind⇄tilt switch plus its four
+    // response-curve sliders. Added below the existing rows without touching
+    // them. Mid-run scheme switches are allowed here (dev-only, at your own
+    // risk); nothing else needs to react beyond what schemeText()/handleMotion
+    // already branch on by reading getScheme() live.
+    const schemeRow = document.createElement('label');
+    schemeRow.innerHTML =
+        'scheme <b id="dt-schv"></b>' +
+        '<span id="dt-sch-wind" class="dt-seg-btn">wind</span>' +
+        '<span id="dt-sch-tilt" class="dt-seg-btn">tilt</span>';
+    panel.appendChild(schemeRow);
+
+    const schv = schemeRow.querySelector('#dt-schv');
+    const schWind = schemeRow.querySelector('#dt-sch-wind');
+    const schTilt = schemeRow.querySelector('#dt-sch-tilt');
+    // Compact inline styling so the two segments read as one control without
+    // needing a new CSS rule in styles.css for this one panel row.
+    [schWind, schTilt].forEach((btn) => {
+        btn.style.cssText =
+            'padding:2px 8px;border-radius:6px;background:rgba(255,255,255,0.12);cursor:pointer;';
+    });
+    function refreshSchemeUI() {
+        const active = getScheme();
+        schv.textContent = active;
+        schWind.style.background = active === 'wind' ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.12)';
+        schWind.style.color = active === 'wind' ? '#000' : '#fff';
+        schTilt.style.background = active === 'tilt' ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.12)';
+        schTilt.style.color = active === 'tilt' ? '#000' : '#fff';
+    }
+    schWind.addEventListener('click', () => { setScheme('wind'); refreshSchemeUI(); });
+    schTilt.addEventListener('click', () => { setScheme('tilt'); refreshSchemeUI(); });
+    refreshSchemeUI();
+
+    // Four scheme-B response-curve sliders, built with the same value-label +
+    // input + live-readout shape as sens/smooth/assist above, factored into a
+    // helper since there are four of them (vs. copy-pasting the block again).
+    addTuneSlider(panel, 'tilt range', getTiltRange, setTiltRange, 10, 60, 1, 0);
+    addTuneSlider(panel, 'tilt rate', getTiltRateMax, setTiltRateMax, 1.0, 6.0, 0.1, 1);
+    addTuneSlider(panel, 'tilt expo', getTiltExpo, setTiltExpo, 1.0, 2.5, 0.05, 2);
+    addTuneSlider(panel, 'tilt dz', getTiltDeadzone, setTiltDeadzone, 0, 8, 0.25, 2);
+}
+
+// Shared row-builder for the tilt sliders: same markup/wiring pattern as the
+// hand-written sens/smooth/assist rows above (label + live value + range
+// input, get() seeds the initial value, set() persists on input), just
+// parameterized so four near-identical rows don't get copy-pasted.
+function addTuneSlider(panel, labelText, get, set, min, max, step, decimals) {
+    const row = document.createElement('label');
+    row.innerHTML = labelText + ' <b></b><input type="range" min="' + min + '" max="' + max + '" step="' + step + '">';
+    panel.appendChild(row);
+    const valEl = row.querySelector('b');
+    const input = row.querySelector('input');
+    input.value = get();
+    valEl.textContent = (+input.value).toFixed(decimals);
+    input.addEventListener('input', () => {
+        set(+input.value);
+        valEl.textContent = (+input.value).toFixed(decimals);
+    });
 }
 
 // === TG IDENTITY ===

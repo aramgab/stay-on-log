@@ -69,7 +69,7 @@ import {
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
-import { initTelegram, tgUser } from './tg.js';
+import { initTelegram, tgUser, cloudGet, cloudSet } from './tg.js';
 
 initTelegram();
 
@@ -412,6 +412,8 @@ let saveNickname = function () {
     }
     state.playerName = name;
     lsSet('stayOnLog_playerName', state.playerName);
+    nameSource = 'user';
+    cloudSet('stayOnLog_playerName', state.playerName);
     nicknameOverlay.classList.remove('active');
     updatePlayerNameDisplay();
 };
@@ -589,6 +591,7 @@ function gameOver(normPos) {
     if (state.score > state.highScore) {
         state.highScore = state.score;
         lsSet('stayOnLog_highScore_v2', state.highScore);
+        cloudSet('stayOnLog_highScore_v2', String(state.highScore));
         updateHighScoreDisplay();
     }
     newRecordEl.style.display = 'none';
@@ -722,6 +725,30 @@ if (!state.playerName) {
         lsSet('stayOnLog_playerName', state.playerName);
     }
 }
+
+// === CLOUD SYNC (Telegram CloudStorage) ===
+// Pull the record/nick saved on other devices. Values arrive async (possibly
+// after first paint) — merge without blocking, prefer the larger record and
+// an explicitly chosen nick over the TG-profile default.
+cloudGet('stayOnLog_highScore_v2', function (v) {
+    const cloud = parseInt(v, 10) || 0;
+    if (cloud > state.highScore) {
+        state.highScore = cloud;
+        lsSet('stayOnLog_highScore_v2', String(cloud));
+        updateHighScoreDisplay();
+    } else if (state.highScore > cloud) {
+        cloudSet('stayOnLog_highScore_v2', String(state.highScore));
+    }
+});
+cloudGet('stayOnLog_playerName', function (v) {
+    if (v && nameSource !== 'user') {
+        state.playerName = String(v).slice(0, 16);
+        lsSet('stayOnLog_playerName', state.playerName);
+        updatePlayerNameDisplay();
+    } else if (state.playerName && !v) {
+        cloudSet('stayOnLog_playerName', state.playerName);
+    }
+});
 
 // Show high score and nickname on load
 updateHighScoreDisplay();

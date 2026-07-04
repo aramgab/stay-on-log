@@ -22,6 +22,7 @@ import {
     BIOME_STORM_MS,
     ASSIST_PHASE_FACTOR,
     DANGER_WARN_FROM,
+    HINT_JUMP_RUNS,
     SHARE_URL,
     TILT_RANGE_DEG,
     TILT_RATE_MAX,
@@ -62,6 +63,7 @@ import {
     nicknameSaveBtn,
     obSideHint,
     dangerVignette,
+    tapHint,
 } from './dom.js';
 import { handleMotion, getSensitivity, setSensitivity, getSmooth, setSmooth, getScheme, setScheme } from './input.js';
 import { animateFall } from './render.js';
@@ -116,6 +118,16 @@ function setAssistMult(v) {
 function getAssistMult() {
     return assistMult;
 }
+
+// === NEWCOMER HINTS ===
+// "Tap to jump" coach banner: shown only during a newcomer's first
+// HINT_JUMP_RUNS runs, and only until they've jumped once THIS run (so it
+// doesn't nag a player who already got the message mid-run).
+let runCount = parseInt(lsGet('stayOnLog_runCount'), 10) || 0;
+let jumpedThisRun = false;
+// Mirrors the DOM's current .visible state so gameLoop only touches
+// classList on an actual change, same pattern as obSideHint's className diff.
+let tapHintVisible = false;
 
 // Scheme B (tilt-rate) tuning, loaded/persisted the same way as assistMult
 // above. Not wired to a UI yet — the ?dev=1 sliders for these land in a
@@ -286,6 +298,16 @@ function gameLoop() {
     obSideHint.className = isObstacleApproaching()
         ? (state.logDirection === 1 ? 'left' : 'right')
         : '';
+
+    // 2e. Newcomer coach banner: "tap to jump", only for the first
+    // HINT_JUMP_RUNS runs and only until the player has jumped this run.
+    // classList is only touched on an actual state change (mirrors the
+    // obSideHint pattern above, adapted to a single boolean flag).
+    const wantsTapHint = isObstacleApproaching() && runCount <= HINT_JUMP_RUNS && !jumpedThisRun;
+    if (wantsTapHint !== tapHintVisible) {
+        tapHintVisible = wantsTapHint;
+        tapHint.classList.toggle('visible', tapHintVisible);
+    }
 
     // 3. Score = small survival trickle + event points (skill-weighted)
     state.score = Math.floor(state.elapsed / SURVIVAL_MS_PER_POINT) + state.eventScore;
@@ -479,6 +501,7 @@ function registerHit(playerPosition) {
 function doJump() {
     if (!state.isPlaying || state.isJumping) return;
     state.isJumping = true;
+    jumpedThisRun = true;
     state.jumpStartTime = Date.now();
     playerEl.classList.add('jumping');
     sfx.jump();
@@ -577,6 +600,8 @@ function showCountdown() {
     playerEl.style.opacity = '0';
     dangerVignette.style.opacity = 0;
     dangerVignette.className = '';
+    tapHint.classList.remove('visible');
+    tapHintVisible = false;
 
     // Reset jump / invulnerability and clear any obstacles from a prev game.
     state.isJumping = false;
@@ -664,6 +689,11 @@ function startGame() {
     state.elapsed = 0;
     state.recordCelebrated = false;
 
+    // Newcomer hints: count this run, reset the per-run "already jumped" flag.
+    runCount += 1;
+    lsSet('stayOnLog_runCount', String(runCount));
+    jumpedThisRun = false;
+
     // Lives & obstacles
     state.hp = START_HP;
     state.isJumping = false;
@@ -685,6 +715,8 @@ function gameOver(normPos) {
     state.isPlaying = false;
     dirWarning.style.display = 'none';
     obSideHint.className = '';
+    tapHint.classList.remove('visible');
+    tapHintVisible = false;
     dangerVignette.style.opacity = 0;
     dangerVignette.className = '';
     directionPill.style.display = 'none';

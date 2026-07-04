@@ -25,6 +25,7 @@ export const howtoSensVal = document.getElementById('howto-sv');
 export const obstacleLayer = document.getElementById('obstacle-layer');
 export const obstacleSplash = document.getElementById('obstacle-splash');
 export const obSideHint = document.getElementById('ob-side-hint');
+export const tapHint = document.getElementById('tap-hint');
 export const dangerVignette = document.getElementById('danger-vignette');
 export const desktopStub = document.getElementById('desktop-stub');
 export const stubKeyboardBtn = document.getElementById('stub-keyboard-btn');

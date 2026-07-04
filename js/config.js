@@ -120,6 +120,10 @@ export const BIOME_SUNSET_MS = PHASE1_MS;
 export const BIOME_NIGHT_MS = PHASE2_MS;
 export const BIOME_STORM_MS = 140000;
 
+// === NEWCOMER HINTS ===
+// Coach banners for the first runs only; veterans never see them.
+export const HINT_JUMP_RUNS = 3;   // show the "tap to jump" banner during the first N runs
+
 // === SHARING ===
 // Landing URL for the "brag" share button. Once the game gets its own
 // Telegram bot / mini-app handle, swap this for the t.me deep link

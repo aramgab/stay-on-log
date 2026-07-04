@@ -1309,6 +1309,45 @@ body.biome-storm .lightning {
     }
 }
 
+/* Newcomer coach banner: "tap to jump" for the first HINT_JUMP_RUNS runs.
+   Centered in the top third, above the scene but below the full-screen
+   overlays (howto/countdown/nickname sit at z-index 100+). Pointer-events
+   are off on purpose: a tap through the banner IS the taught action (jump). */
+#tap-hint {
+    position: fixed;
+    top: 14%;
+    left: 50%;
+    transform: translateX(-50%) scale(0.94);
+    z-index: 50;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    color: white;
+    text-align: center;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.85), 0 0 20px rgba(0, 0, 0, 0.6),
+        0 2px 4px rgba(0, 0, 0, 0.9);
+    -webkit-text-stroke: 1px rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+#tap-hint.visible {
+    animation: tapHintPulse 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes tapHintPulse {
+    from {
+        opacity: 0.75;
+        transform: translateX(-50%) scale(0.94);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) scale(1.04);
+    }
+}
+
 /* Splash at the waterline when the obstacle surfaces / dives */
 #obstacle-splash {
     position: absolute;

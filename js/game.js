@@ -23,6 +23,10 @@ import {
     ASSIST_PHASE_FACTOR,
     DANGER_WARN_FROM,
     SHARE_URL,
+    TILT_RANGE_DEG,
+    TILT_RATE_MAX,
+    TILT_EXPO,
+    TILT_DEADZONE_DEG,
 } from './config.js';
 import {
     logWrapper,
@@ -59,7 +63,7 @@ import {
     obSideHint,
     dangerVignette,
 } from './dom.js';
-import { handleMotion, getSensitivity, setSensitivity, getSmooth, setSmooth } from './input.js';
+import { handleMotion, getSensitivity, setSensitivity, getSmooth, setSmooth, getScheme } from './input.js';
 import { animateFall } from './render.js';
 import {
     spawnObstacles,
@@ -113,6 +117,57 @@ function getAssistMult() {
     return assistMult;
 }
 
+// Scheme B (tilt-rate) tuning, loaded/persisted the same way as assistMult
+// above. Not wired to a UI yet — the ?dev=1 sliders for these land in a
+// follow-up commit — but the getters/setters are ready for them.
+let tiltRange = parseFloat(lsGet('stayOnLog_tiltRange'));
+if (isNaN(tiltRange)) tiltRange = TILT_RANGE_DEG;
+
+let tiltRateMax = parseFloat(lsGet('stayOnLog_tiltRateMax'));
+if (isNaN(tiltRateMax)) tiltRateMax = TILT_RATE_MAX;
+
+let tiltExpo = parseFloat(lsGet('stayOnLog_tiltExpo'));
+if (isNaN(tiltExpo)) tiltExpo = TILT_EXPO;
+
+let tiltDeadzone = parseFloat(lsGet('stayOnLog_tiltDeadzone'));
+if (isNaN(tiltDeadzone)) tiltDeadzone = TILT_DEADZONE_DEG;
+
+function setTiltRange(v) {
+    tiltRange = v;
+    lsSet('stayOnLog_tiltRange', String(v));
+}
+
+function getTiltRange() {
+    return tiltRange;
+}
+
+function setTiltRateMax(v) {
+    tiltRateMax = v;
+    lsSet('stayOnLog_tiltRateMax', String(v));
+}
+
+function getTiltRateMax() {
+    return tiltRateMax;
+}
+
+function setTiltExpo(v) {
+    tiltExpo = v;
+    lsSet('stayOnLog_tiltExpo', String(v));
+}
+
+function getTiltExpo() {
+    return tiltExpo;
+}
+
+function setTiltDeadzone(v) {
+    tiltDeadzone = v;
+    lsSet('stayOnLog_tiltDeadzone', String(v));
+}
+
+function getTiltDeadzone() {
+    return tiltDeadzone;
+}
+
 // === BIOMES (scene palette follows the difficulty ramp) ===
 const BIOME_CLASSES = ['biome-day', 'biome-sunset', 'biome-night', 'biome-storm'];
 let currentBiome = '';
@@ -158,6 +213,22 @@ function gameLoop() {
     if (devMode || isDesktop) {
         if (devKeys.left) state.userAngle -= DEV_KEY_SPEED * dtF;
         if (devKeys.right) state.userAngle += DEV_KEY_SPEED * dtF;
+    }
+
+    // Scheme B (tilt-rate): integrate the held tilt into the character angle,
+    // dt-scaled here (NOT in the devicemotion handler — sensor cadence varies by
+    // device). Deadzone → normalize to tiltRange → expo curve → rate.
+    if (!isDesktop && getScheme() === 'tilt') {
+        const t = state.tiltEMA - state.tiltZero;
+        const mag = Math.abs(t) - tiltDeadzone;
+        if (mag > 0) {
+            const n = Math.min(1, mag / tiltRange);
+            state.userAngle += Math.sign(t) * Math.pow(n, tiltExpo)
+                * tiltRateMax * getSensitivity() * dtF;
+        }
+        // Keep both angle domains coherent so steering assist (which adjusts
+        // both) and any scheme switch mid-session stay consistent.
+        state.contAngle = state.userAngle;
     }
 
     // 1. Rotate the log
@@ -330,12 +401,20 @@ function changeDirectionOrSpeed() {
     updateDirectionUI();
 }
 
+// Scheme-aware copy: scheme A ("wind the phone") and scheme B ("hold the
+// tilt") teach opposite muscle memory, so every player-facing string that
+// tells the player HOW to move must match whichever scheme is active. Keyboard
+// mode's own strings are untouched — desktop never runs scheme B.
+function schemeText(windText, tiltText) {
+    return getScheme() === 'tilt' ? tiltText : windText;
+}
+
 function updateDirectionUI() {
     if (state.logDirection === 1) {
-        statusEl.innerText = "КРУТИ ВЛЕВО";
+        statusEl.innerText = schemeText("КРУТИ ВЛЕВО", "НАКЛОНЯЙ ВЛЕВО");
         arrowEl.innerText = "←";
     } else {
-        statusEl.innerText = "КРУТИ ВПРАВО";
+        statusEl.innerText = schemeText("КРУТИ ВПРАВО", "НАКЛОНЯЙ ВПРАВО");
         arrowEl.innerText = "→";
     }
     let speedPercent = Math.round(getSpeedPercent(state.logSpeed));
@@ -482,10 +561,11 @@ function requestPermissionAndStart() {
 function showCountdown() {
     // Desktop plays with the keyboard (dev mode too — a keyboard is the only
     // input desktop ever has), so the countdown copy should match what the
-    // player is about to do instead of always mentioning the phone.
+    // player is about to do instead of always mentioning the phone. On a
+    // phone, the wording also depends on the active control scheme.
     countdownTextEl.innerText = isDesktop
         ? 'Клавиатура: ←/→ — баланс, пробел — прыжок!'
-        : 'Готовься крутить телефон!';
+        : schemeText('Готовься крутить телефон!', 'Наклоняй телефон и держись наверху!');
 
     startBtn.style.display = 'none';
     shareBtn.style.display = 'none';
@@ -550,6 +630,7 @@ function showCountdown() {
             state.contAngle = 0;
             state.velEMA = 0;
             state.rawLastAngle = null;
+            state.tiltZero = state.tiltEMA; // scheme B: current posture becomes neutral
 
             dropPlayer();
         }

@@ -27,6 +27,18 @@ export const INPUT_MAX_STEP = 80;
 // Default control sensitivity (rotation multiplier); overridable via localStorage.
 export const DEFAULT_SENSITIVITY = 1.0;
 
+// === CONTROL SCHEME B: TILT-RATE ("hold the tilt") ===
+// Alternative input scheme: instead of endlessly winding the phone (scheme A
+// above), the player HOLDS a tilt and the character drifts at a rate
+// proportional to it — the familiar "steer like a mobile racing game" gesture.
+// Dormant unless localStorage stayOnLog_controlScheme === 'tilt'.
+export const TILT_RANGE_DEG = 30;      // tilt (deg from neutral) at which rate reaches max
+export const TILT_RATE_MAX = 4.0;      // deg per 60 Hz frame at full tilt (dt-scaled in the loop)
+export const TILT_DEADZONE_DEG = 2.5;  // no drift while the phone is near neutral
+export const TILT_EXPO = 1.4;          // response curve; >1 = softer near center, sharper at edge
+export const TILT_SMOOTH = 0.25;       // EMA factor on the sampled tilt position (per sensor sample)
+export const TILT_GLITCH_DEG = 120;    // reject single-sample jumps beyond this as sensor glitches
+
 // === STEERING ASSIST ("power steering" for newcomers) ===
 // Fraction of the log's own rotation the game silently compensates for the
 // player each frame, indexed by difficulty phase (see PHASE1_MS/PHASE2_MS

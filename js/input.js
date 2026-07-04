@@ -9,6 +9,11 @@
 // angle, guard against sensor glitches, and low-pass the OUTPUT position toward it
 // (less lag than smoothing the velocity, and no drift from integrating a smoothed
 // rate — the previous model's two main problems).
+//
+// This file now dispatches between two control schemes: the winding path above
+// (scheme A, default) and an alternative "hold the tilt" path (scheme B, see
+// handleMotionTilt below). Scheme A's logic is untouched — handleMotion just
+// branches to the other handler up front when scheme B is selected.
 
 import { state, lsGet, lsSet } from './state.js';
 import {
@@ -17,10 +22,15 @@ import {
     INPUT_DEADZONE,
     INPUT_MAX_STEP,
     DEFAULT_SENSITIVITY,
+    TILT_SMOOTH,
+    TILT_GLITCH_DEG,
 } from './config.js';
 
 let sensitivity = parseFloat(lsGet('stayOnLog_sensitivity')) || DEFAULT_SENSITIVITY;
 let smooth = parseFloat(lsGet('stayOnLog_inputSmooth')) || INPUT_SMOOTH;
+
+const rawScheme = lsGet('stayOnLog_controlScheme');
+let scheme = rawScheme === 'wind' || rawScheme === 'tilt' ? rawScheme : 'wind';
 
 export function setSensitivity(v) {
     sensitivity = v;
@@ -40,7 +50,18 @@ export function getSmooth() {
     return smooth;
 }
 
+export function setScheme(v) {
+    scheme = v === 'wind' || v === 'tilt' ? v : 'wind';
+    lsSet('stayOnLog_controlScheme', scheme);
+}
+
+export function getScheme() {
+    return scheme;
+}
+
 export function handleMotion(event) {
+    if (scheme === 'tilt') { handleMotionTilt(event); return; }
+
     const g = event.accelerationIncludingGravity;
     if (!g) return;
 
@@ -67,4 +88,35 @@ export function handleMotion(event) {
 
     // Low-pass the position toward the accumulated target — smooth but responsive.
     state.userAngle += (state.contAngle - state.userAngle) * smooth;
+}
+
+// Scheme B ("hold the tilt") only smooths the sampled tilt POSITION here — it
+// does not integrate a rate into userAngle/contAngle the way scheme A does.
+// devicemotion sample frequency isn't normalized against frame dt at this
+// layer, so any rate-style integration done per-sample (rather than per-frame)
+// would run at a different real-world speed on every device. That integration
+// belongs in gameLoop, driven by dtF, and lands in a follow-up commit — this
+// function just maintains a clean, glitch-guarded tiltEMA for it to read.
+let tiltSeeded = false;
+
+function handleMotionTilt(event) {
+    const g = event.accelerationIncludingGravity;
+    if (!g) return;
+
+    const deg = Math.atan2(g.y, g.x) * (180 / Math.PI) - 90;
+
+    // Seed the EMA from the very first sample: neutral deg differs by platform
+    // (gravity sign conventions), and measuring the first delta against the 0
+    // initializer could exceed TILT_GLITCH_DEG — rejecting every sample forever.
+    if (!tiltSeeded) {
+        state.tiltEMA = deg;
+        tiltSeeded = true;
+        return;
+    }
+
+    let d = deg - state.tiltEMA;
+    if (d < -180) d += 360;
+    else if (d > 180) d -= 360;
+    if (Math.abs(d) > TILT_GLITCH_DEG) return; // sensor glitch — skip the sample
+    state.tiltEMA += d * TILT_SMOOTH;
 }

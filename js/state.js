@@ -38,6 +38,8 @@ export const state = {
     contAngle: 0,        // accumulated phone rotation (winding); userAngle low-passes toward it
     velEMA: 0,           // low-passed rotation rate (deg/sample) fed into contAngle
     rawLastAngle: null,
+    tiltEMA: 0,          // scheme B: smoothed absolute phone tilt, written by input.js
+    tiltZero: 0,         // scheme B: neutral tilt, calibrated at the end of the countdown
 
     // Direction/speed change timer: elapsed-domain ms at which the next change fires
     nextChangeTime: 0,

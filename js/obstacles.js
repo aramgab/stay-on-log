@@ -122,8 +122,16 @@ export function isObstacleApproaching() {
     return phase === 'active' && !ob.passedTop;
 }
 
-function emerge() {
-    ob.type = pickType();
+// Tutorial hook: surface a specific obstacle type right now, bypassing the
+// grace period and cooldown. No-op until spawnObstacles() has created the
+// container, or while an obstacle is already riding the log.
+export function forceEmerge(type) {
+    if (!ob || phase === 'active') return;
+    emerge(type);
+}
+
+function emerge(forcedType) {
+    ob.type = forcedType && OBSTACLE_TYPES[forcedType] ? forcedType : pickType();
     ob.def = OBSTACLE_TYPES[ob.type];
 
     // Pin to the log's bottom point (screen angle 180) so it surfaces at the water.

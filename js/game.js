@@ -69,16 +69,9 @@ import {
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
+import { initTelegram, tgUser } from './tg.js';
 
-// === TELEGRAM MINI APP (guarded; no-op outside Telegram) ===
-if (window.Telegram && window.Telegram.WebApp) {
-    try {
-        window.Telegram.WebApp.ready();
-        window.Telegram.WebApp.expand();
-    } catch (e) {
-        /* not in a Telegram context — ignore */
-    }
-}
+initTelegram();
 
 // === DESKTOP DETECTION ===
 // The game is driven by the device's tilt sensor, which desktops lack. On a
@@ -712,6 +705,22 @@ function buildTunePanel() {
     s.addEventListener('input', () => { setSensitivity(+s.value); sv.textContent = (+s.value).toFixed(2); });
     m.addEventListener('input', () => { setSmooth(+m.value); mv.textContent = (+m.value).toFixed(2); });
     a.addEventListener('input', () => { setAssistMult(+a.value); av.textContent = (+a.value).toFixed(2); });
+}
+
+// === TG IDENTITY ===
+// Inside Telegram the profile name is already known — adopt it as the default
+// nick so a first-time player skips the "who are you" overlay entirely.
+// A nick the player typed in themselves (kept in localStorage) always wins;
+// nameSource lets the CloudStorage sync tell the two apart.
+let nameSource = state.playerName ? 'user' : '';
+if (!state.playerName) {
+    const u = tgUser();
+    const tgName = u && (u.first_name || u.username);
+    if (tgName) {
+        state.playerName = String(tgName).slice(0, 16);
+        nameSource = 'tg';
+        lsSet('stayOnLog_playerName', state.playerName);
+    }
 }
 
 // Show high score and nickname on load

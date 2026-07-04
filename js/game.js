@@ -92,8 +92,12 @@ if (isDesktop) document.body.classList.add('is-desktop'); // flips on desktop-on
 // desktop via the stub's button (and stays on for ?dev=1 too, for debugging
 // on a phone with a keyboard attached).
 const devMode = new URLSearchParams(location.search).has('dev');
-const DEV_KEY_SPEED = 2.5; // deg/frame the arrow keys move the player on the log
+const DEV_KEY_SPEED = 2.5; // deg per 60 Hz frame (dt-scaled in the loop)
 const devKeys = { left: false, right: false };
+
+// Timestamp of the previous gameLoop frame (performance.now() domain), for
+// delta-time normalization of all per-frame world stepping.
+let lastFrameTs = 0;
 
 // Global multiplier on ASSIST_PHASE_FACTOR (steering assist), tunable live via
 // the ?dev=1 panel. Loaded the same way input.js loads sensitivity/smooth.
@@ -135,18 +139,29 @@ function applyBiome(elapsed) {
 function gameLoop() {
     if (!state.isPlaying) return;
 
-    let now = Date.now();
-    state.elapsed = now - state.startTime;
+    // Delta-time normalization: rAF frequency follows the display (60/90/120
+    // Hz), so every per-frame world step below is scaled by dtF — 1.0 at
+    // exactly 60 fps, ~0.5 per frame on a 120 Hz screen. Speeds in config.js
+    // keep their meaning of "degrees per 60 Hz frame" on any display.
+    // The clamp keeps tab-switch pauses / GC hiccups from teleporting the
+    // world — and, because elapsed is accumulated from these clamped deltas,
+    // backgrounding the app no longer farms survival points nor jumps the
+    // difficulty/biome ramp (rAF stops, so elapsed stops with it).
+    const nowTs = performance.now();
+    const dtMs = Math.min(50, Math.max(0, nowTs - lastFrameTs));
+    lastFrameTs = nowTs;
+    const dtF = dtMs / (1000 / 60);
+    state.elapsed += dtMs;
 
     // 0. Keyboard control: dev mode (debugging) or the honest desktop mode
     // reached via the stub's "play with keyboard" button.
     if (devMode || isDesktop) {
-        if (devKeys.left) state.userAngle -= DEV_KEY_SPEED;
-        if (devKeys.right) state.userAngle += DEV_KEY_SPEED;
+        if (devKeys.left) state.userAngle -= DEV_KEY_SPEED * dtF;
+        if (devKeys.right) state.userAngle += DEV_KEY_SPEED * dtF;
     }
 
     // 1. Rotate the log
-    state.logAngle += state.logSpeed * state.logDirection;
+    state.logAngle += state.logSpeed * state.logDirection * dtF;
     logWrapper.style.transform = `rotate(${state.logAngle}deg)`;
 
     // 1b. The jump no longer freezes the player: being airborne only grants the
@@ -164,8 +179,8 @@ function gameLoop() {
         // Must adjust BOTH angles: input.js low-passes userAngle toward
         // contAngle every sample, so nudging only one gets smoothed away —
         // the assist would be silently eaten by the very next devicemotion tick.
-        state.contAngle -= state.logSpeed * state.logDirection * assist;
-        state.userAngle -= state.logSpeed * state.logDirection * assist;
+        state.contAngle -= state.logSpeed * state.logDirection * assist * dtF;
+        state.userAngle -= state.logSpeed * state.logDirection * assist * dtF;
     }
 
     // 2. Player position
@@ -174,7 +189,7 @@ function gameLoop() {
 
     // 2b. Obstacles (rotate with the log, then handle the collision event)
     renderObstacleLayer();
-    const obEvent = stepObstacles(Math.abs(state.logSpeed));
+    const obEvent = stepObstacles(Math.abs(state.logSpeed) * dtF);
     if (obEvent === 'cleared') {
         // Skill reward: consecutive clears build a combo that multiplies the
         // clear points (reset on hit), + a ping + chips + floating popup.
@@ -217,13 +232,13 @@ function gameLoop() {
     }
 
     // 4. Direction/speed change
-    if (now >= state.nextChangeTime) {
+    if (state.elapsed >= state.nextChangeTime) {
         scheduleNextChange();
         changeDirectionOrSpeed();
     }
 
     // 5. Warning before change
-    if (state.nextChangeTime - now < 1500 && state.nextChangeTime - now > 0) {
+    if (state.nextChangeTime - state.elapsed < 1500 && state.nextChangeTime - state.elapsed > 0) {
         dirWarning.style.display = 'block';
     } else {
         dirWarning.style.display = 'none';
@@ -252,7 +267,7 @@ function gameLoop() {
 // === DIRECTION / SPEED ===
 function scheduleNextChange() {
     let interval = MIN_CHANGE_INTERVAL + Math.random() * (MAX_CHANGE_INTERVAL - MIN_CHANGE_INTERVAL);
-    state.nextChangeTime = Date.now() + interval;
+    state.nextChangeTime = state.elapsed + interval;
 }
 
 // Returns speed percent 0-100 from actual speed value
@@ -581,6 +596,7 @@ function startGame() {
     updateDirectionUI();
     scheduleNextChange();
     music.start();
+    lastFrameTs = performance.now();
     gameLoop();
 }
 

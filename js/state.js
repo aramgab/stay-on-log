@@ -24,8 +24,8 @@ export const state = {
     isPlaying: false,
     score: 0,           // survival trickle + eventScore, recomputed each frame
     eventScore: 0,      // points earned from events (obstacle clears, …) this run
-    elapsed: 0,         // ms since this run started
-    startTime: 0,
+    elapsed: 0,         // ms since this run started (accumulated from clamped frame deltas; background time while rAF is paused does NOT count)
+    startTime: 0,       // wall-clock run start (informational; game logic uses elapsed)
     // v2 key: score is event-based now, so the old timer-based record is retired.
     highScore: parseInt(lsGet('stayOnLog_highScore_v2'), 10) || 0,
     playerName: lsGet('stayOnLog_playerName') || '',
@@ -39,7 +39,7 @@ export const state = {
     velEMA: 0,           // low-passed rotation rate (deg/sample) fed into contAngle
     rawLastAngle: null,
 
-    // Direction/speed change timer
+    // Direction/speed change timer: elapsed-domain ms at which the next change fires
     nextChangeTime: 0,
 
     // Combo: consecutive obstacle clears without a hit (multiplies clear points)

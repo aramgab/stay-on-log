@@ -5,7 +5,8 @@
 export const MIN_CHANGE_INTERVAL = 5000;
 export const MAX_CHANGE_INTERVAL = 10000;
 
-// Log rotation speed bounds
+// Log rotation speed bounds, in degrees per 60 Hz frame (the game loop
+// dt-normalizes, so real-time pace is the same on 60/90/120 Hz displays).
 export const MIN_SPEED = 0.3;
 export const MAX_SPEED = 2.5;
 

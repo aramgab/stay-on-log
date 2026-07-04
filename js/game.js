@@ -45,8 +45,10 @@ import {
     startBtn,
     shareBtn,
     desktopStub,
+    stubKeyboardBtn,
     countdownOverlay,
     countdownNumber,
+    countdownTextEl,
     dirWarning,
     fallingPlayerEl,
     splashEl,
@@ -77,13 +79,18 @@ initTelegram();
 
 // === DESKTOP DETECTION ===
 // The game is driven by the device's tilt sensor, which desktops lack. On a
-// non-touch device we show a "play on your phone" stub and never start play.
+// non-touch device we show a "play on your phone" stub, but it's no longer a
+// dead end: a "play with keyboard" button inside it promotes the keyboard
+// (arrows + space) into an honest, visible input mode, so shared links opened
+// on desktop Telegram/browsers are still playable.
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 const isDesktop = !isTouchDevice;
+if (isDesktop) document.body.classList.add('is-desktop'); // flips on desktop-only CSS hints
 
-// Hidden dev mode (open with ?dev=1): lets us play on desktop with the keyboard
-// to inspect mechanics. Real desktop users still get the "play on your phone"
-// stub — the tilt sensor is the whole point of the game.
+// Hidden dev mode (open with ?dev=1): skips the stub entirely and adds the
+// live tuning panel. Keyboard control itself is now available to everyone on
+// desktop via the stub's button (and stays on for ?dev=1 too, for debugging
+// on a phone with a keyboard attached).
 const devMode = new URLSearchParams(location.search).has('dev');
 const DEV_KEY_SPEED = 2.5; // deg/frame the arrow keys move the player on the log
 const devKeys = { left: false, right: false };
@@ -131,8 +138,9 @@ function gameLoop() {
     let now = Date.now();
     state.elapsed = now - state.startTime;
 
-    // 0. Dev keyboard control (desktop testing only)
-    if (devMode) {
+    // 0. Keyboard control: dev mode (debugging) or the honest desktop mode
+    // reached via the stub's "play with keyboard" button.
+    if (devMode || isDesktop) {
         if (devKeys.left) state.userAngle -= DEV_KEY_SPEED;
         if (devKeys.right) state.userAngle += DEV_KEY_SPEED;
     }
@@ -457,6 +465,13 @@ function requestPermissionAndStart() {
 }
 
 function showCountdown() {
+    // Desktop plays with the keyboard (dev mode too — a keyboard is the only
+    // input desktop ever has), so the countdown copy should match what the
+    // player is about to do instead of always mentioning the phone.
+    countdownTextEl.innerText = isDesktop
+        ? 'Клавиатура: ←/→ — баланс, пробел — прыжок!'
+        : 'Готовься крутить телефон!';
+
     startBtn.style.display = 'none';
     shareBtn.style.display = 'none';
     directionPill.style.display = 'none';
@@ -674,15 +689,26 @@ muteBtn.addEventListener('click', function () {
 updateMuteBtn();
 
 // On desktop (no tilt sensor) show the "play on your phone" stub and disable start.
-// Exception: hidden dev mode (?dev=1) keeps desktop playable via the keyboard.
+// Exception: hidden dev mode (?dev=1) skips the stub entirely.
 if (isDesktop && !devMode) {
     desktopStub.classList.add('active');
     startBtn.disabled = true;
 }
 
-// Dev keyboard: ←/→ balance, Space/↑ jump. Active only in dev mode.
-if (devMode) {
-    console.log('[dev] keyboard control: ←/→ balance, Space = jump');
+// "Play with keyboard" promotes the desktop stub from a dead end into an
+// honest (if second-class) input mode — shared links opened on desktop
+// Telegram/browsers can actually be played now.
+if (stubKeyboardBtn) {
+    stubKeyboardBtn.addEventListener('click', function () {
+        initAudio(); // may be the first gesture of the session
+        desktopStub.classList.remove('active');
+        startBtn.disabled = false;
+    });
+}
+
+// Keyboard control: ←/→ balance, Space/↑ jump. Active on desktop (the stub's
+// button unlocks it) and in dev mode (debugging on a phone with a keyboard).
+if (devMode || isDesktop) {
     window.addEventListener('keydown', function (e) {
         if (e.key === 'ArrowLeft') devKeys.left = true;
         else if (e.key === 'ArrowRight') devKeys.right = true;
@@ -692,6 +718,11 @@ if (devMode) {
         if (e.key === 'ArrowLeft') devKeys.left = false;
         else if (e.key === 'ArrowRight') devKeys.right = false;
     });
+}
+
+// Live tuning panel + console note: dev mode only.
+if (devMode) {
+    console.log('[dev] keyboard control: ←/→ balance, Space = jump');
     buildTunePanel();
 }
 

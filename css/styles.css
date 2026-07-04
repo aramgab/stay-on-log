@@ -1416,6 +1416,15 @@ body.biome-storm .lightning {
     margin: 0 0 12px;
 }
 
+/* Desktop-only control hint inside the how-to card */
+.howto-desktop {
+    display: none;
+}
+
+body.is-desktop .howto-desktop {
+    display: block;
+}
+
 #howto-sens {
     display: flex;
     flex-direction: column;
@@ -1708,4 +1717,31 @@ body.biome-storm .lightning {
     opacity: 0.7;
     line-height: 1.5;
     margin: 0;
+}
+
+/* CTA that promotes the stub from a dead end into a keyboard input mode —
+   same palette as #start-btn, slightly more compact. */
+#stub-keyboard-btn {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+    border: none;
+    padding: 12px 26px;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 16px;
+    cursor: pointer;
+    margin-top: 14px;
+    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+#stub-keyboard-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 3px 10px rgba(39, 174, 96, 0.3);
+}
+
+#stub-keys-note {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.55);
+    margin-top: 8px;
 }

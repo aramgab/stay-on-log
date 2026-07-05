@@ -26,3 +26,17 @@ export function dayPhaseFor(elapsed) {
 export function cycleOf(elapsed) {
     return Math.floor(elapsed / DAY_CYCLE_MS);
 }
+
+// === CAMPAIGN QUESTS ===
+// 3 per biome, ALL required to unlock the next world (the map UI reads this
+// table; campaign.js counts progress — counters are cumulative across runs
+// and freeze at target). type/payload contract: see campaign.js questEvent().
+export const QUESTS = [
+    { id: 'earth_coins_night', biome: 'earth', title: 'Собери 3 монетки ночью', type: 'coin', dayPhase: 'night', target: 3 },
+    { id: 'earth_knots', biome: 'earth', title: 'Перепрыгни 5 сучков', type: 'clear', obTypes: ['knot', 'double'], target: 5 },
+    { id: 'earth_boss', biome: 'earth', title: 'Одолей белую акулу', type: 'boss', target: 1 },
+];
+
+export function questsFor(biomeId) {
+    return QUESTS.filter((q) => q.biome === biomeId);
+}

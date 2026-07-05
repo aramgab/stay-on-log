@@ -36,6 +36,7 @@ export const state = {
     coins: parseInt(lsGet('stayOnLog_coins'), 10) || 0,
     runCoins: 0,
     lastRunCoins: 0,
+    lastRunQuests: [], // quest titles completed during the last run (result screen)
 
     // Physics
     logAngle: 0,

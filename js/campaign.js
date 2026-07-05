@@ -12,6 +12,7 @@
 
 import { lsGet, lsSet } from './state.js';
 import { cloudGet, cloudSet } from './tg.js';
+import { QUESTS, questsFor } from './biomes.js';
 
 const KEY = 'stayOnLog_campaign_v1';
 
@@ -48,6 +49,36 @@ export function bumpQuest(questId, by) {
     data.quests[questId] = (data.quests[questId] || 0) + (by || 1);
     persistLocal();
     return data.quests[questId];
+}
+
+// Feed one gameplay event into the quest counters of the currently selected
+// biome. Types: 'coin' {dayPhase}, 'clear' {obType}, 'boss' {bossId}.
+// Counters freeze at target (so the UI reads "3/3", not "17/3" — and the
+// cross-device max-merge stays meaningful). Returns the quests COMPLETED by
+// exactly this event, for the in-run toast.
+export function questEvent(type, payload) {
+    const biome = getSelectedBiome();
+    const completed = [];
+    QUESTS.forEach((q) => {
+        if (q.biome !== biome || q.type !== type) return;
+        if (q.dayPhase && (!payload || payload.dayPhase !== q.dayPhase)) return;
+        if (q.obTypes && (!payload || q.obTypes.indexOf(payload.obType) === -1)) return;
+        const before = questCount(q.id);
+        if (before >= q.target) return;
+        const after = bumpQuest(q.id, 1);
+        if (after >= q.target) completed.push(q);
+    });
+    return completed;
+}
+
+export function isQuestDone(q) {
+    return questCount(q.id) >= q.target;
+}
+
+// All three quests of a biome done -> the next world unlocks (map UI reads this).
+export function allQuestsDone(biomeId) {
+    const qs = questsFor(biomeId);
+    return qs.length > 0 && qs.every(isQuestDone);
 }
 
 export function cyclesOf(biomeId) {

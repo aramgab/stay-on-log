@@ -64,6 +64,8 @@ import {
     statusEl,
     deathQuipEl,
     runCoinsEl,
+    questResultEl,
+    questToastEl,
     coinsDisplayEl,
     startBtn,
     reviveBtn,
@@ -107,7 +109,7 @@ import { initLeaderboard, submitScore } from './leaderboard.js';
 import { setMainArrow, setPreviewArrow, promoteArrows, cancelPromote, resetArrows } from './dirarrow.js';
 import { deathQuip } from './quips.js';
 import { DAY_PHASE_CLASSES, dayPhaseFor, cycleOf } from './biomes.js';
-import { cycleCompleted, flushCampaign, syncCampaignFromCloud, getSelectedBiome } from './campaign.js';
+import { cycleCompleted, flushCampaign, syncCampaignFromCloud, getSelectedBiome, questEvent } from './campaign.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord, hapticCoin } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
@@ -271,6 +273,22 @@ function hideTutorialUI() {
 let currentBiome = '';
 let runCycle = 0; // full days survived this run (for the wrap badge)
 
+let runQuestTitles = []; // quests completed THIS run (shown on the result screen)
+let questToastTimer = 0;
+
+// One-shot "задание выполнено" banner + a small celebration. Consecutive
+// completions just restart the timer (rare enough that queueing is overkill).
+function celebrateQuests(completedQuests) {
+    if (!completedQuests || !completedQuests.length) return;
+    completedQuests.forEach((q) => runQuestTitles.push(q.title));
+    sfx.combo(3);
+    hapticClear(3);
+    questToastEl.innerText = '✅ Задание выполнено: ' + completedQuests.map((q) => q.title).join(' · ');
+    questToastEl.classList.add('visible');
+    clearTimeout(questToastTimer);
+    questToastTimer = setTimeout(() => questToastEl.classList.remove('visible'), 2400);
+}
+
 function applyBiome(elapsed) {
     const next = dayPhaseFor(elapsed).cssClass;
     if (next === currentBiome) return;
@@ -414,6 +432,9 @@ function gameLoop() {
             burst(xy.x, xy.y, { color: '#6b4423', count: 15, size: 9, up: 75 });
         }
         floatText(xy.x, xy.y - 26, '+' + pts + (mult > 1 ? ' ×' + mult : ''));
+        // Campaign quest tick: the obstacle is still active while 'cleared'
+        // fires (it dives later), so its type is readable right here.
+        celebrateQuests(questEvent('clear', { obType: activeObstacleType() }));
     } else if (obEvent === 'hit' && registerHit(playerPosition)) {
         return; // fatal hit — loop stopped inside gameOver
     }
@@ -430,6 +451,9 @@ function gameLoop() {
         const cxy = playerXY();
         floatText(cxy.x, cxy.y - 42, '+' + coinVal + ' 🪙', '#ffd93d');
         updateCoinsDisplay();
+        // Campaign quest tick: a pickup counts as ONE coin regardless of its
+        // wallet value (the quest text says "монетки", not "кошелёк").
+        celebrateQuests(questEvent('coin', { dayPhase: dayPhaseFor(state.elapsed).id }));
     }
 
     // 2c. Scene palette follows elapsed time (day -> sunset -> night -> storm)
@@ -1103,6 +1127,8 @@ function showCountdown(startTutorialMode) {
     statusEl.innerText = '';
     deathQuipEl.innerText = '';
     runCoinsEl.innerText = '';
+    questResultEl.innerText = '';
+    questToastEl.classList.remove('visible');
     playerEl.classList.remove('visible', 'falling', 'jumping', 'hit');
     playerEl.style.opacity = '0';
     dangerVignette.style.opacity = 0;
@@ -1201,6 +1227,7 @@ function startGame() {
     state.combo = 0;
     state.elapsed = 0;
     runCycle = 0;
+    runQuestTitles = [];
     state.recordCelebrated = false;
     state.revivedThisRun = false;
     state.lastChangeAt = -Infinity;
@@ -1308,6 +1335,8 @@ function showReviveCountdown() {
     statusEl.innerText = '';
     deathQuipEl.innerText = '';
     runCoinsEl.innerText = '';
+    questResultEl.innerText = '';
+    questToastEl.classList.remove('visible');
     hideFallFx();
 
     // gameOver removed the motion listener — bring the controls back.
@@ -1432,8 +1461,11 @@ function gameOver(normPos, cause) {
         updateCoinsDisplay();
     }
 
-    // Campaign progress accumulated during the run (quest ticks land in
-    // later commits; cycles already do) — one cloud push per run end.
+    // Result screen reads this snapshot ("✅ title · title" line in render.js).
+    state.lastRunQuests = runQuestTitles.slice();
+
+    // Campaign progress accumulated during the run (quest ticks + cycles) —
+    // one cloud push per run end.
     flushCampaign();
 
     // Hide stickman on log

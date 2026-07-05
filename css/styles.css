@@ -533,6 +533,15 @@ body.biome-storm .lightning {
     text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
+/* "✅ задание выполнено" line on the result screen (campaign quests) */
+#quest-result {
+    font-size: 13px;
+    font-weight: 700;
+    color: #7dde8a;
+    margin-top: 2px;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
 #new-record {
     font-size: 20px;
     font-weight: 900;
@@ -1978,6 +1987,35 @@ body.biome-storm .lightning {
 }
 
 #tutorial-banner.visible {
+    opacity: 1;
+}
+
+/* Campaign quest toast: same fixed banner idiom as #tutorial-banner, sits a
+   slot lower so they can't overlap, green-tinted for "achievement". */
+#quest-toast {
+    position: fixed;
+    top: 16%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    font-size: 16px;
+    font-weight: 800;
+    color: #d6ffde;
+    text-align: center;
+    padding: 9px 18px;
+    border-radius: 20px;
+    background: rgba(10, 60, 25, 0.55);
+    border: 1px solid rgba(125, 222, 138, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+    white-space: normal;
+    max-width: min(86vw, 420px);
+}
+
+#quest-toast.visible {
     opacity: 1;
 }
 

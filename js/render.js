@@ -11,6 +11,7 @@ import {
     statusEl,
     deathQuipEl,
     runCoinsEl,
+    questResultEl,
     startBtn,
     reviveBtn,
     shareBtn,
@@ -90,6 +91,9 @@ export function animateFall(normPos) {
         }
         deathQuipEl.innerText = state.deathQuip || '';
         runCoinsEl.innerText = state.lastRunCoins > 0 ? '+' + state.lastRunCoins + ' 🪙 за забег' : '';
+        questResultEl.innerText = state.lastRunQuests && state.lastRunQuests.length
+            ? '✅ ' + state.lastRunQuests.join(' · ')
+            : '';
         startBtn.style.display = 'block';
         startBtn.innerText = "Попробовать снова";
         // Paid continue: once per run, only when the wallet can afford it.

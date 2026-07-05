@@ -21,9 +21,6 @@ import {
     PHASE3_CHANGE_INTERVAL_SCALE,
     SPEED_RAMP_K,
     REVERSAL_SPEED_DIP,
-    BIOME_SUNSET_MS,
-    BIOME_NIGHT_MS,
-    BIOME_STORM_MS,
     ASSIST_PHASE_FACTOR,
     DANGER_WARN_FROM,
     HINT_JUMP_RUNS,
@@ -109,6 +106,7 @@ import { initShop, hasPendingHeart, consumePendingHeart, spendCoins } from './sh
 import { initLeaderboard, submitScore } from './leaderboard.js';
 import { setMainArrow, setPreviewArrow, promoteArrows, cancelPromote, resetArrows } from './dirarrow.js';
 import { deathQuip } from './quips.js';
+import { DAY_PHASE_CLASSES, dayPhaseFor } from './biomes.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord, hapticCoin } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
@@ -267,22 +265,15 @@ function hideTutorialUI() {
     tutorialSkipBtn.setAttribute('aria-hidden', 'true');
 }
 
-// === BIOMES (scene palette follows the difficulty ramp) ===
-const BIOME_CLASSES = ['biome-day', 'biome-sunset', 'biome-night', 'biome-storm'];
+// === DAY CYCLE (scene palette follows the difficulty ramp; js/biomes.js
+// owns the elapsed -> segment mapping) ===
 let currentBiome = '';
 
-function biomeFor(elapsed) {
-    if (elapsed >= BIOME_STORM_MS) return 'biome-storm';
-    if (elapsed >= BIOME_NIGHT_MS) return 'biome-night';
-    if (elapsed >= BIOME_SUNSET_MS) return 'biome-sunset';
-    return 'biome-day';
-}
-
 function applyBiome(elapsed) {
-    const next = biomeFor(elapsed);
+    const next = dayPhaseFor(elapsed).cssClass;
     if (next === currentBiome) return;
     currentBiome = next;
-    document.body.classList.remove(...BIOME_CLASSES);
+    document.body.classList.remove(...DAY_PHASE_CLASSES);
     document.body.classList.add(next);
     music.setMood(next);
     // Mark the transition audibly mid-run (not on the reset back to day).
@@ -1384,7 +1375,7 @@ function gameOver(normPos, cause) {
     // hot (biome/speed/last change) — render.js shows it with the result.
     state.deathQuip = deathQuip(cause || 'fall', {
         recentChange: state.elapsed - state.lastChangeAt < QUIP_RECENT_CHANGE_MS,
-        storm: currentBiome === 'biome-storm',
+        storm: dayPhaseFor(state.elapsed).id === 'storm',
         fast: Math.abs(state.logSpeed) > MIN_SPEED + (MAX_SPEED - MIN_SPEED) * QUIP_FAST_FRAC,
     });
     arrowWarningVisible = false;

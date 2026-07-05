@@ -140,12 +140,14 @@ export const PHASE2_MS = 80000;
 export const BRANCH_FROM_MS = PHASE1_MS;
 export const DOUBLE_FROM_MS = PHASE2_MS;
 
-// === BIOMES (time-based scene palette: day -> sunset -> night -> storm) ===
-// Sunset/night are aligned with the difficulty phases so the difficulty ramp
-// is visible in the scenery; storm is the "you are good" late-game look.
-export const BIOME_SUNSET_MS = PHASE1_MS;
-export const BIOME_NIGHT_MS = PHASE2_MS;
-export const BIOME_STORM_MS = 140000;
+// === DAY CYCLE (time-of-day palette inside a run: noon -> sunset -> night -> storm) ===
+// The day segments double as the visible difficulty ramp (sunset/night sit on
+// the phase boundaries). Wave 3 grows this into a full wrapping cycle
+// (noon -> ... -> dawn -> noon again = "biome completed"); for now the storm
+// segment is terminal, exactly like the old biome timeline was.
+export const DAY_SUNSET_MS = PHASE1_MS;
+export const DAY_NIGHT_MS = PHASE2_MS;
+export const DAY_STORM_MS = 140000;
 
 // === NEWCOMER HINTS ===
 // Coach banners for the first runs only; veterans never see them.

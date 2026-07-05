@@ -49,6 +49,17 @@ export function tgUser() {
     }
 }
 
+// Raw signed initData string — what the leaderboard backend validates.
+// Empty outside Telegram.
+export function tgInitData() {
+    try {
+        const app = tgApp();
+        return (app && app.initData) || '';
+    } catch (e) {
+        return '';
+    }
+}
+
 // CloudStorage requires a recent client (isVersionAtLeast itself can throw on
 // old clients that don't have it at all) — probe defensively before use.
 function cloudApi() {

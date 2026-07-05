@@ -106,6 +106,7 @@ import {
 } from './obstacles.js';
 import { spawnCoins, renderCoinLayer, stepCoins, resetCoins } from './coins.js';
 import { initShop, hasPendingHeart, consumePendingHeart, spendCoins } from './shop.js';
+import { initLeaderboard, submitScore } from './leaderboard.js';
 import { setMainArrow, setPreviewArrow, promoteArrows, cancelPromote, resetArrows } from './dirarrow.js';
 import { deathQuip } from './quips.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
@@ -1436,6 +1437,10 @@ function gameOver(normPos, cause) {
     }
     newRecordEl.style.display = 'none';
 
+    // Leaderboard: fire-and-forget (validated server-side, ZADD GT — the
+    // stored best only ever rises, so every run may submit).
+    submitScore(state.score);
+
     // === FALL ANIMATION ===
     animateFall(normPos);
 }
@@ -1471,7 +1476,7 @@ nicknameInput.addEventListener('keydown', function (e) {
 // silent-switch), so re-running initAudio() on every tap keeps it resumed
 // instead of relying solely on the one-time unlock at Start.
 document.addEventListener('pointerdown', function (e) {
-    if (e.target.closest && e.target.closest('#mute-btn, #howto-btn, #howto-overlay, #shop-btn, #shop-overlay, #revive-btn, #dev-tune, #tutorial-skip')) return;
+    if (e.target.closest && e.target.closest('#mute-btn, #howto-btn, #howto-overlay, #shop-btn, #shop-overlay, #lb-btn, #lb-overlay, #revive-btn, #dev-tune, #tutorial-skip')) return;
     initAudio();
     if (state.isPlaying) doJump();
 });
@@ -1681,6 +1686,10 @@ cloudGet('stayOnLog_playerName', function (v) {
 
 // Shop: wire the overlay, apply the equipped log skin, sync from cloud
 initShop(updateCoinsDisplay);
+
+// Leaderboard: wire the overlay + probe the backend (button appears only
+// if /api/top answers — a deploy without the env degrades silently)
+initLeaderboard();
 
 // Show high score, coin wallet and nickname on load
 updateHighScoreDisplay();

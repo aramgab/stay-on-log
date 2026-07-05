@@ -51,6 +51,8 @@
         </div>
         <div id="hud-right">
             <div id="hud-buttons">
+                <!-- 🏆 stays hidden until /api/top answers (js/leaderboard.js) -->
+                <button id="lb-btn" aria-label="Топ игроков" style="display:none">🏆</button>
                 <button id="shop-btn" aria-label="Магазин">🛒</button>
                 <button id="howto-btn" aria-label="Как играть">?</button>
                 <button id="mute-btn" aria-label="Звук">🔊</button>
@@ -105,6 +107,18 @@
                 <button class="shop-buy-btn" id="shop-heart-btn">25 🪙</button>
             </div>
             <button id="shop-close">Готово</button>
+        </div>
+    </div>
+
+    <!-- Leaderboard overlay (js/leaderboard.js): global top-10 from the
+         Vercel backend. Same overlay pattern as the shop. -->
+    <div id="lb-overlay">
+        <div id="lb-card">
+            <h2>🏆 Топ игроков</h2>
+            <ol id="lb-list"></ol>
+            <div id="lb-me"></div>
+            <div id="lb-hint"></div>
+            <button id="lb-close">Готово</button>
         </div>
     </div>
 

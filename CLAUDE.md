@@ -8,9 +8,13 @@
 «Stay on Log» — мобильная мини-игра на **чистом HTML/CSS/ES-модулях, без сборки и зависимостей**.
 Вид с торца на крутящееся бревно (круг), человечек балансирует сверху. **Выложена как Telegram
 Mini App: `t.me/StayOnLog_bot/game`** (бот `@StayOnLog_bot`; токен — секрет, хранится у
-владельца, в репо/коде его нет и не должно быть). TG-интеграция: `ready()/expand()`, haptics,
-ник из TG-профиля, рекорд/ник в `CloudStorage`, «Похвастаться» шарит deep-link Mini App.
-Нет лидерборда — ждёт бэкенда (этап 3; токен тогда пойдёт в env Vercel для валидации initData).
+владельца, в репо/коде его нет и не должно быть — только в env Vercel). TG-интеграция:
+`ready()/expand()`, haptics, ник из TG-профиля, рекорд/ник/скины в `CloudStorage`,
+«Похвастаться» шарит deep-link Mini App. **Лидерборд**: `api/top` + `api/score` (Vercel
+serverless в этом же репо, zero-deps; серверная валидация initData) — клиент самоскрывающийся:
+кнопка 🏆 появляется только если `/api/top` отвечает; включение — `docs/BACKEND_SETUP.md`
+(Upstash + `TG_BOT_TOKEN` в env). Экономика: монеты на бревне → магазин 🛒 (аватар-бревно,
+запасное сердце) и revive на экране смерти.
 
 Деплой: **Vercel из ветки `main`**, без конфигурации → https://stay-on-log.vercel.app
 
@@ -20,8 +24,9 @@ Mini App: `t.me/StayOnLog_bot/game`** (бот `@StayOnLog_bot`; токен — �
   компенсируя вращение бревна; **B «наклон-руль»** (`stayOnLog_controlScheme='tilt'`) —
   удержание наклона → скорость докрутки (`TILT_*` в config.js), интеграция в `gameLoop` через
   `dtF`, калибровка нуля в конце отсчёта. Переключатель схемы и слайдеры B — пока в `?dev=1`.
-- Первый старт ведёт в **интерактивный туториал** (баланс 4с в ±45° → прыжок через сучок;
-  `?tut=1` — принудительный повтор; флаг `stayOnLog_seenTutorial_v1` пишется на финише/скипе).
+- Первый старт ведёт в **интерактивный туториал** (5 шагов: баланс 4с в ±45° → чтение стрелки
+  со скриптовым реверсом → два прыжка → прыжок через сучок → аутро; `?tut=1` — принудительный
+  повтор; флаг `stayOnLog_seenTutorial_v1` пишется на финише/скипе).
   Коуч-баннеры первых забегов: «ТАПНИ — ПРЫЖОК!» и подсказка руления при сносе (`HINT_*`,
   счётчик `stayOnLog_runCount`). Автопоказ howto-оверлея ретайрнут (остался за кнопкой `?`).
 - Уход дальше **±`FALL_THRESHOLD` (110°)** от верха → падение в воду.
@@ -52,9 +57,14 @@ Mini App: `t.me/StayOnLog_bot/game`** (бот `@StayOnLog_bot`; токен — �
 | `state.js` | Единый мутабельный объект `state` + обёртки `lsGet/lsSet` (localStorage, гард от исключений в webview). |
 | `dom.js` | Кэш ссылок на DOM (резолвятся один раз; модули deferred). |
 | `input.js` | Акселерометр → угол, диспетчер двух схем. A: EMA по **скорости** (`velEMA`) → накопление в `contAngle` → low-pass позиции в `userAngle`. B: только глитч-гардный EMA наклона в `tiltEMA` (посев первым сэмплом!), интеграция rate — в `gameLoop` через `dtF`. Дедзона, чувствительность, `getScheme/setScheme`. |
-| `game.js` | Точка входа: главный цикл (`gameLoop`), поток игры, сложность, биомы (`applyBiome`), комбо, UI, ник, **туториал** (`tutorialMode`: elapsed заморожен, `tutorialTick` 3 шага, мягкий ресет `userAngle=-logAngle`), коуч-баннеры, dev-режим, привязка событий. |
+| `game.js` | Точка входа: главный цикл (`gameLoop`), поток игры, сложность (`pendingChange`: ролл смены заранее → `applyPendingChange` в момент срабатывания; speed-ramp к `targetSpeed`), биомы (`applyBiome`), комбо, UI, ник, **туториал** (`tutorialMode`: elapsed заморожен, `tutorialTick` 5 шагов, мягкий ресет `userAngle=-logAngle`), **revive** (`resumeRun`: тот же забег, hp=1, щит), коуч-баннеры, dev-режим, привязка событий. |
 | `obstacles.js` | Одно препятствие со стейт-машиной `submerged ⇄ active`, **3 типа** (`knot`/`branch`/`double` из `OBSTACLE_TYPES`), многоточечные коллизии (`parts`). Возвращает `'hit' | 'cleared' | null`. Пробы для честности: `isObstacleActive/activeObstacleType/isObstacleApproaching`. |
-| `render.js` | Анимация падения в воду + брызги. |
+| `dirarrow.js` | **Стрелки v2 на торце**: две концентрические дуги (`#dir-arrows`, сиблинг бревна, не вращается) — основная R62 (куда крутится, размах 40–150° = скорость) и превью R38 (что сделает следующая смена, из `state.pendingChange`). `setMainArrow/setPreviewArrow/promoteArrows` (морф превью→основная за `ARROW_PROMOTE_MS`, скейл 1.632 — синхронизирован с CSS)/`cancelPromote/resetArrows`. Path только на событиях, не в кадре. |
+| `coins.js` | Монеты на бревне: та же стейт-машина, что у препятствий; обычная — сбор контактом (`COIN_VALUE`), «парящая» — только в прыжке (`COIN_HIGH_*`). Не выныривает при `isObstacleApproaching()`. `stepCoins` возвращает собранную ценность. |
+| `shop.js` | Магазин 🛒: аватар-бревно (`photo_url` клипом в `#log-svg`), запасное сердце (`stayOnLog_pendingHeart`), `spendCoins` (общий кошелёк-райтер, его же юзает revive). Скины в localStorage+CloudStorage (union-merge). |
+| `quips.js` | Забавная строка «почему упал» (`deathQuip(cause, ctx)`): пулы по причине + контекстные (недавняя смена/шторм/скорость), без повтора подряд. |
+| `leaderboard.js` | Клиент лидерборда: одна проба `/api/top` на буте → показать 🏆; `submitScore` из `gameOver` (fire-and-forget, только в TG); оверлей топ-10 с медалями, имена через `textContent`. |
+| `render.js` | Анимация падения в воду + брызги + экран результата (`УПАЛ! Очки` + квип + «+N 🪙» + кнопки, включая revive). |
 | `audio.js` | Синтез-SFX (Web Audio): `jump/hit/splash/point/combo/whoosh` + **процедурная музыка** (бас/арпеджио/пад, lookahead-планировщик; `music.setMood(biome)` меняет BPM/лад/плотность по биому, ассетов нет). Mute в localStorage, unmute возвращает музыку сразу. `AudioContext` ленивый, резюм по жесту. |
 | `haptics.js` | Вибрация: сначала Telegram `HapticFeedback`, иначе `navigator.vibrate`. События: jump/hit/fall/clear(combo)/tick/record. На десктопе/iOS Safari — no-op. |
 | `tg.js` | Мост к Telegram WebApp SDK (весь доступ к `window.Telegram` — только отсюда): `initTelegram`, `isInTelegram` (по непустой `initData`!), `tgUser`, `cloudGet/cloudSet` (CloudStorage, гард версии ≥6.9), `shareScore` (TG share → Web Share → clipboard). Вне TG всё деградирует в no-op. |
@@ -70,8 +80,25 @@ Mini App: `t.me/StayOnLog_bot/game`** (бот `@StayOnLog_bot`; токен — �
   **Комбо**: серия `cleared` без удара, множитель `min(combo, COMBO_MAX_MULT=5)`, сброс на hit.
   Рекорд под ключом `stayOnLog_highScore_v2` (старый таймерный рекорд ретайрнут).
 - **Сложность по времени** (не по очкам): фаза 1 < `PHASE1_MS=40s` (скорость ≤50%),
-  фаза 2 < `PHASE2_MS=80s` (блок «разворот + высокая скорость с обеих сторон»), дальше без ограничений.
+  фазы 2 И 3 — блок «разворот + обе скорости >75%» (расширен на фазу 3 после плейтеста
+  «бешеного бревна»); в фазе 3 интервалы смен ×`PHASE3_CHANGE_INTERVAL_SCALE=1.3`.
   Биомы привязаны к тем же вехам (+шторм на 140с).
+- **Смены предвычисляются**: `rollNextChange()` решает следующую смену сразу после предыдущей
+  (`state.pendingChange`, фазовые капы по времени срабатывания), `applyPendingChange()` применяет;
+  превью-стрелка показывает обещание. Конверсия «реверс→скорость при активном препятствии» —
+  на старте варнинга (`reconcilePendingChange`) + финальный гард. **Speed-ramp**: `logSpeed`
+  экспоненциально догоняет `state.targetSpeed` (`SPEED_RAMP_K`), реверс проваливает живую
+  скорость до `REVERSAL_SPEED_DIP=0.45` — мгновенного «взрыва» смены больше нет.
+- **Стрелки на бревне** (пилюля направления РЕТАЙРНУТА; `#status-text` теперь в `#hud-center` —
+  там живёт «УПАЛ! Очки» + квип): основная дуга = направление+скорость, превью = следующая
+  смена, за `CHANGE_WARN_MS=1500` варнинг-мигание, в момент смены — промоушен-морф.
+- **Монеты**: грейс `COIN_START_MS=8s`, кулдаун 0.8–2 оборота, окно сбора 14°; обычная=1,
+  парящая=2 (только в прыжке, спавн 35%). Кошелёк `stayOnLog_coins` — только localStorage
+  (CloudStorage-синк валюты сознательно отложен). Начисление в `gameOver`.
+- **Магазин/консюмаблы**: аватар-бревно `AVATAR_SKIN_PRICE=300` (клип `photo_url` в `#log-svg`),
+  сердце `SPARE_HEART_PRICE=25` (`stayOnLog_pendingHeart` → следующий забег с +1 hp),
+  revive `REVIVE_COST=40` (раз за забег, тот же счёт/elapsed, `REVIVE_*` в config.js).
+- **Смерть с объяснением**: `gameOver(normPos, cause)` → `state.deathQuip` (js/quips.js).
 - **Препятствия**: грейс `OBSTACLE_START_MS=12s`, затем одно за раз; окно `COLLIDE_WINDOW=16°`;
   кулдаун `1–3` оборота × `OBSTACLE_COOLDOWN_PHASE_SCALE=[1,0.7,0.5]` по фазам.
   Типы: `knot` (с фазы 1), `branch` (с фазы 2, `cleared` только в средней части прыжка,
@@ -86,7 +113,7 @@ Mini App: `t.me/StayOnLog_bot/game`** (бот `@StayOnLog_bot`; токен — �
   `INPUT_DEADZONE=0.25°`, `INPUT_MAX_STEP=80°` (глитч-гард), `DEFAULT_SENSITIVITY=1.0`.
   localStorage: `stayOnLog_sensitivity`, `stayOnLog_inputSmooth`.
 - **Steering assist**: игра компенсирует долю вращения бревна за игрока —
-  `ASSIST_PHASE_FACTOR=[0.30,0.18,0.10]` по фазам × слайдер «assist» в `?dev=1`
+  `ASSIST_PHASE_FACTOR=[0.30,0.22,0.18]` по фазам × слайдер «assist» в `?dev=1`
   (`stayOnLog_assistMult`). В `gameLoop` правится **оба** угла (`contAngle`+`userAngle`),
   иначе low-pass инпута съедает поправку.
 - **Danger-виньетка**: `#danger-vignette` — красный градиент со стороны сноса, прозрачность
@@ -96,9 +123,14 @@ Mini App: `t.me/StayOnLog_bot/game`** (бот `@StayOnLog_bot`; токен — �
   `state.elapsed` копится по живым кадрам: фон/свёртывание не фармит очки и не двигает фазы.
   Таймер смены направления — в elapsed-домене.
 - **TG-нативность**: ник по умолчанию из TG-профиля (приоритет: введённый вручную >
-  CloudStorage > профиль; см. `nameSource` в game.js); рекорд/ник синхронятся с CloudStorage
-  (merge: больший рекорд побеждает). Шаринг: `SHARE_URL` в config.js — заменить на
-  `t.me/<bot>/<app>?startapp=…`, когда появится бот.
+  CloudStorage > профиль; см. `nameSource` в game.js); рекорд/ник/скины синхронятся с
+  CloudStorage (merge: больший рекорд побеждает, скины — union). Шаринг: `SHARE_URL` уже
+  шарит deep-link `t.me/StayOnLog_bot/game`.
+- **Лидерборд**: `api/_kv.js` (общие хелперы: Upstash REST pipeline, `validateInitData`),
+  `api/score.js` (POST, HMAC-проверка, `ZADD GT lb`, имя из проверенной initData),
+  `api/top.js` (GET топ-10 + ранг, кэш s-maxage=15). Env: `TG_BOT_TOKEN`,
+  `UPSTASH_REDIS_REST_URL/TOKEN` (или `KV_REST_API_*`); без них — 503 `{disabled}` и клиент
+  прячет 🏆. Включение: `docs/BACKEND_SETUP.md`. Файлы `api/_*` Vercel не деплоит как функции.
 
 ## Грабли
 - **Репозиторий публичный** — не клади сюда секреты/приватное.

@@ -62,7 +62,7 @@ import {
     countdownOverlay,
     countdownNumber,
     countdownTextEl,
-    logDirArrow,
+    dirArrows,
     fallingPlayerEl,
     splashEl,
     playerNameEl,
@@ -89,6 +89,7 @@ import {
     isObstacleApproaching,
     forceEmerge,
 } from './obstacles.js';
+import { setMainArrow, setPreviewArrow, resetArrows } from './dirarrow.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
@@ -450,6 +451,7 @@ function gameLoop() {
             applyPendingChange();
             scheduleNextChange();
             rollNextChange();
+            setPreviewArrow(state.pendingChange);
         }
     }
 
@@ -460,9 +462,13 @@ function gameLoop() {
     if (wantsArrowWarning !== arrowWarningVisible) {
         arrowWarningVisible = wantsArrowWarning;
         // Entering the warning window: make the promise honest before the
-        // player starts reading it (an approaching obstacle vetoes reversals).
-        if (arrowWarningVisible) reconcilePendingChange();
-        logDirArrow.classList.toggle('warning', arrowWarningVisible);
+        // player starts reading it (an approaching obstacle vetoes reversals),
+        // then redraw the preview in case the reconcile changed it.
+        if (arrowWarningVisible) {
+            reconcilePendingChange();
+            setPreviewArrow(state.pendingChange);
+        }
+        dirArrows.classList.toggle('warning', arrowWarningVisible);
     }
 
     // 6. Check loss (can't slip off while airborne)
@@ -644,10 +650,8 @@ function updateDirectionUI() {
     }
     let speedPercent = Math.round(getSpeedPercent(state.logSpeed));
     speedFillEl.style.width = speedPercent + "%";
-    // logDirection === 1 -> logAngle increases -> log spins clockwise on
-    // screen; the arrow's built-in arc already reads as clockwise, so only
-    // flip it for the other direction.
-    logDirArrow.classList.toggle('flip', state.logDirection !== 1);
+    // On-log arrow v2: direction and speed are both baked into the arc path.
+    setMainArrow(state.logDirection, state.logSpeed);
 }
 
 function updateHighScoreDisplay() {
@@ -708,7 +712,7 @@ function registerHit(playerPosition) {
     state.invulnerable = true;
     playerEl.classList.add('hit');
     arrowWarningVisible = false;
-    logDirArrow.classList.remove('warning');
+    dirArrows.classList.remove('warning');
     setTimeout(() => {
         state.invulnerable = false;
         playerEl.classList.remove('hit');
@@ -946,7 +950,8 @@ function showCountdown(startTutorialMode) {
     startBtn.style.display = 'none';
     shareBtn.style.display = 'none';
     directionPill.style.display = 'none';
-    logDirArrow.classList.remove('on', 'warning');
+    resetArrows();
+    state.pendingChange = null;
     arrowWarningVisible = false;
     heartsEl.style.display = 'none';
     newRecordEl.style.display = 'none';
@@ -1067,10 +1072,11 @@ function startGame() {
     heartsEl.style.display = 'block';
 
     directionPill.style.display = 'flex';
-    logDirArrow.classList.add('on');
+    dirArrows.classList.add('on');
     updateDirectionUI();
     scheduleNextChange();
     rollNextChange();
+    setPreviewArrow(state.pendingChange);
     music.start();
     lastFrameTs = performance.now();
     gameLoop();
@@ -1102,8 +1108,9 @@ function startTutorial() {
     playerEl.classList.remove('jumping', 'hit');
     heartsEl.style.display = 'none';
     directionPill.style.display = 'none';
-    logDirArrow.classList.add('on');
+    dirArrows.classList.add('on');
     updateDirectionUI(); // sets arrow orientation for logDirection = 1 above
+    setPreviewArrow(null); // no scheduled change in the tutorial (yet)
 
     spawnObstacles(); // container for forceEmerge('knot') in step 3
 
@@ -1126,7 +1133,7 @@ function startTutorial() {
 function gameOver(normPos) {
     state.isPlaying = false;
     arrowWarningVisible = false;
-    logDirArrow.classList.remove('warning', 'on');
+    resetArrows();
     obSideHint.className = '';
     tapHint.classList.remove('visible');
     tapHintVisible = false;

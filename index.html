@@ -156,18 +156,22 @@
                 </svg>
             </div>
 
-            <!-- On-log direction arrow: shows which way the log is currently
-                 spinning (constant) and blinks yellow shortly before a
-                 direction/speed change (js/game.js toggles .warning). Sibling
-                 of #log-wrapper, NOT a child — it must stay upright while the
-                 log rotates under it. .flip mirrors it for logDirection -1. -->
-            <svg id="log-dir-arrow" viewBox="0 0 200 200" aria-hidden="true">
-                <path d="M 30.7 60 A 80 80 0 0 1 169.3 60" fill="none" stroke="currentColor"
-                    stroke-width="8" stroke-linecap="round"
-                    filter="drop-shadow(0 1px 2px rgba(0,0,0,0.45))" />
-                <polygon points="171.3,63.5 156.7,52.2 168.9,45.2" fill="currentColor"
-                    filter="drop-shadow(0 1px 2px rgba(0,0,0,0.45))" />
-            </svg>
+            <!-- On-log direction arrows v2 (js/dirarrow.js draws the paths):
+                 outer arc = where the log spins NOW, arc length = speed;
+                 inner dimmer arc = what the NEXT change will do (preview of
+                 state.pendingChange). Blinks yellow before a change fires.
+                 Sibling of #log-wrapper, NOT a child — stays upright while
+                 the log rotates under it. -->
+            <div id="dir-arrows" aria-hidden="true">
+                <svg id="dir-arrow-main" viewBox="0 0 200 200">
+                    <path class="arc" />
+                    <path class="head" />
+                </svg>
+                <svg id="dir-arrow-preview" viewBox="0 0 200 200">
+                    <path class="arc" />
+                    <path class="head" />
+                </svg>
+            </div>
 
             <!-- Obstacles pinned to the rotating log (populated by obstacles.js) -->
             <div id="obstacle-layer"></div>

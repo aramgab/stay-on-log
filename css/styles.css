@@ -362,6 +362,12 @@ body.biome-storm .lightning {
 }
 
 /* === UI LAYER (top bar: left = lives/record, center = score, right = buttons/name) === */
+/* Two-row HUD grid. Row 1: score flanked by info/buttons — the side tracks
+   are minmax(0,1fr), i.e. EQUAL and allowed to shrink below their content,
+   so the center column sits at the true screen center no matter how many
+   buttons appear on the right (the 🏆 button used to push the whole row off
+   the right edge). Row 2 (#hud-sub) spans the full width for the run result
+   and the main buttons — nothing can nudge it sideways. */
 #ui-layer {
     position: absolute;
     top: 0;
@@ -369,8 +375,11 @@ body.biome-storm .lightning {
     right: 0;
     z-index: 10;
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-areas:
+        "left center right"
+        "sub sub sub";
+    gap: 2px 8px;
     align-items: start;
     padding: max(10px, env(safe-area-inset-top)) 12px 0;
     pointer-events: none;
@@ -382,23 +391,44 @@ body.biome-storm .lightning {
 }
 
 #hud-left {
+    grid-area: left;
     text-align: left;
 }
 
+/* Full-width centered second HUD row (result line, quip, СТАРТ/revive/share). */
+#hud-sub {
+    grid-area: sub;
+    text-align: center;
+}
+
+/* The main buttons stack vertically, each screen-centered (JS shows them
+   with display:block — see render.js/game.js). */
+#hud-sub button {
+    margin-left: auto;
+    margin-right: auto;
+}
+
 #hud-center {
+    grid-area: center;
     text-align: center;
 }
 
 #hud-right {
+    grid-area: right;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 6px;
 }
 
+/* Wraps into a tidy 2×2 when the side track is narrow (e.g. all four
+   buttons visible on a phone) instead of spilling past the screen edge. */
 #hud-buttons {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 8px;
+    max-width: 100%;
 }
 
 #player-name {

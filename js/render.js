@@ -90,13 +90,13 @@ export function animateFall(normPos) {
         }
         deathQuipEl.innerText = state.deathQuip || '';
         runCoinsEl.innerText = state.lastRunCoins > 0 ? '+' + state.lastRunCoins + ' 🪙 за забег' : '';
-        startBtn.style.display = 'inline-block';
+        startBtn.style.display = 'block';
         startBtn.innerText = "Попробовать снова";
         // Paid continue: once per run, only when the wallet can afford it.
         if (!state.revivedThisRun && state.coins >= REVIVE_COST) {
-            reviveBtn.style.display = 'inline-block';
+            reviveBtn.style.display = 'block';
         }
-        if (state.highScore > 0) shareBtn.style.display = 'inline-block';
+        if (state.highScore > 0) shareBtn.style.display = 'block';
         shopBtn.style.display = ''; // hidden during the run, back on the result screen
     }, 1200);
 }

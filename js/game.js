@@ -1694,6 +1694,6 @@ initLeaderboard();
 // Show high score, coin wallet and nickname on load
 updateHighScoreDisplay();
 updateCoinsDisplay();
-shareBtn.style.display = state.highScore > 0 ? 'inline-block' : 'none';
+shareBtn.style.display = state.highScore > 0 ? 'block' : 'none';
 updatePlayerNameDisplay();
 applyBiome(0);

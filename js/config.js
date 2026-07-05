@@ -181,6 +181,17 @@ export const COIN_HIGH_VALUE = 2;         // wallet value of a floating coin
 export const COIN_RADIUS_LOW = 118;       // px from log center (on the surface)
 export const COIN_RADIUS_HIGH = 158;      // px from log center (jump height)
 
+// === SHOP (coins economy) ===
+// Prices tuned against ~8-15 coins per good run (see COIN_* above).
+export const AVATAR_SKIN_PRICE = 300; // premium: your TG avatar on the log face
+export const SPARE_HEART_PRICE = 25;  // consumable: +1 hp next run
+export const REVIVE_COST = 40;        // consumable: continue the current run
+export const REVIVE_HP = 1;
+export const REVIVE_INVULN_MS = 1800;
+export const REVIVE_COUNT_FROM = 2;      // quick countdown before resuming
+export const REVIVE_COUNT_TICK_MS = 700;
+export const REVIVE_MIN_CHANGE_GAP_MS = 3000; // no direction change right after revive
+
 // === DEATH QUIPS (funny "why you fell" line on the result screen) ===
 // A direction change within this window before death counts as "it got you".
 export const QUIP_RECENT_CHANGE_MS = 2000;

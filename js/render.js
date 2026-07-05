@@ -13,6 +13,7 @@ import {
     runCoinsEl,
     startBtn,
     shareBtn,
+    shopBtn,
 } from './dom.js';
 import { countUp } from './fx.js';
 
@@ -91,5 +92,6 @@ export function animateFall(normPos) {
         startBtn.style.display = 'inline-block';
         startBtn.innerText = "Попробовать снова";
         if (state.highScore > 0) shareBtn.style.display = 'inline-block';
+        shopBtn.style.display = ''; // hidden during the run, back on the result screen
     }, 1200);
 }

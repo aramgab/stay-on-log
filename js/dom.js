@@ -3,6 +3,7 @@
 // is fully parsed by the time this runs.
 
 export const logWrapper = document.getElementById('log-wrapper');
+export const logSvg = document.getElementById('log-svg');
 export const orbitEl = document.getElementById('player-orbit');
 export const playerEl = document.getElementById('player');
 export const scoreEl = document.getElementById('score-display');
@@ -21,6 +22,13 @@ export const howtoOverlay = document.getElementById('howto-overlay');
 export const howtoGoBtn = document.getElementById('howto-go');
 export const howtoSensRange = document.getElementById('howto-sens-range');
 export const howtoSensVal = document.getElementById('howto-sv');
+export const shopBtn = document.getElementById('shop-btn');
+export const shopOverlay = document.getElementById('shop-overlay');
+export const shopBalanceEl = document.getElementById('shop-balance');
+export const shopAvatarBtn = document.getElementById('shop-avatar-btn');
+export const shopAvatarPreview = document.getElementById('shop-avatar-preview');
+export const shopHeartBtn = document.getElementById('shop-heart-btn');
+export const shopCloseBtn = document.getElementById('shop-close');
 export const obstacleLayer = document.getElementById('obstacle-layer');
 export const coinLayer = document.getElementById('coin-layer');
 export const obstacleSplash = document.getElementById('obstacle-splash');

@@ -76,6 +76,7 @@ import {
     nicknameOverlay,
     nicknameInput,
     nicknameSaveBtn,
+    shopBtn,
     obSideHint,
     dangerVignette,
     hitFlash,
@@ -97,6 +98,7 @@ import {
     forceEmerge,
 } from './obstacles.js';
 import { spawnCoins, renderCoinLayer, stepCoins, resetCoins } from './coins.js';
+import { initShop, hasPendingHeart, consumePendingHeart } from './shop.js';
 import { setMainArrow, setPreviewArrow, promoteArrows, cancelPromote, resetArrows } from './dirarrow.js';
 import { deathQuip } from './quips.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
@@ -1066,6 +1068,7 @@ function showCountdown(startTutorialMode) {
 
     startBtn.style.display = 'none';
     shareBtn.style.display = 'none';
+    shopBtn.style.display = 'none'; // no shopping mid-run (a tap = a jump)
     resetArrows();
     state.pendingChange = null;
     arrowWarningVisible = false;
@@ -1182,8 +1185,13 @@ function startGame() {
     lsSet('stayOnLog_runCount', String(runCount));
     jumpedThisRun = false;
 
-    // Lives & obstacles & coins
+    // Lives & obstacles & coins. A spare heart bought in the shop burns on
+    // the next run only — consumed here, +1 hp over the base.
     state.hp = START_HP;
+    if (hasPendingHeart()) {
+        consumePendingHeart();
+        state.hp = START_HP + 1;
+    }
     state.isJumping = false;
     state.invulnerable = false;
     playerEl.classList.remove('jumping', 'hit');
@@ -1344,7 +1352,7 @@ nicknameInput.addEventListener('keydown', function (e) {
 // silent-switch), so re-running initAudio() on every tap keeps it resumed
 // instead of relying solely on the one-time unlock at Start.
 document.addEventListener('pointerdown', function (e) {
-    if (e.target.closest && e.target.closest('#mute-btn, #howto-btn, #howto-overlay, #dev-tune, #tutorial-skip')) return;
+    if (e.target.closest && e.target.closest('#mute-btn, #howto-btn, #howto-overlay, #shop-btn, #shop-overlay, #dev-tune, #tutorial-skip')) return;
     initAudio();
     if (state.isPlaying) doJump();
 });
@@ -1551,6 +1559,9 @@ cloudGet('stayOnLog_playerName', function (v) {
         cloudSet('stayOnLog_playerName', state.playerName);
     }
 });
+
+// Shop: wire the overlay, apply the equipped log skin, sync from cloud
+initShop(updateCoinsDisplay);
 
 // Show high score, coin wallet and nickname on load
 updateHighScoreDisplay();

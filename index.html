@@ -50,6 +50,7 @@
         </div>
         <div id="hud-right">
             <div id="hud-buttons">
+                <button id="shop-btn" aria-label="Магазин">🛒</button>
                 <button id="howto-btn" aria-label="Как играть">?</button>
                 <button id="mute-btn" aria-label="Звук">🔊</button>
             </div>
@@ -77,6 +78,32 @@
             </label>
             <p class="howto-desktop">🖥 На компьютере: ←/→ — баланс, пробел — прыжок.</p>
             <button id="howto-go">Поехали!</button>
+        </div>
+    </div>
+
+    <!-- Shop overlay (js/shop.js): the coin sink — avatar-on-the-log skin
+         and the spare-heart consumable. Same overlay pattern as howto. -->
+    <div id="shop-overlay">
+        <div id="shop-card">
+            <h2>🛒 Магазин</h2>
+            <div id="shop-balance">🪙 0</div>
+            <div class="shop-item">
+                <div class="shop-item-preview" id="shop-avatar-preview">🪵</div>
+                <div class="shop-item-info">
+                    <div class="shop-item-name">Твоё бревно</div>
+                    <div class="shop-item-desc">Аватарка из Telegram — на торце бревна</div>
+                </div>
+                <button class="shop-buy-btn" id="shop-avatar-btn">300 🪙</button>
+            </div>
+            <div class="shop-item">
+                <div class="shop-item-preview">❤️</div>
+                <div class="shop-item-info">
+                    <div class="shop-item-name">Запасное сердце</div>
+                    <div class="shop-item-desc">+1 жизнь на следующий забег</div>
+                </div>
+                <button class="shop-buy-btn" id="shop-heart-btn">25 🪙</button>
+            </div>
+            <button id="shop-close">Готово</button>
         </div>
     </div>
 

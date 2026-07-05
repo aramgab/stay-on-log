@@ -6,6 +6,7 @@ import { state, lsGet, lsSet } from './state.js';
 import {
     MIN_CHANGE_INTERVAL,
     MAX_CHANGE_INTERVAL,
+    CHANGE_WARN_MS,
     MIN_SPEED,
     MAX_SPEED,
     JUMP_DURATION,
@@ -61,7 +62,7 @@ import {
     countdownOverlay,
     countdownNumber,
     countdownTextEl,
-    dirWarning,
+    logDirArrow,
     fallingPlayerEl,
     splashEl,
     playerNameEl,
@@ -155,6 +156,10 @@ let tapHintVisible = false;
 let steerHintVisible = false;
 let steerHintShownAt = -Infinity; // performance.now() of the last time it appeared
 let steerHintSide = ''; // side the visible hint currently points to ('' = unset)
+
+// Mirrors the on-log direction arrow's current .warning state, same
+// classList-diff pattern as tapHintVisible/obSideHint above.
+let arrowWarningVisible = false;
 
 // Scheme B (tilt-rate) tuning, loaded/persisted the same way as assistMult
 // above. Not wired to a UI yet — the ?dev=1 sliders for these land in a
@@ -439,11 +444,13 @@ function gameLoop() {
         changeDirectionOrSpeed();
     }
 
-    // 5. Warning before change
-    if (state.nextChangeTime - state.elapsed < 1500 && state.nextChangeTime - state.elapsed > 0) {
-        dirWarning.style.display = 'block';
-    } else {
-        dirWarning.style.display = 'none';
+    // 5. Warning before change: blink the on-log arrow (mirrors the
+    // obSideHint pattern — only touch classList on an actual state change).
+    const wantsArrowWarning = state.nextChangeTime - state.elapsed < CHANGE_WARN_MS
+        && state.nextChangeTime - state.elapsed > 0;
+    if (wantsArrowWarning !== arrowWarningVisible) {
+        arrowWarningVisible = wantsArrowWarning;
+        logDirArrow.classList.toggle('warning', arrowWarningVisible);
     }
 
     // 6. Check loss (can't slip off while airborne)
@@ -592,6 +599,10 @@ function updateDirectionUI() {
     }
     let speedPercent = Math.round(getSpeedPercent(state.logSpeed));
     speedFillEl.style.width = speedPercent + "%";
+    // logDirection === 1 -> logAngle increases -> log spins clockwise on
+    // screen; the arrow's built-in arc already reads as clockwise, so only
+    // flip it for the other direction.
+    logDirArrow.classList.toggle('flip', state.logDirection !== 1);
 }
 
 function updateHighScoreDisplay() {
@@ -651,7 +662,8 @@ function registerHit(playerPosition) {
     burst(xy.x, xy.y, { color: '#ff5252', count: 12, size: 8 });
     state.invulnerable = true;
     playerEl.classList.add('hit');
-    dirWarning.style.display = 'none';
+    arrowWarningVisible = false;
+    logDirArrow.classList.remove('warning');
     setTimeout(() => {
         state.invulnerable = false;
         playerEl.classList.remove('hit');
@@ -889,6 +901,8 @@ function showCountdown(startTutorialMode) {
     startBtn.style.display = 'none';
     shareBtn.style.display = 'none';
     directionPill.style.display = 'none';
+    logDirArrow.classList.remove('on', 'warning');
+    arrowWarningVisible = false;
     heartsEl.style.display = 'none';
     newRecordEl.style.display = 'none';
     statusEl.innerText = '';
@@ -1008,6 +1022,7 @@ function startGame() {
     heartsEl.style.display = 'block';
 
     directionPill.style.display = 'flex';
+    logDirArrow.classList.add('on');
     updateDirectionUI();
     scheduleNextChange();
     music.start();
@@ -1041,6 +1056,8 @@ function startTutorial() {
     playerEl.classList.remove('jumping', 'hit');
     heartsEl.style.display = 'none';
     directionPill.style.display = 'none';
+    logDirArrow.classList.add('on');
+    updateDirectionUI(); // sets arrow orientation for logDirection = 1 above
 
     spawnObstacles(); // container for forceEmerge('knot') in step 3
 
@@ -1057,7 +1074,8 @@ function startTutorial() {
 
 function gameOver(normPos) {
     state.isPlaying = false;
-    dirWarning.style.display = 'none';
+    arrowWarningVisible = false;
+    logDirArrow.classList.remove('warning', 'on');
     obSideHint.className = '';
     tapHint.classList.remove('visible');
     tapHintVisible = false;

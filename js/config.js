@@ -4,6 +4,8 @@
 // Direction/speed change timers (ms)
 export const MIN_CHANGE_INTERVAL = 5000;
 export const MAX_CHANGE_INTERVAL = 10000;
+// Blink the on-log direction arrow this long before a change fires.
+export const CHANGE_WARN_MS = 1500;
 
 // Log rotation speed bounds, in degrees per 60 Hz frame (the game loop
 // dt-normalizes, so real-time pace is the same on 60/90/120 Hz displays).

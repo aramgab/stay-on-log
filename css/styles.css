@@ -651,6 +651,49 @@ body.biome-storm .lightning {
     display: block;
 }
 
+/* === ON-LOG DIRECTION ARROW ===
+   Sibling of #log-wrapper (not a child) so it stays upright while the log
+   spins under it. Centered on the log via inset/margin (not transform), so
+   transform stays free for .flip. Sits between the log (z-index 1) and the
+   player (z-index 10). Hidden by default; .on reveals it. */
+#log-dir-arrow {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 200px;
+    height: 200px;
+    z-index: 5;
+    color: white;
+    opacity: 0;
+    pointer-events: none;
+    display: none;
+    transition: opacity 0.3s ease, color 0.3s ease;
+}
+
+#log-dir-arrow.on {
+    display: block;
+    opacity: 0.55;
+}
+
+#log-dir-arrow.flip {
+    transform: scaleX(-1);
+}
+
+#log-dir-arrow.warning {
+    color: var(--warn);
+    animation: logArrowBlink 0.32s ease-in-out infinite alternate;
+}
+
+@keyframes logArrowBlink {
+    from {
+        opacity: 0.55;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
 #player-orbit {
     position: absolute;
     top: 0;
@@ -998,31 +1041,6 @@ body.biome-storm .lightning {
 
     100% {
         opacity: 0;
-    }
-}
-
-/* === DIRECTION CHANGE WARNING (above the direction pill, off the log) === */
-#direction-warning {
-    position: fixed;
-    bottom: 27%;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 22px;
-    font-weight: 900;
-    color: var(--warn);
-    text-shadow: 0 0 20px rgba(255, 217, 61, 0.5);
-    z-index: 50;
-    display: none;
-    animation: flashWarn 0.3s ease-in-out infinite alternate;
-}
-
-@keyframes flashWarn {
-    from {
-        opacity: 0.4;
-    }
-
-    to {
-        opacity: 1;
     }
 }
 

@@ -149,6 +149,19 @@
                 </svg>
             </div>
 
+            <!-- On-log direction arrow: shows which way the log is currently
+                 spinning (constant) and blinks yellow shortly before a
+                 direction/speed change (js/game.js toggles .warning). Sibling
+                 of #log-wrapper, NOT a child — it must stay upright while the
+                 log rotates under it. .flip mirrors it for logDirection -1. -->
+            <svg id="log-dir-arrow" viewBox="0 0 200 200" aria-hidden="true">
+                <path d="M 30.7 60 A 80 80 0 0 1 169.3 60" fill="none" stroke="currentColor"
+                    stroke-width="8" stroke-linecap="round"
+                    filter="drop-shadow(0 1px 2px rgba(0,0,0,0.45))" />
+                <polygon points="171.3,63.5 156.7,52.2 168.9,45.2" fill="currentColor"
+                    filter="drop-shadow(0 1px 2px rgba(0,0,0,0.45))" />
+            </svg>
+
             <!-- Obstacles pinned to the rotating log (populated by obstacles.js) -->
             <div id="obstacle-layer"></div>
 
@@ -283,9 +296,6 @@
         <div id="countdown-number">3</div>
         <div id="phone-icon"></div>
     </div>
-
-    <!-- Direction change warning -->
-    <div id="direction-warning">⚠ СМЕНА!</div>
 
     <!-- Interactive tutorial: skip button, bottom-right, visible only while the
          tutorial is running (game.js toggles display). -->

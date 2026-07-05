@@ -12,6 +12,8 @@ let masterGain = null;
 let musicGain = null; // separate bus so the soundtrack stays under the SFX
 let noiseBuffer = null;
 let iosUnlocked = false; // set once the zero-gain unlock buffer has been played
+let sessionPromoted = false; // set once the audio session is 'playback' (see below)
+let silentEl = null; // kept referenced so the looping promoter element isn't GC'd
 
 export let isMuted = lsGet('stayOnLog_muted') === '1';
 
@@ -29,6 +31,38 @@ function unlockIOSAudio() {
         if (src.start) src.start(0);
         else if (src.noteOn) src.noteOn(0);
     } catch (e) { /* ignore */ }
+}
+
+// iOS (Safari and Telegram's WKWebView alike) routes Web Audio through the
+// "ambient" audio session, which the ringer/silent switch mutes — haptics keep
+// working while every sound silently dies (the July-2026 playtest symptom:
+// "на телефоне звука нет, вибрации есть"). Games are expected to keep playing
+// (we ship our own mute button), so promote the session to "playback", which
+// the switch does not affect. Two mechanisms, tried in order:
+//  1. the modern AudioSession API (WebKit 17+): navigator.audioSession.type;
+//  2. a looping <audio> element whose CONTENT is silence — merely having an
+//     active media element flips the session category as a side effect.
+function promotePlaybackSession() {
+    if (sessionPromoted) return;
+    try {
+        if (navigator.audioSession && 'type' in navigator.audioSession) {
+            navigator.audioSession.type = 'playback';
+            sessionPromoted = true;
+            return;
+        }
+    } catch (e) { /* fall through to the element trick */ }
+    try {
+        if (!silentEl) {
+            silentEl = document.createElement('audio');
+            silentEl.setAttribute('playsinline', '');
+            silentEl.loop = true;
+            // Minimal valid WAV, 16 zero samples — pure silence.
+            silentEl.src = 'data:audio/wav;base64,UklGRkQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
+        }
+        const p = silentEl.play();
+        if (p && p.then) p.then(() => { sessionPromoted = true; }).catch(() => { /* retry next gesture */ });
+        else sessionPromoted = true;
+    } catch (e) { /* ignore — retry on the next gesture */ }
 }
 
 // Lazily create the context (call from a user gesture, e.g. the Start tap).
@@ -68,6 +102,7 @@ export function initAudio() {
     }
 
     unlockIOSAudio();
+    promotePlaybackSession();
 }
 
 // One-shot tone with an attack/decay envelope.

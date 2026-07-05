@@ -134,7 +134,9 @@ export const TUT_BALANCE_HOLD_MS = 4000; // total in-zone time to pass step 1
 export const TUT_BALANCE_ZONE_DEG = 45;  // "in zone" = within ±this of the top
 
 // === SHARING ===
-// Landing URL for the "brag" share button. Once the game gets its own
-// Telegram bot / mini-app handle, swap this for the t.me deep link
-// (t.me/<bot>/<app>?startapp=...) so shares open straight inside Telegram.
-export const SHARE_URL = 'https://stay-on-log.vercel.app';
+// Landing URL for the "brag" share button. The game is published as a
+// Telegram Mini App (@StayOnLog_bot, short name "game"), so shares open
+// straight inside Telegram; append ?startapp=<payload> here if we ever need
+// referral/deep-link payloads. Plain-browser visitors still reach the game
+// via the t.me page's open-in-app flow.
+export const SHARE_URL = 'https://t.me/StayOnLog_bot/game';

@@ -179,7 +179,10 @@ export const COIN_HIGH_CHANCE = 0.35;     // chance the coin spawns floating
 export const COIN_VALUE = 1;              // wallet value of a ground coin
 export const COIN_HIGH_VALUE = 2;         // wallet value of a floating coin
 export const COIN_RADIUS_LOW = 118;       // px from log center (on the surface)
-export const COIN_RADIUS_HIGH = 158;      // px from log center (jump height)
+// High coin sits between the standing head (~162) and the jump apex (player
+// center 135 + 58px of playerJump lift = ~193) — clearly out of reach until
+// you jump. Collection itself is angular (radius is presentation only).
+export const COIN_RADIUS_HIGH = 180;
 
 // === SHOP (coins economy) ===
 // Prices tuned against ~8-15 coins per good run (see COIN_* above).

@@ -1554,45 +1554,78 @@ body.biome-storm .lightning {
     height: 0;
 }
 
+/* Outer element: position + lifecycle animations (emerge/collect/dive).
+   The visual lives on .coin-face inside, which spins edge-on like a classic
+   collectible — the two transforms never fight. */
 .coin {
     position: absolute;
-    left: -12px;
+    left: -13px;
     bottom: 0;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #ffe98a, #ffc93c 55%, #d98e04);
-    border: 2px solid #a86d00;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45), inset 0 0 4px rgba(255, 255, 255, 0.6);
+    width: 26px;
+    height: 26px;
     transition: opacity 0.2s ease;
 }
 
-/* Shine dot */
-.coin::after {
-    content: '';
+.coin-face {
     position: absolute;
-    top: 3px;
-    left: 5px;
-    width: 7px;
-    height: 4px;
+    inset: 0;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.75);
-    transform: rotate(-25deg);
+    background: radial-gradient(circle at 35% 30%, #ffe98a, #ffc93c 55%, #e09a10);
+    border: 2px solid #a86d00;
+    /* Raised rim (light inner ring) + bottom shading = embossed disc */
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.45),
+        inset 0 0 0 2.5px rgba(255, 244, 190, 0.55),
+        inset 0 -4px 5px rgba(140, 80, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: coinSpin 1.4s ease-in-out infinite;
 }
 
-/* Floating coin: only collectable mid-jump — glow pulse sells "special"
-   without touching transform (the holder owns rotate/translate). */
-.coin.high {
-    animation: coinGlow 0.9s ease-in-out infinite alternate;
+/* Minted star on the face — squishes with the spin, as it should. */
+.coin-face::after {
+    content: '★';
+    font-size: 13px;
+    line-height: 1;
+    color: #b07a00;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+/* Edge-on spin — the classic "this is a coin" tell. */
+@keyframes coinSpin {
+    0%,
+    100% {
+        transform: scaleX(1);
+    }
+
+    50% {
+        transform: scaleX(0.18);
+    }
+}
+
+/* Floating coin: only collectable mid-jump — spin + glow pulse. */
+.coin.high .coin-face {
+    animation:
+        coinSpin 1.4s ease-in-out infinite,
+        coinGlow 0.9s ease-in-out infinite alternate;
 }
 
 @keyframes coinGlow {
     from {
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45), 0 0 6px 1px rgba(255, 217, 61, 0.5);
+        box-shadow:
+            0 1px 3px rgba(0, 0, 0, 0.45),
+            inset 0 0 0 2.5px rgba(255, 244, 190, 0.55),
+            inset 0 -4px 5px rgba(140, 80, 0, 0.45),
+            0 0 6px 1px rgba(255, 217, 61, 0.5);
     }
 
     to {
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45), 0 0 14px 4px rgba(255, 217, 61, 0.85);
+        box-shadow:
+            0 1px 3px rgba(0, 0, 0, 0.45),
+            inset 0 0 0 2.5px rgba(255, 244, 190, 0.55),
+            inset 0 -4px 5px rgba(140, 80, 0, 0.45),
+            0 0 16px 5px rgba(255, 217, 61, 0.9);
     }
 }
 

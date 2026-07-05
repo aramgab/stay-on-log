@@ -86,6 +86,12 @@ function emerge() {
     holder.style.transform = `rotate(${coin.angle}deg) translateY(-${r}px)`;
     coin.inner = document.createElement('div');
     coin.inner.className = 'coin' + (coin.high ? ' high' : '');
+    // The face carries the visual (gold disc + edge-on spin); the outer
+    // .coin keeps the lifecycle animations (emerge/collect/dive), so a
+    // collected coin keeps spinning while it flies away.
+    const face = document.createElement('div');
+    face.className = 'coin-face';
+    coin.inner.appendChild(face);
     holder.appendChild(coin.inner);
     coin.el.appendChild(holder);
     void coin.inner.offsetWidth;

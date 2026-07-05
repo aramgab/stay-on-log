@@ -440,8 +440,17 @@ function gameLoop() {
     // defaults nextChangeTime to 0, so 0 >= 0 would be true on the tutorial's
     // first frame. The explicit gate closes that edge case.
     if (!tutorialMode && state.elapsed >= state.nextChangeTime) {
-        scheduleNextChange();
-        changeDirectionOrSpeed();
+        // Fairness: while a double is riding the log its gap was computed for
+        // the current speed — postpone the change entirely (pendingChange
+        // survives, so the preview keeps promising the same thing) until it
+        // dives.
+        if (activeObstacleType() === 'double') {
+            scheduleNextChange();
+        } else {
+            applyPendingChange();
+            scheduleNextChange();
+            rollNextChange();
+        }
     }
 
     // 5. Warning before change: blink the on-log arrow (mirrors the
@@ -450,6 +459,9 @@ function gameLoop() {
         && state.nextChangeTime - state.elapsed > 0;
     if (wantsArrowWarning !== arrowWarningVisible) {
         arrowWarningVisible = wantsArrowWarning;
+        // Entering the warning window: make the promise honest before the
+        // player starts reading it (an approaching obstacle vetoes reversals).
+        if (arrowWarningVisible) reconcilePendingChange();
         logDirArrow.classList.toggle('warning', arrowWarningVisible);
     }
 
@@ -526,49 +538,57 @@ function getSpeedPercent(speed) {
     return ((speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)) * 100;
 }
 
-function changeDirectionOrSpeed() {
-    // Fairness: while a double is riding the log its gap was computed for the
-    // current speed — freeze both speed and direction until it dives.
-    if (activeObstacleType() === 'double') return;
-
-    let rand = Math.random();
-    let wantsReverse = rand < 0.4 || rand >= 0.7;
-    let wantsSpeedChange = rand >= 0.4;
-
-    // Fairness: a reversal while an obstacle is approaching would swing it
-    // back down / flip its side — convert reversals into speed-only changes
-    // (skipping entirely would leave long stretches without any variety).
-    if (isObstacleActive() && wantsReverse) {
-        wantsReverse = false;
-        wantsSpeedChange = true;
+// Roll a fresh speed for a change firing at applyAtElapsed, honoring the
+// phase-1 cap AS OF that moment (the preview arrow promises the future, so
+// caps are computed against fire time, not roll time; they only loosen with
+// elapsed, so an early roll can never turn illegal by waiting).
+function rollSpeed(applyAtElapsed) {
+    let speed = MIN_SPEED + Math.random() * (MAX_SPEED - MIN_SPEED);
+    if (applyAtElapsed < PHASE1_MS) {
+        // Phase 1: cap speed at 50%
+        const maxSpeedPhase1 = MIN_SPEED + (MAX_SPEED - MIN_SPEED) * 0.5;
+        if (speed > maxSpeedPhase1) {
+            speed = MIN_SPEED + Math.random() * (maxSpeedPhase1 - MIN_SPEED);
+        }
     }
+    return speed;
+}
+
+// The "decide" half of the old changeDirectionOrSpeed(): rolls what the
+// change scheduled for state.nextChangeTime will do and parks it in
+// state.pendingChange, so the preview arrow can show it during the whole
+// wait. No world side effects here. logSpeed/logDirection can't move between
+// roll and apply (only applyPendingChange mutates them), so rolling against
+// the current values now stays valid at fire time.
+function rollNextChange() {
+    const applyAt = state.nextChangeTime;
+    const rand = Math.random();
+    const wantsReverse = rand < 0.4 || rand >= 0.7;
+    const wantsSpeedChange = rand >= 0.4;
 
     let newSpeed = state.logSpeed;
     let newDirection = state.logDirection;
 
-    // Determine new speed
     if (wantsSpeedChange) {
         newSpeed = MIN_SPEED + Math.random() * (MAX_SPEED - MIN_SPEED);
     }
-
-    // Determine new direction
     if (wantsReverse) {
         newDirection = state.logDirection * -1;
     }
 
-    // === DIFFICULTY BALANCE (time-based) ===
-    if (state.elapsed < PHASE1_MS) {
+    // === DIFFICULTY BALANCE (time-based, evaluated at fire time) ===
+    if (applyAt < PHASE1_MS) {
         // Phase 1: cap speed at 50%
-        let maxSpeedPhase1 = MIN_SPEED + (MAX_SPEED - MIN_SPEED) * 0.5;
+        const maxSpeedPhase1 = MIN_SPEED + (MAX_SPEED - MIN_SPEED) * 0.5;
         if (newSpeed > maxSpeedPhase1) {
             newSpeed = MIN_SPEED + Math.random() * (maxSpeedPhase1 - MIN_SPEED);
         }
-    } else if (state.elapsed < PHASE2_MS) {
+    } else if (applyAt < PHASE2_MS) {
         // Phase 2: block high-speed reversal combos
         // If reversing AND both old and new speed > 75%, re-roll new speed lower
-        let threshold75 = MIN_SPEED + (MAX_SPEED - MIN_SPEED) * 0.75;
-        let oldSpeedHigh = state.logSpeed > threshold75;
-        let newSpeedHigh = newSpeed > threshold75;
+        const threshold75 = MIN_SPEED + (MAX_SPEED - MIN_SPEED) * 0.75;
+        const oldSpeedHigh = state.logSpeed > threshold75;
+        const newSpeedHigh = newSpeed > threshold75;
         if (newDirection !== state.logDirection && oldSpeedHigh && newSpeedHigh) {
             // Re-roll speed to be within 0-75%
             newSpeed = MIN_SPEED + Math.random() * (threshold75 - MIN_SPEED);
@@ -576,8 +596,33 @@ function changeDirectionOrSpeed() {
     }
     // Phase 3 (after PHASE2_MS): no restrictions
 
-    state.logSpeed = newSpeed;
-    state.logDirection = newDirection;
+    state.pendingChange = { dir: newDirection, speed: newSpeed };
+}
+
+// Fairness: a reversal while an obstacle is approaching would swing it back
+// down / flip its side — convert the pending reversal into a speed-only
+// change (skipping entirely would leave long stretches without variety).
+// Runs on the warning's rising edge, so the preview is honest for the whole
+// blink, and again as a final guard from applyPendingChange() in case the
+// obstacle surfaced mid-warning. The speed is re-rolled on conversion,
+// matching the old code where a converted reversal always rolled a speed.
+function reconcilePendingChange() {
+    const p = state.pendingChange;
+    if (!p || p.dir === state.logDirection) return;
+    if (!isObstacleActive()) return;
+    state.pendingChange = { dir: state.logDirection, speed: rollSpeed(state.nextChangeTime) };
+}
+
+// The "apply" half of the old changeDirectionOrSpeed(): flips the world to
+// the pre-rolled pending change. The double-freeze case is handled by the
+// caller (gameLoop postpones the whole change while a double rides the log).
+function applyPendingChange() {
+    reconcilePendingChange();
+    const p = state.pendingChange;
+    if (!p) return;
+    state.logSpeed = p.speed;
+    state.logDirection = p.dir;
+    state.pendingChange = null;
     updateDirectionUI();
 }
 
@@ -1025,6 +1070,7 @@ function startGame() {
     logDirArrow.classList.add('on');
     updateDirectionUI();
     scheduleNextChange();
+    rollNextChange();
     music.start();
     lastFrameTs = performance.now();
     gameLoop();

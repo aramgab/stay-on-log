@@ -43,6 +43,9 @@ export const state = {
 
     // Direction/speed change timer: elapsed-domain ms at which the next change fires
     nextChangeTime: 0,
+    // The change that will fire at nextChangeTime, rolled in advance so the
+    // on-log preview arrow can show the future: { dir: ±1, speed } or null.
+    pendingChange: null,
 
     // Combo: consecutive obstacle clears without a hit (multiplies clear points)
     combo: 0,

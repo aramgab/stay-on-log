@@ -14,6 +14,7 @@ export const deathQuipEl = document.getElementById('death-quip');
 export const runCoinsEl = document.getElementById('run-coins');
 export const coinsDisplayEl = document.getElementById('coins-display');
 export const startBtn = document.getElementById('start-btn');
+export const reviveBtn = document.getElementById('revive-btn');
 export const shareBtn = document.getElementById('share-btn');
 export const heartsEl = document.getElementById('hearts-display');
 export const muteBtn = document.getElementById('mute-btn');

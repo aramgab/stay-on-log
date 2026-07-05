@@ -68,6 +68,9 @@ export const state = {
     // result screen after the fall animation.
     deathQuip: '',
 
+    // One paid revive per run (reset by startGame).
+    revivedThisRun: false,
+
     // Jump / lives
     isJumping: false,
     jumpStartTime: 0,   // Date.now() of the last jump start (branch timing check)

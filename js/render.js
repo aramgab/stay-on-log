@@ -2,7 +2,7 @@
 // Renders the player falling off the log into the water after a loss.
 
 import { state } from './state.js';
-import { ORBIT_RADIUS } from './config.js';
+import { ORBIT_RADIUS, REVIVE_COST } from './config.js';
 import {
     gameContainer,
     waterContainer,
@@ -12,6 +12,7 @@ import {
     deathQuipEl,
     runCoinsEl,
     startBtn,
+    reviveBtn,
     shareBtn,
     shopBtn,
 } from './dom.js';
@@ -91,6 +92,10 @@ export function animateFall(normPos) {
         runCoinsEl.innerText = state.lastRunCoins > 0 ? '+' + state.lastRunCoins + ' 🪙 за забег' : '';
         startBtn.style.display = 'inline-block';
         startBtn.innerText = "Попробовать снова";
+        // Paid continue: once per run, only when the wallet can afford it.
+        if (!state.revivedThisRun && state.coins >= REVIVE_COST) {
+            reviveBtn.style.display = 'inline-block';
+        }
         if (state.highScore > 0) shareBtn.style.display = 'inline-block';
         shopBtn.style.display = ''; // hidden during the run, back on the result screen
     }, 1200);

@@ -43,6 +43,12 @@ import {
     TUT_ARROW_HOLD_MS,
     QUIP_RECENT_CHANGE_MS,
     QUIP_FAST_FRAC,
+    REVIVE_COST,
+    REVIVE_HP,
+    REVIVE_INVULN_MS,
+    REVIVE_COUNT_FROM,
+    REVIVE_COUNT_TICK_MS,
+    REVIVE_MIN_CHANGE_GAP_MS,
 } from './config.js';
 import {
     logWrapper,
@@ -63,6 +69,7 @@ import {
     runCoinsEl,
     coinsDisplayEl,
     startBtn,
+    reviveBtn,
     shareBtn,
     desktopStub,
     stubKeyboardBtn,
@@ -98,7 +105,7 @@ import {
     forceEmerge,
 } from './obstacles.js';
 import { spawnCoins, renderCoinLayer, stepCoins, resetCoins } from './coins.js';
-import { initShop, hasPendingHeart, consumePendingHeart } from './shop.js';
+import { initShop, hasPendingHeart, consumePendingHeart, spendCoins } from './shop.js';
 import { setMainArrow, setPreviewArrow, promoteArrows, cancelPromote, resetArrows } from './dirarrow.js';
 import { deathQuip } from './quips.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
@@ -1055,6 +1062,16 @@ function requestPermissionAndStart() {
     }
 }
 
+// Hide the fall animation leftovers (falling stickman + splash).
+function hideFallFx() {
+    fallingPlayerEl.classList.remove('active');
+    fallingPlayerEl.removeAttribute('style');
+    fallingPlayerEl.style.display = 'none';
+    splashEl.classList.remove('active');
+    splashEl.removeAttribute('style');
+    splashEl.style.display = 'none';
+}
+
 function showCountdown(startTutorialMode) {
     // Desktop plays with the keyboard (dev mode too — a keyboard is the only
     // input desktop ever has), so the countdown copy should match what the
@@ -1068,6 +1085,7 @@ function showCountdown(startTutorialMode) {
 
     startBtn.style.display = 'none';
     shareBtn.style.display = 'none';
+    reviveBtn.style.display = 'none';
     shopBtn.style.display = 'none'; // no shopping mid-run (a tap = a jump)
     resetArrows();
     state.pendingChange = null;
@@ -1099,12 +1117,7 @@ function showCountdown(startTutorialMode) {
     applyBiome(0); // back to day for the new run
 
     // Hide falling player & splash from prev game — full reset
-    fallingPlayerEl.classList.remove('active');
-    fallingPlayerEl.removeAttribute('style');
-    fallingPlayerEl.style.display = 'none';
-    splashEl.classList.remove('active');
-    splashEl.removeAttribute('style');
-    splashEl.style.display = 'none';
+    hideFallFx();
 
     countdownOverlay.classList.add('active');
 
@@ -1147,12 +1160,14 @@ function showCountdown(startTutorialMode) {
             state.rawLastAngle = null;
             state.tiltZero = state.tiltEMA; // scheme B: current posture becomes neutral
 
-            dropPlayer(startTutorialMode);
+            dropPlayer(startTutorialMode ? startTutorial : startGame);
         }
     }, 1000);
 }
 
-function dropPlayer(startTutorialMode) {
+// Drop the stickman onto the log, then hand control to onLanded (startGame /
+// startTutorial / resumeRun after a revive).
+function dropPlayer(onLanded) {
     playerEl.classList.remove('visible', 'falling');
     playerEl.style.opacity = '0';
 
@@ -1165,8 +1180,7 @@ function dropPlayer(startTutorialMode) {
             playerEl.classList.add('visible');
             playerEl.style.opacity = '';
             playerEl.style.top = '-25px';
-            if (startTutorialMode) startTutorial();
-            else startGame();
+            onLanded();
         }, { once: true });
     });
 }
@@ -1179,6 +1193,8 @@ function startGame() {
     state.combo = 0;
     state.elapsed = 0;
     state.recordCelebrated = false;
+    state.revivedThisRun = false;
+    state.lastChangeAt = -Infinity;
 
     // Newcomer hints: count this run, reset the per-run "already jumped" flag.
     runCount += 1;
@@ -1260,6 +1276,107 @@ function startTutorial() {
     gameLoop();
 }
 
+// === REVIVE (paid continue on the death screen) ===
+// Continues the SAME run: score/elapsed/combo/biome survive, the player gets
+// REVIVE_HP and a shield window; obstacles/coins respawn fresh (their reset
+// already happened in gameOver). One revive per run.
+
+function handleReviveClick() {
+    if (state.isPlaying || state.revivedThisRun
+        || countdownOverlay.classList.contains('active')) return;
+    initAudio(); // this tap may need to resume the AudioContext
+    if (!spendCoins(REVIVE_COST)) return;
+    state.revivedThisRun = true; // set synchronously — no double-tap spends
+    showReviveCountdown();
+}
+
+function showReviveCountdown() {
+    // Hide the death screen.
+    startBtn.style.display = 'none';
+    shareBtn.style.display = 'none';
+    reviveBtn.style.display = 'none';
+    shopBtn.style.display = 'none';
+    statusEl.innerText = '';
+    deathQuipEl.innerText = '';
+    runCoinsEl.innerText = '';
+    hideFallFx();
+
+    // gameOver removed the motion listener — bring the controls back.
+    window.addEventListener('devicemotion', handleMotion);
+
+    // Re-center the CHARACTER only (the log keeps its angle/speed/direction —
+    // that's the whole point of continuing). Same counter-rotate trick as
+    // tutorialSoftReset: zeroing userAngle would drop the player wherever
+    // the log happens to point, possibly straight past FALL_THRESHOLD.
+    state.userAngle = -state.logAngle;
+    state.contAngle = state.userAngle;
+    state.velEMA = 0;
+    state.rawLastAngle = null;
+    playerEl.classList.remove('visible', 'falling', 'jumping', 'hit');
+    playerEl.style.opacity = '0';
+
+    // Quick countdown — shorter than the full 3-2-1, the player just died
+    // here and knows the drill.
+    countdownTextEl.innerText = 'Продолжаем! Держись!';
+    countdownOverlay.classList.add('active');
+    let count = REVIVE_COUNT_FROM;
+    countdownNumber.innerText = count;
+    countdownNumber.style.animation = 'none';
+    void countdownNumber.offsetWidth;
+    countdownNumber.style.animation = 'countPop 0.5s ease-out';
+    hapticTick();
+
+    const interval = setInterval(() => {
+        count--;
+        if (count > 0) {
+            countdownNumber.innerText = count;
+            countdownNumber.style.animation = 'none';
+            void countdownNumber.offsetWidth;
+            countdownNumber.style.animation = 'countPop 0.5s ease-out';
+            hapticTick();
+        } else {
+            clearInterval(interval);
+            countdownOverlay.classList.remove('active');
+            state.tiltZero = state.tiltEMA; // scheme B: recalibrate posture
+            dropPlayer(resumeRun);
+        }
+    }, REVIVE_COUNT_TICK_MS);
+}
+
+function resumeRun() {
+    state.isPlaying = true;
+    state.hp = REVIVE_HP;
+    state.isJumping = false;
+    updateHearts();
+    heartsEl.style.display = 'block';
+
+    // Fresh obstacle/coin machines (gameOver reset them): FIRST_EMERGE_ROT
+    // of quiet log before anything surfaces again.
+    spawnObstacles();
+    spawnCoins();
+
+    // Shield: blink without the sad face (.invuln, not .hit).
+    state.invulnerable = true;
+    playerEl.classList.add('invuln');
+    setTimeout(() => {
+        state.invulnerable = false;
+        playerEl.classList.remove('invuln');
+    }, REVIVE_INVULN_MS);
+
+    // Fairness: never resume straight into a direction change.
+    if (state.nextChangeTime - state.elapsed < REVIVE_MIN_CHANGE_GAP_MS) {
+        state.nextChangeTime = state.elapsed + REVIVE_MIN_CHANGE_GAP_MS;
+    }
+
+    dirArrows.classList.add('on');
+    updateDirectionUI();
+    setPreviewArrow(state.pendingChange); // the promise survived gameOver
+
+    music.start(); // mood is preserved inside audio.js
+    lastFrameTs = performance.now();
+    gameLoop();
+}
+
 function gameOver(normPos, cause) {
     state.isPlaying = false;
     // Pick the funny "why you fell" line while the death context is still
@@ -1326,6 +1443,8 @@ function gameOver(normPos, cause) {
 // === EVENT WIRING ===
 // (Replaces the inline onclick handlers from the original single-file version.)
 startBtn.addEventListener('click', handleStartClick);
+reviveBtn.addEventListener('click', handleReviveClick);
+reviveBtn.innerText = '⚡ Продолжить за ' + REVIVE_COST + ' 🪙';
 shareBtn.addEventListener('click', function () {
     initAudio(); // any tap may be the session's first gesture
     const text = 'Я набрал ' + state.highScore + ' очков в «Stay on Log» 🪵 Удержишься дольше?';
@@ -1352,7 +1471,7 @@ nicknameInput.addEventListener('keydown', function (e) {
 // silent-switch), so re-running initAudio() on every tap keeps it resumed
 // instead of relying solely on the one-time unlock at Start.
 document.addEventListener('pointerdown', function (e) {
-    if (e.target.closest && e.target.closest('#mute-btn, #howto-btn, #howto-overlay, #shop-btn, #shop-overlay, #dev-tune, #tutorial-skip')) return;
+    if (e.target.closest && e.target.closest('#mute-btn, #howto-btn, #howto-overlay, #shop-btn, #shop-overlay, #revive-btn, #dev-tune, #tutorial-skip')) return;
     initAudio();
     if (state.isPlaying) doJump();
 });

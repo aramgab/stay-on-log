@@ -339,6 +339,11 @@ function gameLoop() {
         if (obEvent === 'cleared') {
             tutStep = 3;
             tutBannerLastSec = -1;
+            // Freeze the world for the outro: with the log stopped the
+            // character can't drift off the top during the "Готов!" beat
+            // (the step-3 softReset guard would otherwise let them hang
+            // past FALL_THRESHOLD with no recovery).
+            state.logSpeed = 0;
             showTutorialBanner('Готов! Погнали по-настоящему 🎉');
             lsSet('stayOnLog_seenTutorial_v1', '1');
             setTimeout(exitTutorial, 1400);
@@ -721,6 +726,12 @@ function exitTutorial() {
     tutHoldMs = 0;
     tutLastEmergeAt = -Infinity;
     tutBannerLastSec = -1;
+    // Stop the tutorial's game loop BEFORE handing off to the countdown.
+    // Without this the loop keeps running (in normal mode now!) through the
+    // whole 3-2-1: the log carries the character past FALL_THRESHOLD and the
+    // "real" run gameOvers itself before it even starts — the player lands on
+    // a fallen stickman and a restart screen instead of a fresh game.
+    state.isPlaying = false;
     hideTutorialUI();
     directionPill.style.display = '';
     showCountdown();

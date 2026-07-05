@@ -41,6 +41,8 @@ import {
     TUT_JUMPS_TO_PASS,
     TUT_ARROW_WARN_AT_MS,
     TUT_ARROW_HOLD_MS,
+    QUIP_RECENT_CHANGE_MS,
+    QUIP_FAST_FRAC,
 } from './config.js';
 import {
     logWrapper,
@@ -57,6 +59,7 @@ import {
     howtoSensVal,
     newRecordEl,
     statusEl,
+    deathQuipEl,
     startBtn,
     shareBtn,
     desktopStub,
@@ -92,6 +95,7 @@ import {
     forceEmerge,
 } from './obstacles.js';
 import { setMainArrow, setPreviewArrow, promoteArrows, cancelPromote, resetArrows } from './dirarrow.js';
+import { deathQuip } from './quips.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
@@ -550,7 +554,7 @@ function gameLoop() {
         if (tutorialMode) {
             tutorialSoftReset();
         } else {
-            gameOver(normPos);
+            gameOver(normPos, 'fall');
             return;
         }
     }
@@ -663,6 +667,7 @@ function applyPendingChange() {
     state.targetSpeed = p.speed;
     state.logDirection = p.dir;
     state.pendingChange = null;
+    state.lastChangeAt = state.elapsed; // for the "change got you" death quip
 }
 
 // Scheme-aware copy: scheme A ("wind the phone") and scheme B ("hold the
@@ -723,7 +728,8 @@ function registerHit(playerPosition) {
     updateHearts();
 
     if (state.hp <= 0) {
-        gameOver(normalizePos(playerPosition));
+        // Which obstacle killed us — read BEFORE gameOver's resetObstacles.
+        gameOver(normalizePos(playerPosition), 'hit-' + (activeObstacleType() || 'knot'));
         return true;
     }
 
@@ -1041,6 +1047,7 @@ function showCountdown(startTutorialMode) {
     heartsEl.style.display = 'none';
     newRecordEl.style.display = 'none';
     statusEl.innerText = '';
+    deathQuipEl.innerText = '';
     playerEl.classList.remove('visible', 'falling', 'jumping', 'hit');
     playerEl.style.opacity = '0';
     dangerVignette.style.opacity = 0;
@@ -1215,8 +1222,15 @@ function startTutorial() {
     gameLoop();
 }
 
-function gameOver(normPos) {
+function gameOver(normPos, cause) {
     state.isPlaying = false;
+    // Pick the funny "why you fell" line while the death context is still
+    // hot (biome/speed/last change) — render.js shows it with the result.
+    state.deathQuip = deathQuip(cause || 'fall', {
+        recentChange: state.elapsed - state.lastChangeAt < QUIP_RECENT_CHANGE_MS,
+        storm: currentBiome === 'biome-storm',
+        fast: Math.abs(state.logSpeed) > MIN_SPEED + (MAX_SPEED - MIN_SPEED) * QUIP_FAST_FRAC,
+    });
     arrowWarningVisible = false;
     resetArrows();
     obSideHint.className = '';

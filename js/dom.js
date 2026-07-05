@@ -9,6 +9,7 @@ export const scoreEl = document.getElementById('score-display');
 export const highScoreEl = document.getElementById('high-score-display');
 export const newRecordEl = document.getElementById('new-record');
 export const statusEl = document.getElementById('status-text');
+export const deathQuipEl = document.getElementById('death-quip');
 export const startBtn = document.getElementById('start-btn');
 export const shareBtn = document.getElementById('share-btn');
 export const heartsEl = document.getElementById('hearts-display');

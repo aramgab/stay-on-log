@@ -9,6 +9,7 @@ import {
     fallingPlayerEl,
     splashEl,
     statusEl,
+    deathQuipEl,
     startBtn,
     shareBtn,
 } from './dom.js';
@@ -84,6 +85,7 @@ export function animateFall(normPos) {
         if (trophy) {
             setTimeout(() => { statusEl.innerText = 'УПАЛ! Очки: ' + state.score + trophy; }, 720);
         }
+        deathQuipEl.innerText = state.deathQuip || '';
         startBtn.style.display = 'inline-block';
         startBtn.innerText = "Попробовать снова";
         if (state.highScore > 0) shareBtn.style.display = 'inline-block';

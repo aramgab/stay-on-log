@@ -54,6 +54,13 @@ export const state = {
     // Whether the "new record" haptic has already fired this run (fire once, not every frame)
     recordCelebrated: false,
 
+    // elapsed-domain ms of the last applied direction/speed change (for the
+    // "the change got you" death quip); -Infinity until the first change.
+    lastChangeAt: -Infinity,
+    // The quip picked by gameOver for this death; render.js shows it on the
+    // result screen after the fall animation.
+    deathQuip: '',
+
     // Jump / lives
     isJumping: false,
     jumpStartTime: 0,   // Date.now() of the last jump start (branch timing check)

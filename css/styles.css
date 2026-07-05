@@ -448,6 +448,17 @@ body.biome-storm .lightning {
     min-height: 22px;
 }
 
+/* Funny "why you fell" line under the result (js/quips.js picks it). */
+#death-quip {
+    font-size: 13px;
+    font-weight: 600;
+    font-style: italic;
+    opacity: 0.85;
+    max-width: 300px;
+    margin: 2px auto 0;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
 #start-btn {
     background: linear-gradient(135deg, #27ae60, #2ecc71);
     color: white;

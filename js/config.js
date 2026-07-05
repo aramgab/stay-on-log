@@ -166,6 +166,12 @@ export const TUT_JUMPS_TO_PASS = 2;      // jump step: taps needed before moving
 export const TUT_ARROW_WARN_AT_MS = 3500;
 export const TUT_ARROW_HOLD_MS = 3000;
 
+// === DEATH QUIPS (funny "why you fell" line on the result screen) ===
+// A direction change within this window before death counts as "it got you".
+export const QUIP_RECENT_CHANGE_MS = 2000;
+// |logSpeed| above this fraction of the speed range counts as "fast death".
+export const QUIP_FAST_FRAC = 0.8;
+
 // === SHARING ===
 // Landing URL for the "brag" share button. The game is published as a
 // Telegram Mini App (@StayOnLog_bot, short name "game"), so shares open

@@ -1237,6 +1237,9 @@ function startGame() {
     lsSet('stayOnLog_runCount', String(runCount));
     jumpedThisRun = false;
 
+    // Boss foreshadowing: fins in the water during real runs only.
+    document.body.classList.add('fins-on');
+
     // Lives & obstacles & coins. A spare heart bought in the shop burns on
     // the next run only — consumed here, +1 hp over the base.
     state.hp = START_HP;
@@ -1385,6 +1388,7 @@ function resumeRun() {
     state.isPlaying = true;
     state.hp = REVIVE_HP;
     state.isJumping = false;
+    document.body.classList.add('fins-on');
     updateHearts();
     heartsEl.style.display = 'block';
 
@@ -1440,6 +1444,7 @@ function gameOver(normPos, cause) {
     // active (see the gameLoop gates), but guard the UI anyway.
     hideTutorialUI();
     window.removeEventListener('devicemotion', handleMotion);
+    document.body.classList.remove('fins-on');
     music.stop();
     sfx.splash();
     hapticFall();

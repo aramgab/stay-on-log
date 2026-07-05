@@ -1094,6 +1094,161 @@ body.biome-storm .lightning {
     }
 }
 
+/* Boss foreshadowing: dark dorsal fins drifting along the waterline. Hidden
+   unless a real run is on (body.fins-on, set in startGame / cleared in
+   gameOver) — the tutorial and menus stay fin-free. The fin is a rounded
+   right triangle: a skewed box with a heavy top-left radius reads as a dorsal
+   fin at this size without any SVG. */
+.shark-fin {
+    position: absolute;
+    top: -13px;
+    /* above the container edge = poking out of the water */
+    left: 0;
+    width: 26px;
+    height: 16px;
+    background: linear-gradient(200deg, #2c3e50, #17242f);
+    border-radius: 92% 10% 12% 4% / 96% 18% 8% 4%;
+    transform: skewX(-14deg);
+    opacity: 0;
+    pointer-events: none;
+    will-change: transform;
+}
+
+body.fins-on .shark-fin {
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+
+body.fins-on .f1 {
+    animation-name: finDrift1;
+    animation-duration: 17s;
+    animation-delay: 0s;
+    top: -12px;
+}
+
+body.fins-on .f2 {
+    animation-name: finDrift2;
+    animation-duration: 23s;
+    animation-delay: 6s;
+    top: -10px;
+}
+
+body.fins-on .f3 {
+    animation-name: finDrift3;
+    animation-duration: 29s;
+    animation-delay: 12s;
+    top: -8px;
+}
+
+/* The fin slides across the whole screen, bobbing with the waves; opacity
+   ramps in/out near the edges so spawn/despawn never pops. Each fin gets its
+   own keyframe set because the scale/mirror transforms below must survive
+   the animation — a shared keyframe would clobber per-fin transform
+   overrides every frame. */
+@keyframes finDrift1 {
+    0% {
+        transform: translateX(-40px) translateY(0) skewX(-14deg);
+        opacity: 0;
+    }
+
+    6% {
+        opacity: 0.85;
+    }
+
+    25% {
+        transform: translateX(25vw) translateY(2px) skewX(-14deg);
+    }
+
+    50% {
+        transform: translateX(50vw) translateY(-2px) skewX(-14deg);
+    }
+
+    75% {
+        transform: translateX(75vw) translateY(2px) skewX(-14deg);
+    }
+
+    94% {
+        opacity: 0.85;
+    }
+
+    100% {
+        transform: translateX(calc(100vw + 40px)) translateY(0) skewX(-14deg);
+        opacity: 0;
+    }
+}
+
+/* Mirrored fin swimming the other way, right-to-left — livelier than three
+   fins all drifting in lockstep. */
+@keyframes finDrift2 {
+    0% {
+        transform: translateX(calc(100vw + 40px)) translateY(0) skewX(14deg) scaleX(-1) scale(0.8);
+        opacity: 0;
+    }
+
+    6% {
+        opacity: 0.85;
+    }
+
+    25% {
+        transform: translateX(75vw) translateY(2px) skewX(14deg) scaleX(-1) scale(0.8);
+    }
+
+    50% {
+        transform: translateX(50vw) translateY(-2px) skewX(14deg) scaleX(-1) scale(0.8);
+    }
+
+    75% {
+        transform: translateX(25vw) translateY(2px) skewX(14deg) scaleX(-1) scale(0.8);
+    }
+
+    94% {
+        opacity: 0.85;
+    }
+
+    100% {
+        transform: translateX(-40px) translateY(0) skewX(14deg) scaleX(-1) scale(0.8);
+        opacity: 0;
+    }
+}
+
+@keyframes finDrift3 {
+    0% {
+        transform: translateX(-40px) translateY(0) scale(0.65) skewX(-14deg);
+        opacity: 0;
+    }
+
+    6% {
+        opacity: 0.85;
+    }
+
+    25% {
+        transform: translateX(25vw) translateY(2px) scale(0.65) skewX(-14deg);
+    }
+
+    50% {
+        transform: translateX(50vw) translateY(-2px) scale(0.65) skewX(-14deg);
+    }
+
+    75% {
+        transform: translateX(75vw) translateY(2px) scale(0.65) skewX(-14deg);
+    }
+
+    94% {
+        opacity: 0.85;
+    }
+
+    100% {
+        transform: translateX(calc(100vw + 40px)) translateY(0) scale(0.65) skewX(-14deg);
+        opacity: 0;
+    }
+}
+
+/* Night: the fins come closer to the surface line and read darker — the
+   foreshadowing tightens as the boss hour approaches. */
+body.biome-night .shark-fin {
+    background: linear-gradient(200deg, #1a2733, #0c141c);
+}
+
 /* Elongated light reflections breathing on the water (under the sun/moon) */
 .reflection {
     position: absolute;

@@ -142,9 +142,9 @@
                 <svg id="log-svg" width="280" height="280" viewBox="0 0 280 280">
                     <defs>
                         <radialGradient id="logFace" cx="45%" cy="40%" r="65%">
-                            <stop offset="0%" stop-color="#e8c896" />
-                            <stop offset="70%" stop-color="#d9b47e" />
-                            <stop offset="100%" stop-color="#c9a066" />
+                            <stop class="wood-face-1" offset="0%" stop-color="#e8c896" />
+                            <stop class="wood-face-2" offset="70%" stop-color="#d9b47e" />
+                            <stop class="wood-face-3" offset="100%" stop-color="#c9a066" />
                         </radialGradient>
                         <radialGradient id="logShadow" cx="40%" cy="35%" r="60%">
                             <stop offset="0%" stop-color="white" />
@@ -152,48 +152,48 @@
                         </radialGradient>
                     </defs>
                     <!-- Bark rim (outer r=135 must stay: player orbits it) -->
-                    <circle cx="140" cy="140" r="135" fill="#4a2e14" stroke="#33200d" stroke-width="2" />
-                    <circle cx="140" cy="140" r="128" fill="none" stroke="#5f3d1d" stroke-width="10"
+                    <circle class="bark-rim" cx="140" cy="140" r="135" fill="#4a2e14" stroke="#33200d" stroke-width="2" />
+                    <circle class="bark-dash-1" cx="140" cy="140" r="128" fill="none" stroke="#5f3d1d" stroke-width="10"
                         stroke-dasharray="14 7" />
-                    <circle cx="140" cy="140" r="121" fill="none" stroke="#3a2510" stroke-width="4"
+                    <circle class="bark-dash-2" cx="140" cy="140" r="121" fill="none" stroke="#3a2510" stroke-width="4"
                         stroke-dasharray="9 13" />
                     <!-- Wood face -->
                     <circle cx="140" cy="140" r="112" fill="url(#logFace)" />
                     <!-- Growth rings: slightly off-center, broken for grain -->
-                    <ellipse cx="143" cy="137" rx="96" ry="93" fill="none" stroke="#b08c55" stroke-width="2"
+                    <ellipse class="wood-ring-1" cx="143" cy="137" rx="96" ry="93" fill="none" stroke="#b08c55" stroke-width="2"
                         stroke-dasharray="60 8 34 5" opacity="0.55" />
-                    <ellipse cx="137" cy="142" rx="80" ry="78" fill="none" stroke="#b08c55" stroke-width="1.5"
+                    <ellipse class="wood-ring-1" cx="137" cy="142" rx="80" ry="78" fill="none" stroke="#b08c55" stroke-width="1.5"
                         stroke-dasharray="45 6 70 4" opacity="0.5" />
-                    <ellipse cx="142" cy="139" rx="64" ry="66" fill="none" stroke="#a8804a" stroke-width="2"
+                    <ellipse class="wood-ring-2" cx="142" cy="139" rx="64" ry="66" fill="none" stroke="#a8804a" stroke-width="2"
                         stroke-dasharray="80 7 30 6" opacity="0.5" />
-                    <ellipse cx="138" cy="141" rx="50" ry="48" fill="none" stroke="#b08c55" stroke-width="1.5"
+                    <ellipse class="wood-ring-1" cx="138" cy="141" rx="50" ry="48" fill="none" stroke="#b08c55" stroke-width="1.5"
                         stroke-dasharray="38 5 55 7" opacity="0.55" />
-                    <ellipse cx="141" cy="138" rx="36" ry="37" fill="none" stroke="#a8804a" stroke-width="2"
+                    <ellipse class="wood-ring-2" cx="141" cy="138" rx="36" ry="37" fill="none" stroke="#a8804a" stroke-width="2"
                         stroke-dasharray="52 6 26 4" opacity="0.5" />
-                    <ellipse cx="139" cy="140" rx="24" ry="23" fill="none" stroke="#b08c55" stroke-width="1.5"
+                    <ellipse class="wood-ring-1" cx="139" cy="140" rx="24" ry="23" fill="none" stroke="#b08c55" stroke-width="1.5"
                         stroke-dasharray="30 5 40 4" opacity="0.55" />
-                    <ellipse cx="140" cy="139" rx="13" ry="14" fill="none" stroke="#a8804a" stroke-width="1.5"
+                    <ellipse class="wood-ring-2" cx="140" cy="139" rx="13" ry="14" fill="none" stroke="#a8804a" stroke-width="1.5"
                         opacity="0.5" />
                     <!-- Core -->
-                    <circle cx="140" cy="140" r="6" fill="#9a7440" />
-                    <circle cx="140" cy="140" r="3" fill="#7e5c30" />
+                    <circle class="wood-core-1" cx="140" cy="140" r="6" fill="#9a7440" />
+                    <circle class="wood-core-2" cx="140" cy="140" r="3" fill="#7e5c30" />
                     <!-- Radial cracks -->
-                    <path d="M146,134 L176,110 L186,96" fill="none" stroke="#8a6a3e" stroke-width="2"
+                    <path class="wood-crack" d="M146,134 L176,110 L186,96" fill="none" stroke="#8a6a3e" stroke-width="2"
                         stroke-linecap="round" opacity="0.6" />
-                    <path d="M134,146 L112,168 L104,182" fill="none" stroke="#8a6a3e" stroke-width="1.5"
+                    <path class="wood-crack" d="M134,146 L112,168 L104,182" fill="none" stroke="#8a6a3e" stroke-width="1.5"
                         stroke-linecap="round" opacity="0.45" />
                     <!-- Flat grain swirls (flush with the face — real knots are obstacles now) -->
                     <g opacity="0.35">
-                        <ellipse cx="180" cy="95" rx="14" ry="9" fill="none" stroke="#8a6a3e" stroke-width="1.5"
+                        <ellipse class="wood-crack" cx="180" cy="95" rx="14" ry="9" fill="none" stroke="#8a6a3e" stroke-width="1.5"
                             transform="rotate(-25,180,95)" />
-                        <ellipse cx="180" cy="95" rx="8" ry="5" fill="none" stroke="#8a6a3e" stroke-width="1.2"
+                        <ellipse class="wood-crack" cx="180" cy="95" rx="8" ry="5" fill="none" stroke="#8a6a3e" stroke-width="1.2"
                             transform="rotate(-25,180,95)" />
-                        <ellipse cx="180" cy="95" rx="3.5" ry="2" fill="#8a6a3e" transform="rotate(-25,180,95)" />
+                        <ellipse class="wood-crack-fill" cx="180" cy="95" rx="3.5" ry="2" fill="#8a6a3e" transform="rotate(-25,180,95)" />
                     </g>
                     <g opacity="0.3">
-                        <ellipse cx="100" cy="185" rx="12" ry="8" fill="none" stroke="#8a6a3e" stroke-width="1.5"
+                        <ellipse class="wood-crack" cx="100" cy="185" rx="12" ry="8" fill="none" stroke="#8a6a3e" stroke-width="1.5"
                             transform="rotate(20,100,185)" />
-                        <ellipse cx="100" cy="185" rx="6" ry="4" fill="none" stroke="#8a6a3e" stroke-width="1.2"
+                        <ellipse class="wood-crack" cx="100" cy="185" rx="6" ry="4" fill="none" stroke="#8a6a3e" stroke-width="1.2"
                             transform="rotate(20,100,185)" />
                     </g>
                     <!-- Ambient shading -->

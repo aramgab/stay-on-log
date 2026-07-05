@@ -123,6 +123,38 @@ body.biome-storm {
     --cloud: rgba(85, 95, 110, 0.85);
 }
 
+/* === LOG PALETTE (bark/wood) ===
+   Defaults mirror the original hardcoded hex in #log-svg (the SVG attributes
+   remain in place as a fallback for webviews where CSS on SVG loses). Future
+   world skins (body.world-*) retint the log by overriding these variables. */
+:root {
+    --bark-1: #4a2e14;
+    --bark-stroke: #33200d;
+    --bark-2: #5f3d1d;
+    --bark-3: #3a2510;
+    --wood-face-1: #e8c896;
+    --wood-face-2: #d9b47e;
+    --wood-face-3: #c9a066;
+    --wood-ring-1: #b08c55;
+    --wood-ring-2: #a8804a;
+    --wood-core-1: #9a7440;
+    --wood-core-2: #7e5c30;
+    --wood-crack: #8a6a3e;
+}
+
+#log-svg .bark-rim { fill: var(--bark-1); stroke: var(--bark-stroke); }
+#log-svg .bark-dash-1 { stroke: var(--bark-2); }
+#log-svg .bark-dash-2 { stroke: var(--bark-3); }
+#log-svg .wood-face-1 { stop-color: var(--wood-face-1); }
+#log-svg .wood-face-2 { stop-color: var(--wood-face-2); }
+#log-svg .wood-face-3 { stop-color: var(--wood-face-3); }
+#log-svg .wood-ring-1 { stroke: var(--wood-ring-1); }
+#log-svg .wood-ring-2 { stroke: var(--wood-ring-2); }
+#log-svg .wood-core-1 { fill: var(--wood-core-1); }
+#log-svg .wood-core-2 { fill: var(--wood-core-2); }
+#log-svg .wood-crack { stroke: var(--wood-crack); }
+#log-svg .wood-crack-fill { fill: var(--wood-crack); }
+
 /* Standalone Safari (home-screen PWA) ignores body overflow for its rubber
    page-pan: off-screen scenery (clouds animating past the edges) makes the
    document wider than the viewport and the whole page — HUD included — can

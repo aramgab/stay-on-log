@@ -23,41 +23,72 @@ function vibrate(pattern) {
 
 export function hapticJump() {
     const h = tgHaptics();
-    if (h) { try { h.impactOccurred('light'); return; } catch (e) { /* fall through */ } }
-    vibrate(15);
+    if (h) { try { h.impactOccurred('medium'); return; } catch (e) { /* fall through */ } }
+    vibrate(25);
 }
 
 export function hapticHit() {
     const h = tgHaptics();
-    if (h) { try { h.impactOccurred('medium'); return; } catch (e) { /* fall through */ } }
-    vibrate(40);
+    if (h) {
+        try {
+            h.impactOccurred('heavy');
+            h.notificationOccurred('error');
+            return;
+        } catch (e) { /* fall through */ }
+    }
+    vibrate([70, 30, 40]);
 }
 
+// Long, unmistakable buzz — the run just ended.
 export function hapticFall() {
     const h = tgHaptics();
     if (h) { try { h.notificationOccurred('error'); return; } catch (e) { /* fall through */ } }
-    vibrate([60, 40, 80]);
+    vibrate([100, 60, 100, 60, 140]);
 }
 
 // Obstacle cleared. Stronger buzz once a combo (mult > 1) kicks in so the
-// escalating reward is felt, not just seen/heard.
+// escalating reward is felt, not just seen/heard. A high combo (>= 3) gets a
+// double-pulse "thump-thump" instead of a single hit.
 export function hapticClear(mult) {
     const h = tgHaptics();
-    if (h) { try { h.impactOccurred(mult > 1 ? 'medium' : 'light'); return; } catch (e) { /* fall through */ } }
-    vibrate(mult > 1 ? [12, 40, 18] : 12);
+    if (h) {
+        try {
+            if (mult >= 3) {
+                h.impactOccurred('heavy');
+                setTimeout(() => { try { h.impactOccurred('heavy'); } catch (e) { /* ignore */ } }, 90);
+            } else {
+                h.impactOccurred(mult > 1 ? 'medium' : 'light');
+            }
+            return;
+        } catch (e) { /* fall through */ }
+    }
+    if (mult >= 3) {
+        vibrate([25, 90, 25]);
+    } else {
+        vibrate(mult > 1 ? [20, 60, 25] : 18);
+    }
 }
 
 // Countdown tick (3-2-1) and biome transitions — a light pulse so the game
-// keeps feeling "alive" between the sparser jump/hit/clear events.
+// keeps feeling "alive" between the sparser jump/hit/clear events. Left
+// untouched: it's frequent and shouldn't compete with the bigger events.
 export function hapticTick() {
     const h = tgHaptics();
     if (h) { try { h.selectionChanged(); return; } catch (e) { /* fall through */ } }
     vibrate(8);
 }
 
-// First time this run the player beats their all-time high score.
+// First time this run the player beats their all-time high score — the
+// biggest celebration in the game: success notification + a triple pulse.
 export function hapticRecord() {
     const h = tgHaptics();
-    if (h) { try { h.notificationOccurred('success'); return; } catch (e) { /* fall through */ } }
-    vibrate([20, 40, 20, 40, 35]);
+    if (h) {
+        try {
+            h.notificationOccurred('success');
+            setTimeout(() => { try { h.impactOccurred('heavy'); } catch (e) { /* ignore */ } }, 90);
+            setTimeout(() => { try { h.impactOccurred('heavy'); } catch (e) { /* ignore */ } }, 220);
+            return;
+        } catch (e) { /* fall through */ }
+    }
+    vibrate([30, 60, 30, 60, 30, 80, 55]);
 }

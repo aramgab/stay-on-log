@@ -70,6 +70,7 @@ import {
     nicknameSaveBtn,
     obSideHint,
     dangerVignette,
+    hitFlash,
     tapHint,
     steerHint,
     tutorialBanner,
@@ -367,7 +368,19 @@ function gameLoop() {
         else sfx.point();
         hapticClear(mult);
         const xy = playerXY();
-        burst(xy.x, xy.y, { color: '#6b4423', count: 10, size: 6, up: 50 });
+        // Combo escalation: a bigger multiplier earns a bigger visual beat.
+        // Plain clear (mult 1) keeps the modest default burst; mult >= 3 gets
+        // a light shake + larger burst; mult at the cap (5) gets the heavy
+        // shake normally reserved for hits/falls.
+        if (mult >= COMBO_MAX_MULT) {
+            screenShake(true);
+            burst(xy.x, xy.y, { color: '#ffd93d', count: 22, size: 11, up: 90, spread: 130 });
+        } else if (mult >= 3) {
+            screenShake(false);
+            burst(xy.x, xy.y, { color: '#6b4423', count: 18, size: 10, up: 80, spread: 115 });
+        } else {
+            burst(xy.x, xy.y, { color: '#6b4423', count: 15, size: 9, up: 75 });
+        }
         floatText(xy.x, xy.y - 26, '+' + pts + (mult > 1 ? ' ×' + mult : ''));
     } else if (obEvent === 'hit' && registerHit(playerPosition)) {
         return; // fatal hit — loop stopped inside gameOver
@@ -406,6 +419,11 @@ function gameLoop() {
             if (!state.recordCelebrated && state.highScore > 0) {
                 state.recordCelebrated = true;
                 hapticRecord();
+                const r = scoreEl.getBoundingClientRect();
+                const sx = r.left + r.width / 2;
+                const sy = r.top + r.height / 2;
+                burst(sx, sy, { color: '#ffd93d', count: 24, size: 10, up: 85, spread: 120 });
+                floatText(sx, sy - 30, 'РЕКОРД!', '#ffd93d');
             }
         }
     }
@@ -603,6 +621,15 @@ function playerXY() {
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 }
 
+// Full-screen red pulse on impact (hit or fatal fall). Restart trick mirrors
+// screenShake() in fx.js: drop the class, force reflow, re-add it so a hit
+// landing mid-animation still restarts the pulse from 0.
+function triggerHitFlash() {
+    hitFlash.classList.remove('active');
+    void hitFlash.offsetWidth;
+    hitFlash.classList.add('active');
+}
+
 // Apply an obstacle hit. Returns true if it was fatal (game over triggered).
 function registerHit(playerPosition) {
     state.hp -= 1;
@@ -619,8 +646,9 @@ function registerHit(playerPosition) {
     sfx.hit();
     hapticHit();
     screenShake(false);
+    triggerHitFlash();
     const xy = playerXY();
-    burst(xy.x, xy.y, { color: '#ff5252', count: 8, size: 5 });
+    burst(xy.x, xy.y, { color: '#ff5252', count: 12, size: 8 });
     state.invulnerable = true;
     playerEl.classList.add('hit');
     dirWarning.style.display = 'none';
@@ -1049,6 +1077,7 @@ function gameOver(normPos) {
     sfx.splash();
     hapticFall();
     screenShake(true);
+    triggerHitFlash();
 
     // Clear obstacles
     resetObstacles();

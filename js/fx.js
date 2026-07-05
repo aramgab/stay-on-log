@@ -25,11 +25,11 @@ export function screenShake(big = false) {
 // Burst of particles from a viewport point (x, y).
 export function burst(x, y, opts = {}) {
     const {
-        count = 8,
+        count = 12,
         color = '#6b4423',
-        size = 6,
-        spread = 70,
-        up = 40,
+        size = 9,
+        spread = 105,
+        up = 60,
     } = opts;
 
     for (let i = 0; i < count; i++) {

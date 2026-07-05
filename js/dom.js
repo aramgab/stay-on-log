@@ -30,6 +30,7 @@ export const steerHint = document.getElementById('steer-hint');
 export const tutorialBanner = document.getElementById('tutorial-banner');
 export const tutorialSkipBtn = document.getElementById('tutorial-skip');
 export const dangerVignette = document.getElementById('danger-vignette');
+export const hitFlash = document.getElementById('hit-flash');
 export const desktopStub = document.getElementById('desktop-stub');
 export const stubKeyboardBtn = document.getElementById('stub-keyboard-btn');
 export const countdownOverlay = document.getElementById('countdown-overlay');

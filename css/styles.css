@@ -1273,6 +1273,37 @@ body.biome-storm .lightning {
     background: linear-gradient(to left, rgba(255, 64, 64, 0.55), transparent 45%);
 }
 
+/* Hit flash: brief full-screen red pulse on impact, layered above the fx
+   particle layer so it reads as a punchy "smack" beat. Toggled via .active
+   in js/game.js registerHit() (class removed + void offsetWidth + re-added,
+   same restart trick as screenShake in fx.js). transform/opacity-only. */
+#hit-flash {
+    position: fixed;
+    inset: 0;
+    z-index: 260;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(255, 30, 30, 0.65) 100%);
+}
+
+#hit-flash.active {
+    animation: hitFlashPulse 0.35s ease-out;
+}
+
+@keyframes hitFlashPulse {
+    0% {
+        opacity: 0;
+    }
+
+    25% {
+        opacity: 0.6;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
 /* Approach-side hint: pulsing arrow at the water's edge on the side the
    obstacle will come from. Never intercepts the tap-to-jump. */
 #ob-side-hint {

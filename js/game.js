@@ -52,9 +52,6 @@ import {
     howtoSensVal,
     newRecordEl,
     statusEl,
-    arrowEl,
-    speedFillEl,
-    directionPill,
     startBtn,
     shareBtn,
     desktopStub,
@@ -544,11 +541,6 @@ function scheduleNextChange() {
     state.nextChangeTime = state.elapsed + interval;
 }
 
-// Returns speed percent 0-100 from actual speed value
-function getSpeedPercent(speed) {
-    return ((speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)) * 100;
-}
-
 // Roll a fresh speed for a change firing at applyAtElapsed, honoring the
 // phase-1 cap AS OF that moment (the preview arrow promises the future, so
 // caps are computed against fire time, not roll time; they only loosen with
@@ -636,7 +628,6 @@ function applyPendingChange() {
     state.logSpeed = p.speed;
     state.logDirection = p.dir;
     state.pendingChange = null;
-    updatePillUI();
 }
 
 // Scheme-aware copy: scheme A ("wind the phone") and scheme B ("hold the
@@ -647,24 +638,10 @@ function schemeText(windText, tiltText) {
     return getScheme() === 'tilt' ? tiltText : windText;
 }
 
-// Pill half of the direction UI (updates instantly even mid-promote).
-function updatePillUI() {
-    if (state.logDirection === 1) {
-        statusEl.innerText = schemeText("КРУТИ ВЛЕВО", "НАКЛОНЯЙ ВЛЕВО");
-        arrowEl.innerText = "←";
-    } else {
-        statusEl.innerText = schemeText("КРУТИ ВПРАВО", "НАКЛОНЯЙ ВПРАВО");
-        arrowEl.innerText = "→";
-    }
-    let speedPercent = Math.round(getSpeedPercent(state.logSpeed));
-    speedFillEl.style.width = speedPercent + "%";
-}
-
-// Full instant sync (run start / tutorial start): pill + main arrow, no
-// promote animation.
+// Full instant sync of the direction UI (run start / tutorial start) — the
+// on-log arrow carries everything: direction and speed are both baked into
+// the arc path. Changes mid-run go through promoteArrows() instead.
 function updateDirectionUI() {
-    updatePillUI();
-    // On-log arrow v2: direction and speed are both baked into the arc path.
     setMainArrow(state.logDirection, state.logSpeed);
 }
 
@@ -867,7 +844,6 @@ function exitTutorial() {
     // a fallen stickman and a restart screen instead of a fresh game.
     state.isPlaying = false;
     hideTutorialUI();
-    directionPill.style.display = '';
     showCountdown();
 }
 
@@ -963,7 +939,6 @@ function showCountdown(startTutorialMode) {
 
     startBtn.style.display = 'none';
     shareBtn.style.display = 'none';
-    directionPill.style.display = 'none';
     resetArrows();
     state.pendingChange = null;
     arrowWarningVisible = false;
@@ -1085,7 +1060,6 @@ function startGame() {
     updateHearts();
     heartsEl.style.display = 'block';
 
-    directionPill.style.display = 'flex';
     dirArrows.classList.add('on');
     updateDirectionUI();
     scheduleNextChange();
@@ -1114,14 +1088,13 @@ function startTutorial() {
     state.logDirection = 1;
     // Lives are full but hidden — the tutorial's soft hit-feedback (see
     // gameLoop's 'hit' handling) never actually spends them, so a lives
-    // display would just be inert chrome. Hidden alongside directionPill,
-    // which the tutorial banner replaces as the "what do I do" cue.
+    // display would just be inert chrome; the tutorial banner is the
+    // "what do I do" cue here.
     state.hp = START_HP;
     state.isJumping = false;
     state.invulnerable = false;
     playerEl.classList.remove('jumping', 'hit');
     heartsEl.style.display = 'none';
-    directionPill.style.display = 'none';
     dirArrows.classList.add('on');
     updateDirectionUI(); // sets arrow orientation for logDirection = 1 above
     setPreviewArrow(null); // no scheduled change in the tutorial (yet)
@@ -1157,7 +1130,6 @@ function gameOver(normPos) {
     steerHintSide = '';
     dangerVignette.style.opacity = 0;
     dangerVignette.className = '';
-    directionPill.style.display = 'none';
     heartsEl.style.display = 'none';
     // Defensive: the normal flow never reaches gameOver while tutorialMode is
     // active (see the gameLoop gates), but guard the UI anyway.

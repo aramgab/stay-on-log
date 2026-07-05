@@ -39,6 +39,8 @@
         <div id="hud-center">
             <div id="score-display">Очки: 0</div>
             <div id="new-record">⭐ Новый рекорд! ⭐</div>
+            <!-- Run result ("УПАЛ! Очки: N"), filled by render.js -->
+            <div id="status-text"></div>
             <button id="start-btn">СТАРТ</button>
             <button id="share-btn">📣 Похвастаться</button>
         </div>
@@ -49,13 +51,6 @@
             </div>
             <div id="player-name"></div>
         </div>
-    </div>
-
-    <!-- Direction & speed pill floating over the water -->
-    <div id="direction-pill">
-        <span id="direction-arrow"></span>
-        <span id="status-text">Нажми старт</span>
-        <span id="speed-indicator"><span id="speed-fill"></span></span>
     </div>
 
     <!-- Nickname overlay -->

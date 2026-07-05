@@ -4,6 +4,18 @@
 // Direction/speed change timers (ms)
 export const MIN_CHANGE_INTERVAL = 5000;
 export const MAX_CHANGE_INTERVAL = 10000;
+// Phase 3 stretches the change intervals by this factor: the July-2026
+// playtest verdict on the late game (~200+ pts) was "the log goes rabid" —
+// changes at full frequency + top speeds + minimal assist stacked up.
+export const PHASE3_CHANGE_INTERVAL_SCALE = 1.3;
+// Speed changes ramp instead of snapping: logSpeed approaches its target
+// exponentially at this per-60Hz-frame rate (~0.6 s to close most of the
+// gap). On a reversal the current speed also dips (see REVERSAL_SPEED_DIP),
+// so the log "re-grips" instead of instantly spinning full-tilt backwards.
+export const SPEED_RAMP_K = 0.08;
+// On a direction flip the speed drops to this fraction of its current value
+// (floored at MIN_SPEED) and ramps back up toward the rolled target.
+export const REVERSAL_SPEED_DIP = 0.45;
 // Blink the on-log direction arrow this long before a change fires.
 export const CHANGE_WARN_MS = 1500;
 // On-log arrow v2: arc span (deg) at MIN_SPEED / MAX_SPEED — the arc length
@@ -57,8 +69,9 @@ export const TILT_GLITCH_DEG = 120;    // reject single-sample jumps beyond this
 // below). Strongest early so beginners don't fall in the first few seconds;
 // eases off toward phase 3 so late-game stays skill-based. 0 = disabled.
 // Phases 2-3 raised (0.18/0.10 → 0.22/0.15) after the July-2026 playtest —
-// the late-game difficulty cliff was too steep on a real phone.
-export const ASSIST_PHASE_FACTOR = [0.30, 0.22, 0.15];
+// the late-game difficulty cliff was too steep on a real phone; phase 3
+// nudged again (0.15 → 0.18) in the second late-game softening pass.
+export const ASSIST_PHASE_FACTOR = [0.30, 0.22, 0.18];
 
 // Radius (px) at which the player orbits the center of the log.
 // Matches the outer ring of the log SVG (circle r=135).

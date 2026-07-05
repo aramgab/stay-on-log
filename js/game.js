@@ -18,6 +18,9 @@ import {
     COMBO_MAX_MULT,
     PHASE1_MS,
     PHASE2_MS,
+    PHASE3_CHANGE_INTERVAL_SCALE,
+    SPEED_RAMP_K,
+    REVERSAL_SPEED_DIP,
     BIOME_SUNSET_MS,
     BIOME_NIGHT_MS,
     BIOME_STORM_MS,
@@ -309,7 +312,17 @@ function gameLoop() {
         state.contAngle = state.userAngle;
     }
 
-    // 1. Rotate the log
+    // 1. Rotate the log. Speed changes ramp: logSpeed chases targetSpeed
+    // exponentially, so a change (especially a reversal, which also dips the
+    // speed — see applyPendingChange) surges in over ~0.6s instead of
+    // snapping. Every reader of logSpeed (obstacle stepping, double gap)
+    // sees the smooth value for free.
+    if (state.logSpeed !== state.targetSpeed) {
+        const step = (state.targetSpeed - state.logSpeed) * Math.min(1, SPEED_RAMP_K * dtF);
+        state.logSpeed = Math.abs(state.targetSpeed - state.logSpeed) < 0.01
+            ? state.targetSpeed
+            : state.logSpeed + step;
+    }
     state.logAngle += state.logSpeed * state.logDirection * dtF;
     logWrapper.style.transform = `rotate(${state.logAngle}deg)`;
 
@@ -353,6 +366,7 @@ function gameLoop() {
             // (the step-4 softReset guard would otherwise let them hang
             // past FALL_THRESHOLD with no recovery).
             state.logSpeed = 0;
+            state.targetSpeed = 0;
             showTutorialBanner('Готов! Погнали по-настоящему 🎉');
             lsSet('stayOnLog_seenTutorial_v1', '1');
             setTimeout(exitTutorial, 1400);
@@ -451,7 +465,9 @@ function gameLoop() {
             // "The small arrow takes the big one's place", then the fresh
             // roll becomes the new preview once the morph lands.
             promoteArrows(
-                { dir: state.logDirection, speed: state.logSpeed },
+                // Arc length reads the TARGET speed — the arrow promises
+                // where the ramp is heading, not the mid-ramp instant.
+                { dir: state.logDirection, speed: state.targetSpeed },
                 state.pendingChange
             );
         }
@@ -538,6 +554,9 @@ function gameLoop() {
 // === DIRECTION / SPEED ===
 function scheduleNextChange() {
     let interval = MIN_CHANGE_INTERVAL + Math.random() * (MAX_CHANGE_INTERVAL - MIN_CHANGE_INTERVAL);
+    // Phase 3 softening: changes come less often once the speeds are at full
+    // range and assist is at its floor (playtest: "the log goes rabid").
+    if (state.elapsed >= PHASE2_MS) interval *= PHASE3_CHANGE_INTERVAL_SCALE;
     state.nextChangeTime = state.elapsed + interval;
 }
 
@@ -569,7 +588,9 @@ function rollNextChange() {
     const wantsReverse = rand < 0.4 || rand >= 0.7;
     const wantsSpeedChange = rand >= 0.4;
 
-    let newSpeed = state.logSpeed;
+    // Inherit from targetSpeed, not the mid-ramp live value — "keep the
+    // speed" must mean the speed the log was heading toward.
+    let newSpeed = state.targetSpeed;
     let newDirection = state.logDirection;
 
     if (wantsSpeedChange) {
@@ -586,18 +607,19 @@ function rollNextChange() {
         if (newSpeed > maxSpeedPhase1) {
             newSpeed = MIN_SPEED + Math.random() * (maxSpeedPhase1 - MIN_SPEED);
         }
-    } else if (applyAt < PHASE2_MS) {
-        // Phase 2: block high-speed reversal combos
-        // If reversing AND both old and new speed > 75%, re-roll new speed lower
+    } else {
+        // Phases 2 AND 3: block high-speed reversal combos — if reversing
+        // AND both old and new speed > 75%, re-roll new speed lower. (Was
+        // phase-2-only; extended to phase 3 after the July-2026 playtest —
+        // unrestricted late-game reversals were the "rabid log" culprit.)
         const threshold75 = MIN_SPEED + (MAX_SPEED - MIN_SPEED) * 0.75;
-        const oldSpeedHigh = state.logSpeed > threshold75;
+        const oldSpeedHigh = state.targetSpeed > threshold75;
         const newSpeedHigh = newSpeed > threshold75;
         if (newDirection !== state.logDirection && oldSpeedHigh && newSpeedHigh) {
             // Re-roll speed to be within 0-75%
             newSpeed = MIN_SPEED + Math.random() * (threshold75 - MIN_SPEED);
         }
     }
-    // Phase 3 (after PHASE2_MS): no restrictions
 
     state.pendingChange = { dir: newDirection, speed: newSpeed };
 }
@@ -625,7 +647,13 @@ function applyPendingChange() {
     reconcilePendingChange();
     const p = state.pendingChange;
     if (!p) return;
-    state.logSpeed = p.speed;
+    if (p.dir !== state.logDirection) {
+        // Reversal: the log "re-grips" — the live speed dips and then ramps
+        // back up toward the rolled target, so a flip never explodes into
+        // full speed backwards on the very next frame.
+        state.logSpeed = Math.max(MIN_SPEED, state.logSpeed * REVERSAL_SPEED_DIP);
+    }
+    state.targetSpeed = p.speed;
     state.logDirection = p.dir;
     state.pendingChange = null;
 }
@@ -642,7 +670,7 @@ function schemeText(windText, tiltText) {
 // on-log arrow carries everything: direction and speed are both baked into
 // the arc path. Changes mid-run go through promoteArrows() instead.
 function updateDirectionUI() {
-    setMainArrow(state.logDirection, state.logSpeed);
+    setMainArrow(state.logDirection, state.targetSpeed);
 }
 
 function updateHighScoreDisplay() {
@@ -984,6 +1012,7 @@ function showCountdown(startTutorialMode) {
     state.velEMA = 0;
     state.rawLastAngle = null;
     state.logSpeed = 0.8;
+    state.targetSpeed = 0.8;
     state.logDirection = 1;
     logWrapper.style.transform = 'rotate(0deg)';
     orbitEl.style.transform = 'rotate(0deg)';
@@ -1085,6 +1114,7 @@ function startTutorial() {
 
     state.isPlaying = true;
     state.logSpeed = TUT_LOG_SPEED;
+    state.targetSpeed = TUT_LOG_SPEED;
     state.logDirection = 1;
     // Lives are full but hidden — the tutorial's soft hit-feedback (see
     // gameLoop's 'hit' handling) never actually spends them, so a lives

@@ -32,7 +32,8 @@ export const state = {
 
     // Physics
     logAngle: 0,
-    logSpeed: 0.8,
+    logSpeed: 0.8,      // live speed (ramps toward targetSpeed in gameLoop)
+    targetSpeed: 0.8,   // speed the current/last change rolled; logSpeed chases it
     logDirection: 1,
     userAngle: 0,
     contAngle: 0,        // accumulated phone rotation (winding); userAngle low-passes toward it

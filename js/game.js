@@ -1061,6 +1061,11 @@ function startTutorial() {
 
     spawnObstacles(); // container for forceEmerge('knot') in step 3
 
+    // Owner playtest feedback: the tutorial felt dead-silent next to the real
+    // game. Same music as a run — elapsed is frozen at 0 here, so setMood
+    // stays on the day palette; start() is idempotent (schedulerId guard).
+    music.start();
+
     tutorialSkipBtn.style.display = 'block';
     tutorialSkipBtn.removeAttribute('aria-hidden');
     tutorialBanner.removeAttribute('aria-hidden');

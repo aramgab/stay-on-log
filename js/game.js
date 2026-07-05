@@ -34,6 +34,7 @@ import {
     TUT_LOG_SPEED,
     TUT_BALANCE_HOLD_MS,
     TUT_BALANCE_ZONE_DEG,
+    TUT_JUMPS_TO_PASS,
 } from './config.js';
 import {
     logWrapper,
@@ -210,9 +211,11 @@ function getTiltDeadzone() {
 // its own mini game-flow instead of startGame()'s normal one: slow log,
 // scripted obstacle prompts, no scoring/gameOver, an explicit step counter.
 let tutorialMode = false;
-let tutStep = 0;       // 0 = inactive, 1 = balance, 2 = jump, 3 = done/outro
+let tutStep = 0;       // 0 = inactive, 1 = balance, 2 = jump-alone, 3 = jump-over-knot, 4 = done/outro
 let tutHoldMs = 0;     // step 1: accumulated in-zone time
-let tutLastEmergeAt = -Infinity; // step 2: performance.now() of the last forceEmerge('knot')
+let tutJumps = 0;      // step 2: jumps landed so far this step
+let tutWasJumping = false; // step 2: previous frame's state.isJumping, to catch the false->true edge
+let tutLastEmergeAt = -Infinity; // step 3: performance.now() of the last forceEmerge('knot')
 let tutBannerText = ''; // mirrors the DOM text so we only touch it on change
 let tutBannerLastSec = -1; // step 1: last whole second shown, to avoid re-rendering every frame
 
@@ -333,23 +336,25 @@ function gameLoop() {
     renderObstacleLayer();
     const obEvent = stepObstacles(Math.abs(state.logSpeed) * dtF);
     if (tutorialMode) {
-        // Step 2 only: no score/combo, no hp/gameOver — soft feedback either
+        // Step 3 only: no score/combo, no hp/gameOver — soft feedback either
         // way, and the step counter is what actually advances. If the knot
         // dives unbeaten, tutorialTick() re-summons it (no event needed here).
-        if (obEvent === 'cleared') {
-            tutStep = 3;
+        // The step guard also protects against a stray event right after a
+        // softReset (which rewinds to step 1) re-triggering the outro.
+        if (tutStep === 3 && obEvent === 'cleared') {
+            tutStep = 4;
             tutBannerLastSec = -1;
             // Freeze the world for the outro: with the log stopped the
             // character can't drift off the top during the "Готов!" beat
-            // (the step-3 softReset guard would otherwise let them hang
+            // (the step-4 softReset guard would otherwise let them hang
             // past FALL_THRESHOLD with no recovery).
             state.logSpeed = 0;
             showTutorialBanner('Готов! Погнали по-настоящему 🎉');
             lsSet('stayOnLog_seenTutorial_v1', '1');
             setTimeout(exitTutorial, 1400);
-        } else if (obEvent === 'hit') {
+        } else if (tutStep === 3 && obEvent === 'hit') {
             sfx.hit();
-            showTutorialBanner('Ой! Попробуй ещё раз — тапни ПЕРЕД сучком');
+            showTutorialBanner('Ой! Тапни ПЕРЕД сучком');
         }
     } else if (obEvent === 'cleared') {
         // Skill reward: consecutive clears build a combo that multiplies the
@@ -641,8 +646,8 @@ function doJump() {
 }
 
 // === INTERACTIVE TUTORIAL: STEP LOGIC ===
-// Advances the scripted 3-step flow. Called once per frame from gameLoop,
-// AFTER obstacles have been stepped for this frame (so step 2 can react to
+// Advances the scripted 4-step flow. Called once per frame from gameLoop,
+// AFTER obstacles have been stepped for this frame (so step 3 can react to
 // this frame's stepObstacles() result) but the obEvent itself is handled by
 // the caller (gameLoop's own tutorialMode branch) — this function only owns
 // the step counter / banner text / forceEmerge scheduling.
@@ -655,7 +660,7 @@ function tutorialTick(dtMs, normPos) {
             const secLeft = Math.ceil((TUT_BALANCE_HOLD_MS - tutHoldMs) / 1000);
             if (secLeft !== tutBannerLastSec) {
                 tutBannerLastSec = secLeft;
-                showTutorialBanner('Держись наверху! ' + Math.max(0, secLeft) + ' сек');
+                showTutorialBanner('Удерживай человечка наверху! ' + Math.max(0, secLeft) + ' сек');
             }
         }
         // Outside the zone: progress just freezes (no reset) — see design note
@@ -663,14 +668,36 @@ function tutorialTick(dtMs, normPos) {
         if (tutHoldMs >= TUT_BALANCE_HOLD_MS) {
             tutStep = 2;
             tutBannerLastSec = -1;
-            showTutorialBanner('Сучок! ТАПНИ — прыжок!');
-            forceEmerge('knot');
-            tutLastEmergeAt = nowMs;
+            tutJumps = 0;
+            tutWasJumping = state.isJumping;
+            showTutorialBanner('А теперь — ТАПНИ по экрану! Человечек прыгнет');
         }
         return;
     }
 
     if (tutStep === 2) {
+        // No obstacle yet — just teach the tap-to-jump gesture in isolation.
+        // Count a jump on the false->true edge of state.isJumping so this
+        // doesn't touch doJump() itself; multiple taps mid-air don't double count
+        // because isJumping stays true for the whole JUMP_DURATION.
+        const isJumpingNow = state.isJumping;
+        if (isJumpingNow && !tutWasJumping) {
+            tutJumps += 1;
+            if (tutJumps < TUT_JUMPS_TO_PASS) {
+                showTutorialBanner('Отлично! Ещё раз!');
+            } else {
+                tutStep = 3;
+                tutBannerLastSec = -1;
+                showTutorialBanner('Сучок! Перепрыгни его — тапни в нужный момент!');
+                forceEmerge('knot');
+                tutLastEmergeAt = nowMs;
+            }
+        }
+        tutWasJumping = isJumpingNow;
+        return;
+    }
+
+    if (tutStep === 3) {
         // Re-summon the knot if it dove back under unbeaten (dive() clears
         // isObstacleActive()) — give the dive/splash animation ~1.2s to play
         // out before forcing it back up, matching the task's guidance.
@@ -681,20 +708,21 @@ function tutorialTick(dtMs, normPos) {
         return;
     }
 
-    if (tutStep === 3) {
+    if (tutStep === 4) {
         // Outro: nothing to tick — exitTutorial() is scheduled by whoever set
-        // tutStep to 3 (see the 'cleared' handling in gameLoop).
+        // tutStep to 4 (see the 'cleared' handling in gameLoop).
         return;
     }
 }
 
 // Soft "fall" recovery for the tutorial: replaces gameOver() while
 // tutorialMode is active (see the gameLoop gate). Re-centers the CHARACTER,
-// rewinds progress to step 1 (falling mid-step-2 means the player hasn't
-// really learned to balance yet either), and leaves tiltZero alone — that's
-// the scheme-B neutral-posture calibration, unrelated to a fall and still valid.
+// rewinds progress to step 1 (falling on any later step means the player
+// hasn't really learned to balance yet either), and leaves tiltZero alone —
+// that's the scheme-B neutral-posture calibration, unrelated to a fall and
+// still valid.
 function tutorialSoftReset() {
-    if (tutStep === 3) return; // outro is already wrapping up via exitTutorial's setTimeout
+    if (tutStep === 4) return; // outro is already wrapping up via exitTutorial's setTimeout
 
     // playerPosition = logAngle + userAngle, and unlike the countdown reset
     // the log has been spinning here (logAngle is arbitrary) — zeroing
@@ -708,9 +736,10 @@ function tutorialSoftReset() {
 
     tutStep = 1;
     tutHoldMs = 0;
+    tutJumps = 0;
     tutBannerLastSec = -1;
     screenShake(false);
-    showTutorialBanner('Оп! Ещё раз — держись наверху');
+    showTutorialBanner('Оп! Крути против вращения — удерживай наверху');
 }
 
 // Ends the tutorial (either completed or skipped) and hands off to the
@@ -724,6 +753,8 @@ function exitTutorial() {
     tutorialMode = false;
     tutStep = 0;
     tutHoldMs = 0;
+    tutJumps = 0;
+    tutWasJumping = false;
     tutLastEmergeAt = -Infinity;
     tutBannerLastSec = -1;
     // Stop the tutorial's game loop BEFORE handing off to the countdown.
@@ -959,11 +990,13 @@ function startGame() {
 // Guided first run (?tut=1 only for now, see tutParam/requestPermissionAndStart).
 // Runs the same rAF loop as startGame() but gameLoop's tutorialMode gates skip
 // the score/difficulty/gameOver machinery — see the gameLoop gates below and
-// tutorialTick() for the actual 3-step script.
+// tutorialTick() for the actual 4-step script.
 function startTutorial() {
     tutorialMode = true;
     tutStep = 1;
     tutHoldMs = 0;
+    tutJumps = 0;
+    tutWasJumping = false;
     tutLastEmergeAt = -Infinity;
     tutBannerLastSec = -1;
 
@@ -981,14 +1014,14 @@ function startTutorial() {
     heartsEl.style.display = 'none';
     directionPill.style.display = 'none';
 
-    spawnObstacles(); // container for forceEmerge('knot') in step 2
+    spawnObstacles(); // container for forceEmerge('knot') in step 3
 
     tutorialSkipBtn.style.display = 'block';
     tutorialSkipBtn.removeAttribute('aria-hidden');
     tutorialBanner.removeAttribute('aria-hidden');
     showTutorialBanner(isDesktop
-        ? 'Держи ←/→ — держись наверху!'
-        : schemeText('Крути — держись наверху!', 'Наклоняй — держись наверху!'));
+        ? 'Держи ←/→ — как штурвал корабля'
+        : schemeText('Крути телефон, как штурвал корабля 🚢', 'Наклоняй телефон, как руль ⛵'));
 
     lastFrameTs = performance.now();
     gameLoop();

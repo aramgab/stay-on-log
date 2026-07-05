@@ -136,6 +136,7 @@ export const HINT_STEER_COOLDOWN_MS = 6000; // don't re-show more often than thi
 export const TUT_LOG_SPEED = 0.5;        // slow log speed during the tutorial
 export const TUT_BALANCE_HOLD_MS = 4000; // total in-zone time to pass step 1
 export const TUT_BALANCE_ZONE_DEG = 45;  // "in zone" = within ±this of the top
+export const TUT_JUMPS_TO_PASS = 2;      // step 2: taps needed before moving to the obstacle step
 
 // === SHARING ===
 // Landing URL for the "brag" share button. The game is published as a

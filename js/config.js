@@ -7,8 +7,10 @@ export const MAX_CHANGE_INTERVAL = 10000;
 
 // Log rotation speed bounds, in degrees per 60 Hz frame (the game loop
 // dt-normalizes, so real-time pace is the same on 60/90/120 Hz displays).
+// MAX_SPEED 2.5 → 2.2 after the July-2026 playtest: the late game (~180 pts)
+// spiked too hard and read as "the accelerometer went aggressive".
 export const MIN_SPEED = 0.3;
-export const MAX_SPEED = 2.5;
+export const MAX_SPEED = 2.2;
 
 // === INPUT (phone "winding" control) ===
 // The player rotates the phone to wind the stickman around the log; input.js
@@ -44,7 +46,9 @@ export const TILT_GLITCH_DEG = 120;    // reject single-sample jumps beyond this
 // player each frame, indexed by difficulty phase (see PHASE1_MS/PHASE2_MS
 // below). Strongest early so beginners don't fall in the first few seconds;
 // eases off toward phase 3 so late-game stays skill-based. 0 = disabled.
-export const ASSIST_PHASE_FACTOR = [0.30, 0.18, 0.10];
+// Phases 2-3 raised (0.18/0.10 → 0.22/0.15) after the July-2026 playtest —
+// the late-game difficulty cliff was too steep on a real phone.
+export const ASSIST_PHASE_FACTOR = [0.30, 0.22, 0.15];
 
 // Radius (px) at which the player orbits the center of the log.
 // Matches the outer ring of the log SVG (circle r=135).

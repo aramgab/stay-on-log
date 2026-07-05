@@ -176,6 +176,7 @@ const MOODS = {
     'biome-sunset': { bpm: 88,  root: 233, scale: [0, 2, 4, 7, 9],  arpDensity: 0.4,  bassSteps: [0, 4] },
     'biome-night':  { bpm: 76,  root: 220, scale: [0, 3, 5, 7, 10], arpDensity: 0.25, bassSteps: [0] },
     'biome-storm':  { bpm: 116, root: 196, scale: [0, 3, 5, 6, 10], arpDensity: 0.6,  bassSteps: [0, 2, 4, 6] },
+    'biome-dawn':   { bpm: 90,  root: 262, scale: [0, 2, 4, 7, 9],  arpDensity: 0.35, bassSteps: [0, 4] },
 };
 const DEFAULT_MOOD = 'biome-day';
 

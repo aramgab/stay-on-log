@@ -140,14 +140,20 @@ export const PHASE2_MS = 80000;
 export const BRANCH_FROM_MS = PHASE1_MS;
 export const DOUBLE_FROM_MS = PHASE2_MS;
 
-// === DAY CYCLE (time-of-day palette inside a run: noon -> sunset -> night -> storm) ===
+// === DAY CYCLE (time-of-day palette inside a run: noon -> sunset -> night -> storm -> dawn -> noon...) ===
 // The day segments double as the visible difficulty ramp (sunset/night sit on
-// the phase boundaries). Wave 3 grows this into a full wrapping cycle
-// (noon -> ... -> dawn -> noon again = "biome completed"); for now the storm
-// segment is terminal, exactly like the old biome timeline was.
+// the phase boundaries). The cycle wraps: storm is no longer terminal — after
+// it the palette moves through dawn and loops back to noon, and surviving one
+// whole cycle is the "biome completed" celebration beat (see the wrap badge
+// in game.js).
 export const DAY_SUNSET_MS = PHASE1_MS;
 export const DAY_NIGHT_MS = PHASE2_MS;
 export const DAY_STORM_MS = 140000;
+export const DAY_DAWN_MS = 200000;
+// Full day length (ms): surviving one whole cycle = «биом пройден» (the badge
+// in game.js). After the wrap the palette loops from noon while difficulty
+// stays maxed — elapsed itself never resets.
+export const DAY_CYCLE_MS = 240000;
 
 // === NEWCOMER HINTS ===
 // Coach banners for the first runs only; veterans never see them.

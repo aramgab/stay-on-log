@@ -106,7 +106,7 @@ import { initShop, hasPendingHeart, consumePendingHeart, spendCoins } from './sh
 import { initLeaderboard, submitScore } from './leaderboard.js';
 import { setMainArrow, setPreviewArrow, promoteArrows, cancelPromote, resetArrows } from './dirarrow.js';
 import { deathQuip } from './quips.js';
-import { DAY_PHASE_CLASSES, dayPhaseFor } from './biomes.js';
+import { DAY_PHASE_CLASSES, dayPhaseFor, cycleOf } from './biomes.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord, hapticCoin } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
@@ -268,6 +268,7 @@ function hideTutorialUI() {
 // === DAY CYCLE (scene palette follows the difficulty ramp; js/biomes.js
 // owns the elapsed -> segment mapping) ===
 let currentBiome = '';
+let runCycle = 0; // full days survived this run (for the wrap badge)
 
 function applyBiome(elapsed) {
     const next = dayPhaseFor(elapsed).cssClass;
@@ -432,6 +433,19 @@ function gameLoop() {
 
     // 2c. Scene palette follows elapsed time (day -> sunset -> night -> storm)
     applyBiome(state.elapsed);
+
+    // 2c2. Full-day wrap: surviving a whole cycle is the campaign beat —
+    // celebrate loudly. Difficulty stays maxed (it reads raw elapsed, which
+    // never resets); only the palette loops back to noon.
+    const cyc = cycleOf(state.elapsed);
+    if (!tutorialMode && cyc > runCycle) {
+        runCycle = cyc;
+        hapticRecord();
+        sfx.combo(COMBO_MAX_MULT);
+        const cxy2 = playerXY();
+        burst(cxy2.x, cxy2.y, { color: '#ffd93d', count: 26, size: 12, up: 95, spread: 140 });
+        floatText(window.innerWidth / 2, window.innerHeight * 0.32, '🌞 СУТКИ! Биом пройден', '#ffd93d');
+    }
 
     // 2d. Approach-side hint: while an obstacle is riding up, show which side
     // of the log it will come from.
@@ -1184,6 +1198,7 @@ function startGame() {
     state.eventScore = 0;
     state.combo = 0;
     state.elapsed = 0;
+    runCycle = 0;
     state.recordCelebrated = false;
     state.revivedThisRun = false;
     state.lastChangeAt = -Infinity;

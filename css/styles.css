@@ -123,6 +123,19 @@ body.biome-storm {
     --cloud: rgba(85, 95, 110, 0.85);
 }
 
+body.biome-dawn {
+    --sky-top: #2b3a5e;
+    --sky-mid: #c97b6a;
+    --sky-bottom: #f2c48a;
+    --water-1: #2a6a9a;
+    --water-2: #14405e;
+    --water-3: #0a2438;
+    --wave-back: rgba(230, 150, 100, 0.45);
+    --wave-front: rgba(250, 180, 120, 0.55);
+    --wave-far: rgba(190, 120, 80, 0.3);
+    --cloud: rgba(255, 220, 190, 0.6);
+}
+
 /* === LOG PALETTE (bark/wood) ===
    Defaults mirror the original hardcoded hex in #log-svg (the SVG attributes
    remain in place as a fallback for webviews where CSS on SVG loses). Future
@@ -233,6 +246,13 @@ body.biome-night #celestial {
 
 body.biome-storm #celestial {
     opacity: 0;
+}
+
+body.biome-dawn #celestial {
+    top: 40%;
+    left: 20%;
+    background: #ffb75e;
+    box-shadow: 0 0 65px 26px rgba(255, 170, 90, 0.5);
 }
 
 /* Drifting clouds (pill + two lumps), tinted per biome via --cloud. */
@@ -354,6 +374,10 @@ body.biome-night .stars {
 
 body.biome-storm .stars {
     opacity: 0.15;
+}
+
+body.biome-dawn .stars {
+    opacity: 0.25;
 }
 
 /* Storm lightning: a periodic double flash across the top of the sky. */

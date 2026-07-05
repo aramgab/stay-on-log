@@ -123,6 +123,16 @@ body.biome-storm {
     --cloud: rgba(85, 95, 110, 0.85);
 }
 
+/* Standalone Safari (home-screen PWA) ignores body overflow for its rubber
+   page-pan: off-screen scenery (clouds animating past the edges) makes the
+   document wider than the viewport and the whole page — HUD included — can
+   be dragged sideways. Clamp the document itself; Telegram's webview blocks
+   those gestures on its own, which is why it never showed there. */
+html {
+    overflow: hidden;
+    height: 100%;
+}
+
 body {
     background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 40%, var(--sky-bottom) 100%);
     /* Smooth biome crossfade: the registered custom properties interpolate,
@@ -137,6 +147,11 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    /* position:fixed pins the page against iOS standalone rubber-panning
+       (overflow:hidden alone is not honored there). */
+    position: fixed;
+    inset: 0;
+    width: 100%;
     height: 100vh;
     /* Real visible viewport in mobile/Telegram webviews (100vh over-reports
        under collapsing browser chrome and pushed the HUD onto the log). */

@@ -107,6 +107,7 @@ import { initLeaderboard, submitScore } from './leaderboard.js';
 import { setMainArrow, setPreviewArrow, promoteArrows, cancelPromote, resetArrows } from './dirarrow.js';
 import { deathQuip } from './quips.js';
 import { DAY_PHASE_CLASSES, dayPhaseFor, cycleOf } from './biomes.js';
+import { cycleCompleted, flushCampaign, syncCampaignFromCloud, getSelectedBiome } from './campaign.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord, hapticCoin } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
@@ -440,6 +441,7 @@ function gameLoop() {
     const cyc = cycleOf(state.elapsed);
     if (!tutorialMode && cyc > runCycle) {
         runCycle = cyc;
+        cycleCompleted(getSelectedBiome());
         hapticRecord();
         sfx.combo(COMBO_MAX_MULT);
         const cxy2 = playerXY();
@@ -1430,6 +1432,10 @@ function gameOver(normPos, cause) {
         updateCoinsDisplay();
     }
 
+    // Campaign progress accumulated during the run (quest ticks land in
+    // later commits; cycles already do) — one cloud push per run end.
+    flushCampaign();
+
     // Hide stickman on log
     playerEl.classList.remove('visible', 'jumping', 'hit');
     playerEl.style.opacity = '0';
@@ -1696,6 +1702,9 @@ initShop(updateCoinsDisplay);
 // Leaderboard: wire the overlay + probe the backend (button appears only
 // if /api/top answers — a deploy without the env degrades silently)
 initLeaderboard();
+
+// Campaign progress: pull the cloud copy and max-merge it into local.
+syncCampaignFromCloud();
 
 // Show high score, coin wallet and nickname on load
 updateHighScoreDisplay();

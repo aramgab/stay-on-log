@@ -1,0 +1,115 @@
+// === CAMPAIGN PROGRESS ===
+// Persistent campaign state: selected biome, per-quest counters and full-day
+// cycles per biome. One JSON blob under stayOnLog_campaign_v1: localStorage
+// via lsGet/lsSet (guarded against private-webview throws) + Telegram
+// CloudStorage with a MAX-merge — every value in here is a monotonic counter,
+// so max() can never dupe progress between devices (unlike summing a wallet
+// would; that's exactly why the coin wallet stays local-only).
+//
+// Write discipline: every mutation persists to localStorage immediately;
+// CloudStorage is pushed only from flushCampaign() (game.js calls it in
+// gameOver) so mid-run quest ticks don't spam the TG API.
+
+import { lsGet, lsSet } from './state.js';
+import { cloudGet, cloudSet } from './tg.js';
+
+const KEY = 'stayOnLog_campaign_v1';
+
+// { selected: 'earth', quests: {questId: count}, cycles: {biomeId: count} }
+let data = load();
+
+function load() {
+    let parsed = null;
+    try { parsed = JSON.parse(lsGet(KEY) || ''); } catch (e) { /* fresh profile */ }
+    if (!parsed || typeof parsed !== 'object') parsed = {};
+    return {
+        selected: typeof parsed.selected === 'string' ? parsed.selected : '',
+        quests: parsed.quests && typeof parsed.quests === 'object' ? parsed.quests : {},
+        cycles: parsed.cycles && typeof parsed.cycles === 'object' ? parsed.cycles : {},
+    };
+}
+
+function persistLocal() {
+    lsSet(KEY, JSON.stringify(data));
+}
+
+// Push the whole blob to CloudStorage. Called from gameOver (not per tick).
+export function flushCampaign() {
+    cloudSet(KEY, JSON.stringify(data));
+}
+
+// --- counters ---
+
+export function questCount(questId) {
+    return data.quests[questId] || 0;
+}
+
+export function bumpQuest(questId, by) {
+    data.quests[questId] = (data.quests[questId] || 0) + (by || 1);
+    persistLocal();
+    return data.quests[questId];
+}
+
+export function cyclesOf(biomeId) {
+    return data.cycles[biomeId] || 0;
+}
+
+// A full day survived in this biome (called on every wrap, so multiple
+// cycles in one long run all count).
+export function cycleCompleted(biomeId) {
+    data.cycles[biomeId] = (data.cycles[biomeId] || 0) + 1;
+    persistLocal();
+}
+
+// --- biome selection (the map UI lands in a later commit; 'earth' is the
+// only world until then, so the fallback default is fine everywhere) ---
+
+export function getSelectedBiome() {
+    return data.selected || 'earth';
+}
+
+export function setSelectedBiome(biomeId) {
+    data.selected = biomeId;
+    persistLocal();
+    flushCampaign(); // selection is rare and worth syncing right away
+}
+
+// --- CloudStorage merge (async, runs once on boot from game.js) ---
+// Counters take max() per key; `selected` follows the shop's equipped-skin
+// rule: an explicit local choice wins, cloud only fills a local void. If the
+// merged local state is richer than the cloud copy, push it back.
+export function syncCampaignFromCloud() {
+    cloudGet(KEY, (v) => {
+        if (!v) {
+            // Nothing in the cloud yet — seed it if we have any progress.
+            if (data.selected || Object.keys(data.quests).length || Object.keys(data.cycles).length) {
+                flushCampaign();
+            }
+            return;
+        }
+        let cloud = null;
+        try { cloud = JSON.parse(v); } catch (e) { return; }
+        if (!cloud || typeof cloud !== 'object') return;
+        let changed = false;   // local got new info -> re-persist locally
+        let localRicher = false; // local has info the cloud lacks -> push back
+        ['quests', 'cycles'].forEach((k) => {
+            const cloudMap = cloud[k] && typeof cloud[k] === 'object' ? cloud[k] : {};
+            const localMap = data[k];
+            Object.keys(cloudMap).forEach((id) => {
+                const cv = parseInt(cloudMap[id], 10) || 0;
+                if (cv > (localMap[id] || 0)) { localMap[id] = cv; changed = true; }
+            });
+            Object.keys(localMap).forEach((id) => {
+                if ((localMap[id] || 0) > (parseInt(cloudMap[id], 10) || 0)) localRicher = true;
+            });
+        });
+        if (!data.selected && typeof cloud.selected === 'string' && cloud.selected) {
+            data.selected = cloud.selected;
+            changed = true;
+        } else if (data.selected && data.selected !== cloud.selected) {
+            localRicher = true;
+        }
+        if (changed) persistLocal();
+        if (localRicher) flushCampaign();
+    });
+}

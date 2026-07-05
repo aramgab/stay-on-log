@@ -78,6 +78,14 @@ export function hapticTick() {
     vibrate(8);
 }
 
+// Coin pickup — the lightest touch in the vocabulary: frequent and pleasant,
+// must never compete with jump/clear feedback.
+export function hapticCoin() {
+    const h = tgHaptics();
+    if (h) { try { h.impactOccurred('light'); return; } catch (e) { /* fall through */ } }
+    vibrate(12);
+}
+
 // First time this run the player beats their all-time high score — the
 // biggest celebration in the game: success notification + a triple pulse.
 export function hapticRecord() {

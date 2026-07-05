@@ -10,6 +10,7 @@ import {
     splashEl,
     statusEl,
     deathQuipEl,
+    runCoinsEl,
     startBtn,
     shareBtn,
 } from './dom.js';
@@ -86,6 +87,7 @@ export function animateFall(normPos) {
             setTimeout(() => { statusEl.innerText = 'УПАЛ! Очки: ' + state.score + trophy; }, 720);
         }
         deathQuipEl.innerText = state.deathQuip || '';
+        runCoinsEl.innerText = state.lastRunCoins > 0 ? '+' + state.lastRunCoins + ' 🪙 за забег' : '';
         startBtn.style.display = 'inline-block';
         startBtn.innerText = "Попробовать снова";
         if (state.highScore > 0) shareBtn.style.display = 'inline-block';

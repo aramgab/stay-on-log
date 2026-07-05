@@ -157,6 +157,12 @@ export const sfx = {
     },
     // Soft filtered-noise up-sweep for biome/scene transitions.
     whoosh() { noise(0.6, 300, 2800, 0.12); },
+    // Coin pickup: a short bright double-blip, higher than point() so a
+    // clear+coin in the same second still read as two different rewards.
+    coin() {
+        tone('sine', 1320, 1760, 0.07, 0.16);
+        setTimeout(() => tone('sine', 1760, 2093, 0.09, 0.14), 60);
+    },
 };
 
 // === PROCEDURAL MUSIC ===

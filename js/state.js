@@ -30,6 +30,13 @@ export const state = {
     highScore: parseInt(lsGet('stayOnLog_highScore_v2'), 10) || 0,
     playerName: lsGet('stayOnLog_playerName') || '',
 
+    // Coin wallet (persisted) + coins picked up during the current run
+    // (banked into the wallet by gameOver) + last run's haul for the result
+    // screen ("+N 🪙 за забег").
+    coins: parseInt(lsGet('stayOnLog_coins'), 10) || 0,
+    runCoins: 0,
+    lastRunCoins: 0,
+
     // Physics
     logAngle: 0,
     logSpeed: 0.8,      // live speed (ramps toward targetSpeed in gameLoop)

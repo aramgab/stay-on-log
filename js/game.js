@@ -60,6 +60,8 @@ import {
     newRecordEl,
     statusEl,
     deathQuipEl,
+    runCoinsEl,
+    coinsDisplayEl,
     startBtn,
     shareBtn,
     desktopStub,
@@ -94,10 +96,11 @@ import {
     isObstacleApproaching,
     forceEmerge,
 } from './obstacles.js';
+import { spawnCoins, renderCoinLayer, stepCoins, resetCoins } from './coins.js';
 import { setMainArrow, setPreviewArrow, promoteArrows, cancelPromote, resetArrows } from './dirarrow.js';
 import { deathQuip } from './quips.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
-import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord } from './haptics.js';
+import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord, hapticCoin } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
 import { initTelegram, tgUser, cloudGet, cloudSet, shareScore } from './tg.js';
 
@@ -412,6 +415,20 @@ function gameLoop() {
         return; // fatal hit — loop stopped inside gameOver
     }
 
+    // 2b2. Coins (pinned to the log like obstacles; touching one collects it,
+    // high coins need a jump). Gated by elapsed internally, so the tutorial
+    // (elapsed frozen at 0) never spawns any.
+    renderCoinLayer();
+    const coinVal = stepCoins(Math.abs(state.logSpeed) * dtF);
+    if (coinVal) {
+        state.runCoins += coinVal;
+        sfx.coin();
+        hapticCoin();
+        const cxy = playerXY();
+        floatText(cxy.x, cxy.y - 42, '+' + coinVal + ' 🪙', '#ffd93d');
+        updateCoinsDisplay();
+    }
+
     // 2c. Scene palette follows elapsed time (day -> sunset -> night -> storm)
     applyBiome(state.elapsed);
 
@@ -692,6 +709,14 @@ function updateHighScoreDisplay() {
     } else {
         highScoreEl.style.display = 'none';
     }
+}
+
+// Wallet + live pickups of the current run; hidden until the player has ever
+// held a coin (keeps the first-run HUD minimal).
+function updateCoinsDisplay() {
+    const total = state.coins + state.runCoins;
+    coinsDisplayEl.innerText = '🪙 ' + total;
+    coinsDisplayEl.style.display = total > 0 ? 'block' : 'none';
 }
 
 // === LIVES / JUMP / OBSTACLE HITS ===
@@ -1048,6 +1073,7 @@ function showCountdown(startTutorialMode) {
     newRecordEl.style.display = 'none';
     statusEl.innerText = '';
     deathQuipEl.innerText = '';
+    runCoinsEl.innerText = '';
     playerEl.classList.remove('visible', 'falling', 'jumping', 'hit');
     playerEl.style.opacity = '0';
     dangerVignette.style.opacity = 0;
@@ -1062,10 +1088,11 @@ function showCountdown(startTutorialMode) {
     // the tap/steer-hint resets right above).
     hideTutorialUI();
 
-    // Reset jump / invulnerability and clear any obstacles from a prev game.
+    // Reset jump / invulnerability and clear any obstacles/coins from a prev game.
     state.isJumping = false;
     state.invulnerable = false;
     resetObstacles();
+    resetCoins();
     applyBiome(0); // back to day for the new run
 
     // Hide falling player & splash from prev game — full reset
@@ -1155,12 +1182,15 @@ function startGame() {
     lsSet('stayOnLog_runCount', String(runCount));
     jumpedThisRun = false;
 
-    // Lives & obstacles
+    // Lives & obstacles & coins
     state.hp = START_HP;
     state.isJumping = false;
     state.invulnerable = false;
     playerEl.classList.remove('jumping', 'hit');
     spawnObstacles();
+    state.runCoins = 0;
+    spawnCoins();
+    updateCoinsDisplay();
     updateHearts();
     heartsEl.style.display = 'block';
 
@@ -1253,8 +1283,20 @@ function gameOver(normPos, cause) {
     screenShake(true);
     triggerHitFlash();
 
-    // Clear obstacles
+    // Clear obstacles & coins
     resetObstacles();
+    resetCoins();
+
+    // Bank this run's coins into the wallet. runCoins moves to lastRunCoins
+    // (render.js shows "+N 🪙" from there) so the wallet display never
+    // double-counts between death and the next start.
+    state.lastRunCoins = state.runCoins;
+    if (state.runCoins > 0) {
+        state.coins += state.runCoins;
+        state.runCoins = 0;
+        lsSet('stayOnLog_coins', String(state.coins));
+        updateCoinsDisplay();
+    }
 
     // Hide stickman on log
     playerEl.classList.remove('visible', 'jumping', 'hit');
@@ -1510,8 +1552,9 @@ cloudGet('stayOnLog_playerName', function (v) {
     }
 });
 
-// Show high score and nickname on load
+// Show high score, coin wallet and nickname on load
 updateHighScoreDisplay();
+updateCoinsDisplay();
 shareBtn.style.display = state.highScore > 0 ? 'inline-block' : 'none';
 updatePlayerNameDisplay();
 applyBiome(0);

@@ -166,6 +166,21 @@ export const TUT_JUMPS_TO_PASS = 2;      // jump step: taps needed before moving
 export const TUT_ARROW_WARN_AT_MS = 3500;
 export const TUT_ARROW_HOLD_MS = 3000;
 
+// === COINS (on-log collectible currency) ===
+// Coins surface from the water and ride the log exactly like obstacles do
+// (same pin-to-log state machine in js/coins.js), but touching one collects
+// it instead of hurting. "High" coins float above the surface and can only
+// be grabbed mid-jump — risk/reward when an obstacle is nearby.
+export const COIN_START_MS = 8000;        // grace period before the first coin
+export const COIN_COOLDOWN_MIN_ROT = 0.8; // rotations between coins (min)
+export const COIN_COOLDOWN_MAX_ROT = 2.0; // rotations between coins (max)
+export const COIN_COLLECT_WINDOW = 14;    // angular window (deg) to collect
+export const COIN_HIGH_CHANCE = 0.35;     // chance the coin spawns floating
+export const COIN_VALUE = 1;              // wallet value of a ground coin
+export const COIN_HIGH_VALUE = 2;         // wallet value of a floating coin
+export const COIN_RADIUS_LOW = 118;       // px from log center (on the surface)
+export const COIN_RADIUS_HIGH = 158;      // px from log center (jump height)
+
 // === DEATH QUIPS (funny "why you fell" line on the result screen) ===
 // A direction change within this window before death counts as "it got you".
 export const QUIP_RECENT_CHANGE_MS = 2000;

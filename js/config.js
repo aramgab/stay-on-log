@@ -159,7 +159,12 @@ export const HINT_STEER_COOLDOWN_MS = 6000; // don't re-show more often than thi
 export const TUT_LOG_SPEED = 0.5;        // slow log speed during the tutorial
 export const TUT_BALANCE_HOLD_MS = 4000; // total in-zone time to pass step 1
 export const TUT_BALANCE_ZONE_DEG = 45;  // "in zone" = within ±this of the top
-export const TUT_JUMPS_TO_PASS = 2;      // step 2: taps needed before moving to the obstacle step
+export const TUT_JUMPS_TO_PASS = 2;      // jump step: taps needed before moving to the obstacle step
+// Arrow step (scripted reversal): how long the player just watches the
+// arrows before the warning starts, and how long they must hold the top
+// AFTER the scripted reversal to pass.
+export const TUT_ARROW_WARN_AT_MS = 3500;
+export const TUT_ARROW_HOLD_MS = 3000;
 
 // === SHARING ===
 // Landing URL for the "brag" share button. The game is published as a

@@ -119,13 +119,21 @@ export function promoteArrows(applied, nextPending) {
     }, ARROW_PROMOTE_MS);
 }
 
+// Abort a mid-flight promote WITHOUT hiding the arrows: kills the timer (so
+// it can't repaint stale content later) and drops the transition classes.
+// The tutorial's soft reset uses this — the arrows must stay visible there.
+export function cancelPromote() {
+    clearTimeout(promoteTimer);
+    promoteTimer = 0;
+    dirArrows.classList.remove('promoting', 'no-anim');
+}
+
 // Instantly clear every arrow state (visibility, warning, mid-flight promote,
 // pending preview). Called on gameOver/countdown so nothing stale — including
 // the promote setTimeout, which would otherwise repaint arrows of a dead
 // run — survives into the next run's first frames.
 export function resetArrows() {
-    clearTimeout(promoteTimer);
-    promoteTimer = 0;
-    dirArrows.classList.remove('on', 'warning', 'promoting', 'no-anim');
+    cancelPromote();
+    dirArrows.classList.remove('on', 'warning');
     setPreviewArrow(null);
 }

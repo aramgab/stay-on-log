@@ -39,6 +39,8 @@ import {
     TUT_BALANCE_HOLD_MS,
     TUT_BALANCE_ZONE_DEG,
     TUT_JUMPS_TO_PASS,
+    TUT_ARROW_WARN_AT_MS,
+    TUT_ARROW_HOLD_MS,
 } from './config.js';
 import {
     logWrapper,
@@ -89,7 +91,7 @@ import {
     isObstacleApproaching,
     forceEmerge,
 } from './obstacles.js';
-import { setMainArrow, setPreviewArrow, promoteArrows, resetArrows } from './dirarrow.js';
+import { setMainArrow, setPreviewArrow, promoteArrows, cancelPromote, resetArrows } from './dirarrow.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
@@ -218,11 +220,14 @@ function getTiltDeadzone() {
 // its own mini game-flow instead of startGame()'s normal one: slow log,
 // scripted obstacle prompts, no scoring/gameOver, an explicit step counter.
 let tutorialMode = false;
-let tutStep = 0;       // 0 = inactive, 1 = balance, 2 = jump-alone, 3 = jump-over-knot, 4 = done/outro
+let tutStep = 0;       // 0 = inactive, 1 = balance, 2 = read-the-arrow, 3 = jump-alone, 4 = jump-over-knot, 5 = done/outro
 let tutHoldMs = 0;     // step 1: accumulated in-zone time
-let tutJumps = 0;      // step 2: jumps landed so far this step
-let tutWasJumping = false; // step 2: previous frame's state.isJumping, to catch the false->true edge
-let tutLastEmergeAt = -Infinity; // step 3: performance.now() of the last forceEmerge('knot')
+let tutArrowMs = 0;    // step 2: time since the arrow step began
+let tutArrowPhase = 0; // step 2: 0 = watch, 1 = warning blink, 2 = hold after the reversal
+let tutArrowHoldMs = 0; // step 2 phase 2: accumulated in-zone time after the scripted reversal
+let tutJumps = 0;      // jump step: jumps landed so far this step
+let tutWasJumping = false; // jump step: previous frame's state.isJumping, to catch the false->true edge
+let tutLastEmergeAt = -Infinity; // knot step: performance.now() of the last forceEmerge('knot')
 let tutBannerText = ''; // mirrors the DOM text so we only touch it on change
 let tutBannerLastSec = -1; // step 1: last whole second shown, to avoid re-rendering every frame
 
@@ -353,24 +358,24 @@ function gameLoop() {
     renderObstacleLayer();
     const obEvent = stepObstacles(Math.abs(state.logSpeed) * dtF);
     if (tutorialMode) {
-        // Step 3 only: no score/combo, no hp/gameOver — soft feedback either
-        // way, and the step counter is what actually advances. If the knot
-        // dives unbeaten, tutorialTick() re-summons it (no event needed here).
-        // The step guard also protects against a stray event right after a
-        // softReset (which rewinds to step 1) re-triggering the outro.
-        if (tutStep === 3 && obEvent === 'cleared') {
-            tutStep = 4;
+        // Knot step only: no score/combo, no hp/gameOver — soft feedback
+        // either way, and the step counter is what actually advances. If the
+        // knot dives unbeaten, tutorialTick() re-summons it (no event needed
+        // here). The step guard also protects against a stray event right
+        // after a softReset (which rewinds to step 1) re-triggering the outro.
+        if (tutStep === 4 && obEvent === 'cleared') {
+            tutStep = 5;
             tutBannerLastSec = -1;
             // Freeze the world for the outro: with the log stopped the
             // character can't drift off the top during the "Готов!" beat
-            // (the step-4 softReset guard would otherwise let them hang
+            // (the outro softReset guard would otherwise let them hang
             // past FALL_THRESHOLD with no recovery).
             state.logSpeed = 0;
             state.targetSpeed = 0;
             showTutorialBanner('Готов! Погнали по-настоящему 🎉');
             lsSet('stayOnLog_seenTutorial_v1', '1');
             setTimeout(exitTutorial, 1400);
-        } else if (tutStep === 3 && obEvent === 'hit') {
+        } else if (tutStep === 4 && obEvent === 'hit') {
             sfx.hit();
             showTutorialBanner('Ой! Тапни ПЕРЕД сучком');
         }
@@ -475,7 +480,9 @@ function gameLoop() {
 
     // 5. Warning before change: blink the on-log arrow (mirrors the
     // obSideHint pattern — only touch classList on an actual state change).
-    const wantsArrowWarning = state.nextChangeTime - state.elapsed < CHANGE_WARN_MS
+    // Gated off in the tutorial: its arrow step drives .warning by hand.
+    const wantsArrowWarning = !tutorialMode
+        && state.nextChangeTime - state.elapsed < CHANGE_WARN_MS
         && state.nextChangeTime - state.elapsed > 0;
     if (wantsArrowWarning !== arrowWarningVisible) {
         arrowWarningVisible = wantsArrowWarning;
@@ -776,14 +783,57 @@ function tutorialTick(dtMs, normPos) {
         if (tutHoldMs >= TUT_BALANCE_HOLD_MS) {
             tutStep = 2;
             tutBannerLastSec = -1;
-            tutJumps = 0;
-            tutWasJumping = state.isJumping;
-            showTutorialBanner('А теперь — ТАПНИ по экрану! Человечек прыгнет');
+            tutArrowMs = 0;
+            tutArrowPhase = 0;
+            tutArrowHoldMs = 0;
+            // Scripted promise for the arrow step: a slow reversal. The real
+            // change machinery is gated off in tutorialMode — this step
+            // drives the same arrows/warning/promote flow by hand.
+            state.pendingChange = { dir: -1, speed: TUT_LOG_SPEED };
+            setPreviewArrow(state.pendingChange);
+            showTutorialBanner('Большая стрелка — куда крутится бревно. Маленькая — куда потом!');
         }
         return;
     }
 
     if (tutStep === 2) {
+        // Read-the-arrow step: watch → warning blink → the promised reversal
+        // fires → hold the top to prove the read. One full telegraph cycle,
+        // exactly like the real game will do it.
+        tutArrowMs += dtMs;
+        if (tutArrowPhase === 0 && tutArrowMs >= TUT_ARROW_WARN_AT_MS) {
+            tutArrowPhase = 1;
+            dirArrows.classList.add('warning');
+            showTutorialBanner('Мигает жёлтым — смена вот-вот!');
+        } else if (tutArrowPhase === 1
+            && tutArrowMs >= TUT_ARROW_WARN_AT_MS + CHANGE_WARN_MS) {
+            tutArrowPhase = 2;
+            dirArrows.classList.remove('warning');
+            state.logDirection = -1; // the promised reversal (speed stays slow)
+            state.pendingChange = null;
+            promoteArrows({ dir: -1, speed: TUT_LOG_SPEED }, null);
+            tutArrowHoldMs = 0;
+            tutBannerLastSec = -1;
+        }
+        if (tutArrowPhase === 2) {
+            if (Math.abs(normPos) <= TUT_BALANCE_ZONE_DEG) tutArrowHoldMs += dtMs;
+            const secLeft = Math.ceil((TUT_ARROW_HOLD_MS - tutArrowHoldMs) / 1000);
+            if (secLeft !== tutBannerLastSec) {
+                tutBannerLastSec = secLeft;
+                showTutorialBanner('Смена! Удержись наверху ' + Math.max(0, secLeft) + ' сек');
+            }
+            if (tutArrowHoldMs >= TUT_ARROW_HOLD_MS) {
+                tutStep = 3;
+                tutBannerLastSec = -1;
+                tutJumps = 0;
+                tutWasJumping = state.isJumping;
+                showTutorialBanner('А теперь — ТАПНИ по экрану! Человечек прыгнет');
+            }
+        }
+        return;
+    }
+
+    if (tutStep === 3) {
         // No obstacle yet — just teach the tap-to-jump gesture in isolation.
         // Count a jump on the false->true edge of state.isJumping so this
         // doesn't touch doJump() itself; multiple taps mid-air don't double count
@@ -794,7 +844,7 @@ function tutorialTick(dtMs, normPos) {
             if (tutJumps < TUT_JUMPS_TO_PASS) {
                 showTutorialBanner('Отлично! Ещё раз!');
             } else {
-                tutStep = 3;
+                tutStep = 4;
                 tutBannerLastSec = -1;
                 showTutorialBanner('Сучок! Перепрыгни его — тапни в нужный момент!');
                 forceEmerge('knot');
@@ -805,7 +855,7 @@ function tutorialTick(dtMs, normPos) {
         return;
     }
 
-    if (tutStep === 3) {
+    if (tutStep === 4) {
         // Re-summon the knot if it dove back under unbeaten (dive() clears
         // isObstacleActive()) — give the dive/splash animation ~1.2s to play
         // out before forcing it back up, matching the task's guidance.
@@ -816,9 +866,9 @@ function tutorialTick(dtMs, normPos) {
         return;
     }
 
-    if (tutStep === 4) {
+    if (tutStep === 5) {
         // Outro: nothing to tick — exitTutorial() is scheduled by whoever set
-        // tutStep to 4 (see the 'cleared' handling in gameLoop).
+        // tutStep to 5 (see the 'cleared' handling in gameLoop).
         return;
     }
 }
@@ -830,7 +880,7 @@ function tutorialTick(dtMs, normPos) {
 // that's the scheme-B neutral-posture calibration, unrelated to a fall and
 // still valid.
 function tutorialSoftReset() {
-    if (tutStep === 4) return; // outro is already wrapping up via exitTutorial's setTimeout
+    if (tutStep === 5) return; // outro is already wrapping up via exitTutorial's setTimeout
 
     // playerPosition = logAngle + userAngle, and unlike the countdown reset
     // the log has been spinning here (logAngle is arbitrary) — zeroing
@@ -846,6 +896,21 @@ function tutorialSoftReset() {
     tutHoldMs = 0;
     tutJumps = 0;
     tutBannerLastSec = -1;
+    // Arrow-step state: rewinding to step 1 must undo the scripted promise
+    // and (possibly) the fired reversal, or step 2 would replay on top of a
+    // backwards-spinning log with a stale preview. cancelPromote (not
+    // resetArrows) — the arrows stay visible in the tutorial.
+    tutArrowMs = 0;
+    tutArrowPhase = 0;
+    tutArrowHoldMs = 0;
+    state.pendingChange = null;
+    cancelPromote();
+    setPreviewArrow(null);
+    dirArrows.classList.remove('warning');
+    state.logDirection = 1;
+    state.logSpeed = TUT_LOG_SPEED;
+    state.targetSpeed = TUT_LOG_SPEED;
+    updateDirectionUI();
     screenShake(false);
     showTutorialBanner('Оп! Крути против вращения — удерживай наверху');
 }
@@ -861,6 +926,9 @@ function exitTutorial() {
     tutorialMode = false;
     tutStep = 0;
     tutHoldMs = 0;
+    tutArrowMs = 0;
+    tutArrowPhase = 0;
+    tutArrowHoldMs = 0;
     tutJumps = 0;
     tutWasJumping = false;
     tutLastEmergeAt = -Infinity;

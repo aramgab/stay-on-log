@@ -10,6 +10,10 @@ export const CHANGE_WARN_MS = 1500;
 // IS the speedometer, so even the slowest spin must still read as an arrow.
 export const ARROW_ARC_MIN_DEG = 40;
 export const ARROW_ARC_MAX_DEG = 150;
+// Promote animation length (preview morphs onto the main radius when a
+// change fires). Must equal the #dir-arrow-preview transition duration in
+// css/styles.css — keep both in sync when tuning.
+export const ARROW_PROMOTE_MS = 350;
 
 // Log rotation speed bounds, in degrees per 60 Hz frame (the game loop
 // dt-normalizes, so real-time pace is the same on 60/90/120 Hz displays).

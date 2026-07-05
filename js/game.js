@@ -89,7 +89,7 @@ import {
     isObstacleApproaching,
     forceEmerge,
 } from './obstacles.js';
-import { setMainArrow, setPreviewArrow, resetArrows } from './dirarrow.js';
+import { setMainArrow, setPreviewArrow, promoteArrows, resetArrows } from './dirarrow.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
@@ -451,7 +451,12 @@ function gameLoop() {
             applyPendingChange();
             scheduleNextChange();
             rollNextChange();
-            setPreviewArrow(state.pendingChange);
+            // "The small arrow takes the big one's place", then the fresh
+            // roll becomes the new preview once the morph lands.
+            promoteArrows(
+                { dir: state.logDirection, speed: state.logSpeed },
+                state.pendingChange
+            );
         }
     }
 
@@ -622,6 +627,8 @@ function reconcilePendingChange() {
 // The "apply" half of the old changeDirectionOrSpeed(): flips the world to
 // the pre-rolled pending change. The double-freeze case is handled by the
 // caller (gameLoop postpones the whole change while a double rides the log).
+// Arrows are NOT redrawn here — the caller runs the promote animation, which
+// owns the visual handover (an instant setMainArrow would break the morph).
 function applyPendingChange() {
     reconcilePendingChange();
     const p = state.pendingChange;
@@ -629,7 +636,7 @@ function applyPendingChange() {
     state.logSpeed = p.speed;
     state.logDirection = p.dir;
     state.pendingChange = null;
-    updateDirectionUI();
+    updatePillUI();
 }
 
 // Scheme-aware copy: scheme A ("wind the phone") and scheme B ("hold the
@@ -640,7 +647,8 @@ function schemeText(windText, tiltText) {
     return getScheme() === 'tilt' ? tiltText : windText;
 }
 
-function updateDirectionUI() {
+// Pill half of the direction UI (updates instantly even mid-promote).
+function updatePillUI() {
     if (state.logDirection === 1) {
         statusEl.innerText = schemeText("КРУТИ ВЛЕВО", "НАКЛОНЯЙ ВЛЕВО");
         arrowEl.innerText = "←";
@@ -650,6 +658,12 @@ function updateDirectionUI() {
     }
     let speedPercent = Math.round(getSpeedPercent(state.logSpeed));
     speedFillEl.style.width = speedPercent + "%";
+}
+
+// Full instant sync (run start / tutorial start): pill + main arrow, no
+// promote animation.
+function updateDirectionUI() {
+    updatePillUI();
     // On-log arrow v2: direction and speed are both baked into the arc path.
     setMainArrow(state.logDirection, state.logSpeed);
 }

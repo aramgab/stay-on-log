@@ -705,10 +705,32 @@ body.biome-storm .lightning {
 
 #dir-arrow-preview {
     opacity: 0.3;
+    transform-origin: 50% 50%;
+    /* Durations must equal ARROW_PROMOTE_MS in js/config.js. */
+    transition: transform 0.35s ease, opacity 0.35s ease;
 }
 
 #dir-arrow-preview .arc {
     stroke-width: 5;
+}
+
+/* Promote animation ("the small arrow takes the big one's place"): the
+   preview scales up onto the main radius — 62/38 ≈ 1.632, keep in sync with
+   R_MAIN/R_PREV in js/dirarrow.js — while the old main fades away. Paths are
+   swapped to steady state by dirarrow.js when the timer fires; .no-anim
+   suppresses the transitions for that swap so the un-scale doesn't animate. */
+#dir-arrows.promoting #dir-arrow-preview {
+    transform: scale(1.632);
+    opacity: 0.55;
+}
+
+#dir-arrows.promoting #dir-arrow-main {
+    opacity: 0;
+    animation: none; /* the .warning blink would otherwise pin opacity */
+}
+
+#dir-arrows.no-anim svg {
+    transition: none !important;
 }
 
 /* Only the MAIN arrow turns yellow and blinks before a change — the preview

@@ -19,7 +19,7 @@
          stylesheet against max-age=0 (fullscreen-shark incident, июль 2026).
          index.html itself always revalidates, so bumping v here on css
          changes guarantees clients fetch the fresh file. -->
-    <link rel="stylesheet" href="css/styles.css?v=7">
+    <link rel="stylesheet" href="css/styles.css?v=8">
 </head>
 
 <body>
@@ -390,6 +390,59 @@
             <div id="boss-jaw"></div>
             <!-- Foam burst under the orca's breach/dive (css-driven). -->
             <div id="boss-splash"></div>
+        </div>
+        <!-- Boss rework 2.0: the GIANT orca and her pursuit shadow live outside
+             #boss-layer, as its next siblings, so they can render BEHIND the log
+             and the opaque water (the layer itself is z 6, above everything).
+             The layer's state classes still drive them via CSS sibling rules,
+             same idiom as #boss-hint below. Frontal breach pose seen from below:
+             a letterbox gape of teeth wider than the log top, white chin, eye
+             patches, pectoral fins spread past the log's edges. -->
+        <div id="boss-orca-giant" aria-hidden="true">
+            <svg viewBox="0 0 340 460" xmlns="http://www.w3.org/2000/svg">
+                <g class="og-tail">
+                    <path d="M170,396 C146,414 114,426 86,430 C114,434 142,438 158,446 L170,440 L182,446 C198,438 226,434 254,430 C226,426 194,414 170,396 Z" fill="#0d1419" />
+                </g>
+                <g class="og-fin-pect-l">
+                    <path d="M78,208 C48,228 20,258 4,296 C26,284 50,282 70,288 C64,260 68,230 78,208 Z" fill="#0d1419" />
+                </g>
+                <g class="og-fin-pect-r">
+                    <path d="M262,208 C292,228 320,258 336,296 C314,284 290,282 270,288 C276,260 272,230 262,208 Z" fill="#0d1419" />
+                </g>
+                <g class="og-body">
+                    <path d="M170,88 C112,90 74,112 60,158 C46,212 46,272 60,324 C74,370 102,400 170,410 C238,400 266,370 280,324 C294,272 294,212 280,158 C266,112 228,90 170,88 Z" fill="#10181f" />
+                    <!-- white belly running down the chest -->
+                    <path d="M170,164 C146,166 130,178 124,200 C116,242 118,296 132,340 C144,372 156,386 170,390 C184,386 196,372 208,340 C222,296 224,242 216,200 C210,178 194,166 170,164 Z" fill="#eef3f6" />
+                    <!-- flank rim light -->
+                    <path d="M62,180 C52,226 52,278 64,326 C56,280 56,226 66,184 Z" fill="#22303c" />
+                    <path d="M278,180 C288,226 288,278 276,326 C284,280 284,226 274,184 Z" fill="#22303c" />
+                </g>
+                <!-- open maw: dark interior behind both tooth rows -->
+                <g class="og-maw">
+                    <path d="M170,14 C122,14 90,22 82,36 C76,54 84,78 106,92 C138,104 202,104 234,92 C256,78 264,54 258,36 C250,22 218,14 170,14 Z" fill="#2c1216" />
+                </g>
+                <g class="og-jaw-upper">
+                    <!-- foreshortened upper jaw: a slim wide visor right at the top -->
+                    <path d="M170,8 C124,8 90,14 80,24 C78,28 82,32 90,34 L250,34 C258,32 262,28 260,24 C250,14 216,8 170,8 Z" fill="#10181f" />
+                    <path d="M170,11 C130,11 100,16 90,24 C102,17 132,14 170,14 C208,14 238,17 250,24 C240,16 210,11 170,11 Z" fill="#22303c" />
+                    <!-- signature white eye patches riding the outer visor -->
+                    <ellipse cx="103" cy="22" rx="15" ry="5.2" transform="rotate(-14 103 22)" fill="#f2f6f8" />
+                    <ellipse cx="237" cy="22" rx="15" ry="5.2" transform="rotate(14 237 22)" fill="#f2f6f8" />
+                    <!-- upper tooth row hanging into the gape -->
+                    <path d="M94,32 L102,52 L110,32 L120,54 L130,32 L140,56 L150,32 L160,58 L170,32 L180,58 L190,32 L200,56 L210,32 L220,54 L230,32 L238,52 L246,32 Z" fill="#ffffff" />
+                </g>
+                <g class="og-jaw-lower">
+                    <!-- white chin scoop -->
+                    <path d="M170,138 C130,138 100,126 90,106 C84,90 92,76 108,70 C136,62 204,62 232,70 C248,76 256,90 250,106 C240,126 210,138 170,138 Z" fill="#f2f6f8" />
+                    <path d="M170,138 C148,136 128,128 118,116 C130,128 148,134 170,135 C192,134 210,128 222,116 C212,128 192,136 170,138 Z" fill="#d7dfe5" />
+                    <!-- lower tooth row pointing up -->
+                    <path d="M104,68 L112,46 L120,68 L130,44 L138,68 L148,42 L158,68 L170,42 L182,68 L192,42 L202,68 L212,44 L220,68 L230,48 L238,70 Z" fill="#ffffff" />
+                </g>
+            </svg>
+        </div>
+        <div id="boss-shadow" aria-hidden="true">
+            <div class="mass"></div>
+            <div class="fin"></div>
         </div>
         <div id="boss-hint" aria-hidden="true"></div>
 

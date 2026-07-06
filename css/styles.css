@@ -1783,6 +1783,90 @@ body.boss-fight .shark-fin {
     }
 }
 
+/* === BOSS REWORK 2.0: the giant orca lives BEHIND the log ===
+   #boss-orca-giant and #boss-shadow are siblings of #boss-layer (like
+   #boss-hint below), so the layer's state classes drive them through
+   sibling combinators with zero extra JS. They render at z-index 1 and 4:
+   both behind the isolated #game-container stack (z 5), the giant even
+   behind the opaque water (z 2) — diving under the surface hides her for
+   free, and a breach pierces the waterline without any opacity work.
+   (Comment safety: state names are spelled in words here; never let a
+   star-slash pair appear inside these comments.) */
+#boss-orca-giant {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 340px;
+    height: 460px;
+    /* nose tip rests ~30px above the log top at full breach; jumped feet
+       clear it (jump apex is +58px over the stand line), the tooth rows
+       clash right at the standing player's shins */
+    margin: -172px 0 0 -170px;
+    z-index: 1;
+    display: none;
+    pointer-events: none;
+    will-change: transform;
+    transform: translateY(125%);
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+#boss-orca-giant svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+/* Pursuit shadow: a dark mass under the surface plus the tall dorsal fin —
+   what the player actually reads during the chase while the giant herself
+   stays hidden. Sits right on the waterline (water occupies the bottom 35%
+   of the game area), above the water but behind the log. */
+#boss-shadow {
+    position: absolute;
+    left: 50%;
+    top: 65%;
+    width: 340px;
+    height: 72px;
+    margin: -20px 0 0 -170px;
+    z-index: 4;
+    display: none;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+#boss-shadow .mass {
+    position: absolute;
+    inset: 14px 20px 0;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(5, 9, 13, 0.55), rgba(5, 9, 13, 0.28) 55%, transparent 75%);
+}
+
+#boss-shadow .fin {
+    position: absolute;
+    left: 50%;
+    bottom: 24px;
+    width: 66px;
+    height: 48px;
+    margin-left: -33px;
+    background: #0d1419;
+    clip-path: path('M4,48 C12,30 20,12 44,2 C36,18 38,32 50,48 Z');
+}
+
+/* Fail-safes — same contract as the layer's own children: nothing may
+   render without the layer's active state, and the death-screen fade of
+   the layer must reach the siblings too. */
+#boss-layer:not(.on) ~ #boss-orca-giant,
+#boss-layer:not(.on) ~ #boss-shadow {
+    display: none !important;
+}
+
+#boss-layer.hidden ~ #boss-orca-giant,
+#boss-layer.hidden ~ #boss-shadow {
+    opacity: 0;
+}
+
 /* Crimson hint banner, next sibling of #boss-layer in the DOM — the `~`
    combinator lets one CSS rule show/hide it off the layer's own state
    classes without any extra JS beyond the text writes boss.js already does. */

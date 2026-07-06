@@ -1649,9 +1649,9 @@ body.boss-fight .shark-fin {
 #boss-splash {
     position: absolute;
     left: 50%;
-    bottom: 10%;
-    width: 170px;
-    height: 46px;
+    bottom: 32%;
+    width: 300px;
+    height: 90px;
     transform: translateX(-50%);
     display: none;
     pointer-events: none;
@@ -1666,12 +1666,12 @@ body.boss-fight .shark-fin {
 }
 
 #boss-splash::before {
-    inset: 14px 10px 8px;
+    inset: 26px 20px 14px;
     filter: blur(2px);
 }
 
 #boss-splash::after {
-    inset: 4px 34px 22px;
+    inset: 8px 60px 40px;
     background: rgba(255, 255, 255, 0.55);
     filter: blur(4px);
 }
@@ -1865,6 +1865,235 @@ body.boss-fight .shark-fin {
 #boss-layer.hidden ~ #boss-orca-giant,
 #boss-layer.hidden ~ #boss-shadow {
     opacity: 0;
+}
+
+/* With the giant in play the old in-layer orca silhouette retires: the orca
+   variant never shows #boss-shark at all (shark fights are untouched). */
+#boss-layer.orca #boss-shark {
+    display: none !important;
+}
+
+/* Intro (orca): a slow spy-hop behind the log — the crown of her head and
+   the eye patches breach the waterline and hold there. Duration matches
+   BOSS_INTRO_MS in js/config.js. */
+#boss-layer.on.intro.orca ~ #boss-orca-giant {
+    display: block;
+    animation: ogIntroRise 2.6s ease-out forwards;
+}
+
+@keyframes ogIntroRise {
+    0% {
+        transform: translateY(125%);
+    }
+
+    100% {
+        transform: translateY(62%);
+    }
+}
+
+/* Chase: the giant herself stays under water; what prowls behind the log is
+   her shadow mass and the tall dorsal fin, sweeping side to side. */
+#boss-layer.on.chase ~ #boss-shadow {
+    display: block;
+    animation: shadowProwl 2.8s ease-in-out infinite alternate;
+}
+
+@keyframes shadowProwl {
+    from {
+        transform: translateX(-78px);
+    }
+
+    to {
+        transform: translateX(78px);
+    }
+}
+
+#boss-layer.on.chase ~ #boss-shadow .mass {
+    animation: shadowBreathe 1.3s ease-in-out infinite alternate;
+}
+
+@keyframes shadowBreathe {
+    from {
+        transform: scale(1);
+        opacity: 0.85;
+    }
+
+    to {
+        transform: scale(1.12);
+        opacity: 1;
+    }
+}
+
+/* Snap telegraph: the fin dives, the mass gathers dead-center under the log
+   and trembles — the unmistakable "she is right below you" read. */
+#boss-layer.on.chase.tele-snap ~ #boss-shadow {
+    animation: shadowTremble 0.22s ease-in-out infinite alternate;
+}
+
+@keyframes shadowTremble {
+    from {
+        transform: translateX(-5px);
+    }
+
+    to {
+        transform: translateX(5px);
+    }
+}
+
+#boss-layer.on.chase.tele-snap ~ #boss-shadow .mass {
+    animation: shadowGather 0.24s ease-in-out infinite alternate;
+}
+
+@keyframes shadowGather {
+    from {
+        transform: scale(1.22);
+        opacity: 0.95;
+    }
+
+    to {
+        transform: scale(1.32);
+        opacity: 1;
+    }
+}
+
+#boss-layer.on.chase.tele-snap ~ #boss-shadow .fin {
+    animation: finDive 0.4s ease-in forwards;
+}
+
+@keyframes finDive {
+    to {
+        transform: translateY(46px);
+        opacity: 0;
+    }
+}
+
+/* Snap strike: the giant breaches straight up behind the log, jaw slamming
+   shut at the top of the leap. The bezier front-loads the rise so the maw
+   is already at the log top by the strike midpoint (the dodge-check instant
+   in js/boss.js). Mass and fin vanish — she is out of the water. */
+#boss-layer.on.chase.strike-snap ~ #boss-orca-giant {
+    display: block;
+    animation: ogBreach 0.45s cubic-bezier(0.22, 1.15, 0.5, 1) forwards;
+}
+
+@keyframes ogBreach {
+    from {
+        transform: translateY(125%);
+    }
+
+    to {
+        transform: translateY(0%);
+    }
+}
+
+#boss-layer.on.chase.strike-snap ~ #boss-orca-giant .og-jaw-lower {
+    animation: ogJawShut 0.45s ease-in forwards;
+}
+
+@keyframes ogJawShut {
+
+    0%,
+    55% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(-16px);
+    }
+}
+
+#boss-layer.on.chase.strike-snap ~ #boss-orca-giant .og-jaw-upper {
+    animation: ogJawPress 0.45s ease-in forwards;
+}
+
+@keyframes ogJawPress {
+
+    0%,
+    55% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(7px);
+    }
+}
+
+#boss-layer.on.chase.strike-snap ~ #boss-shadow .mass {
+    animation: none;
+    opacity: 0;
+}
+
+#boss-layer.on.chase.strike-snap ~ #boss-shadow .fin {
+    transform: translateY(46px);
+    opacity: 0;
+}
+
+/* Snap recover: she plunges back; the splash covers the exit, then the
+   shadow mass fades back in and the fin resurfaces — pursuit resumes. */
+#boss-layer.on.chase.snap-recover ~ #boss-orca-giant {
+    display: block;
+    animation: ogDive 0.5s ease-in forwards;
+}
+
+@keyframes ogDive {
+    from {
+        transform: translateY(0%);
+    }
+
+    to {
+        transform: translateY(128%);
+    }
+}
+
+#boss-layer.on.chase.snap-recover ~ #boss-shadow .mass {
+    animation: massReturn 0.5s ease-out 0.45s both, shadowBreathe 1.3s ease-in-out 0.95s infinite alternate;
+}
+
+@keyframes massReturn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 0.9;
+    }
+}
+
+#boss-layer.on.chase.snap-recover ~ #boss-shadow .fin {
+    animation: finRise 0.4s ease-out 0.5s both;
+}
+
+@keyframes finRise {
+    from {
+        transform: translateY(46px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Victory (orca): a farewell half-breach behind the log, then she sinks
+   away for good — plays inside the 1.8s window endFight holds the layer. */
+#boss-layer.on.victory.orca ~ #boss-orca-giant {
+    display: block;
+    animation: ogVictoryLeap 1.6s ease-in-out forwards;
+}
+
+@keyframes ogVictoryLeap {
+    0% {
+        transform: translateY(125%);
+    }
+
+    35% {
+        transform: translateY(58%) rotate(-3deg);
+    }
+
+    100% {
+        transform: translateY(130%) rotate(2deg);
+    }
 }
 
 /* Crimson hint banner, next sibling of #boss-layer in the DOM — the `~`

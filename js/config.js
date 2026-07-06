@@ -220,7 +220,7 @@ export const BOSS_DEFEAT_POINTS = 150;   // eventScore bonus for surviving the p
 export const BOSS_CHASE_MS = 35000;        // survive this long = victory
 export const BOSS_CHASE_FACTOR_MAX = 1.3;  // world-speed multiplier ramps 1.0 -> this
 export const BOSS_SNAP_EVERY_MS = 5000;    // a snap attack begins every N ms
-export const BOSS_SNAP_TELEGRAPH_MS = 1200; // snap warning
+export const BOSS_SNAP_TELEGRAPH_MS = 1400; // snap warning (giant breach hits harder — a beat more read time)
 export const BOSS_SNAP_STRIKE_MS = 500;    // snap danger window (jump beats it)
 
 // === DEATH QUIPS (funny "why you fell" line on the result screen) ===

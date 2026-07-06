@@ -275,7 +275,10 @@ export function stepBoss(dtMs, normPos) {
 // the player on a fixed timer. Surviving the whole clock is the win.
 function stepChase(dtMs) {
     t += dtMs;
-    if (snapState === 0 && t >= nextSnapAt && t < BOSS_CHASE_MS - BOSS_SNAP_STRIKE_MS) {
+    // A snap only starts if its WHOLE arc (telegraph + strike) fits before
+    // the victory clock — a telegraph that can never strike is noise.
+    if (snapState === 0 && t >= nextSnapAt &&
+        t < BOSS_CHASE_MS - (BOSS_SNAP_TELEGRAPH_MS + BOSS_SNAP_STRIKE_MS)) {
         snapState = 1;
         snapT = 0;
         snapChecked = false;

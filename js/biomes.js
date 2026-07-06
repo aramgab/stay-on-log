@@ -92,14 +92,14 @@ export const DAY_PHASE_CLASSES = (() => {
 
 // The campaign line: chapters of 4 cards each, all visible from day one.
 // A card is: a biome id from BIOMES (playable or announced), OR a plain
-// string (named teaser, no content yet), OR null (a pure «?» mystery).
+// string (named teaser «?» card, no content yet) — cards are ALWAYS named.
 export const CHAPTERS = [
     { id: 'stihii', title: 'I. Стихии', cards: ['earth', 'winter', 'lava', 'space'] },
-    { id: 'civ', title: 'II. Цивилизации', cards: [null, null, null, null] },
-    { id: 'smysly', title: 'III. Смыслы', cards: [null, null, null, null] },
-    { id: 'ritm', title: 'Ритм', cards: ['Диско', 'Рок', 'Рэп', 'Классика'] },
-    { id: 'detstvo', title: 'Детство', cards: ['Игрушки', 'Цирк', 'Кубический', 'Мультяшный'] },
-    { id: 'iskusstvo', title: 'Искусство', cards: [null, null, null, null] },
-    { id: 'sport', title: 'Спорт', cards: [null, null, null, null] },
-    { id: 'strany', title: '🌏 Страны мира', arc: true, cards: [null, null, null, null] },
+    { id: 'civ', title: 'II. Цивилизации', cards: ['Древний Египет', 'Античность', 'Средневековье', 'Каменные джунгли'] },
+    { id: 'smysly', title: 'III. Смыслы', cards: ['Философия', 'Цифровой', 'Наука', 'Политика'] },
+    { id: 'ritm', title: 'IV. Ритм', cards: ['Диско', 'Рок', 'Рэп', 'Классика'] },
+    { id: 'detstvo', title: 'V. Детство', cards: ['Игрушки', 'Цирк', 'Кубический', 'Мультяшный'] },
+    { id: 'iskusstvo', title: 'VI. Искусство', cards: ['Живопись', 'Архитектура', 'Театр', 'Кино'] },
+    { id: 'sport', title: 'VII. Спорт', cards: ['Атлетика', 'Бокс', 'Теннис', 'Хоккей'] },
+    { id: 'strany', title: 'VIII. Страны мира', arc: true, cards: ['Америка', 'Европа', 'Восток', 'Африка'] },
 ];

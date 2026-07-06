@@ -2365,6 +2365,7 @@ body.world-winter .obstacle-inner.ob-branch::after {
 }
 
 #map-card {
+    position: relative;
     text-align: center;
     width: min(340px, 88vw);
     max-height: 82dvh;
@@ -2449,15 +2450,28 @@ body.world-winter .obstacle-inner.ob-branch::after {
     font-weight: 700;
 }
 
-.map-quests {
-    font-size: 9.5px;
-    line-height: 1.35;
-    opacity: 0.9;
-    text-align: left;
+/* Transient «выполни задания…» bubble when tapping a locked world. */
+#map-hint {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    max-width: 88%;
+    padding: 8px 14px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
 }
 
-.map-quests .done {
-    color: #7dde8a;
+#map-hint.visible {
+    opacity: 1;
 }
 
 .map-card-item.shake {

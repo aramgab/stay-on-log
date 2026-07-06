@@ -1,14 +1,31 @@
 // === CAMPAIGN MAP ===
 // The journey line: chapters of four biome cards each, all visible from day
 // one. Cards tease what's ahead («?» mystery / named teaser / "скоро"
-// announced world) and show quest checklists on locked-but-playable worlds.
+// announced world); tapping a locked-but-playable world shows a transient
+// hint bubble pointing at the biome whose quests unlock it.
 // Same overlay idiom as js/shop.js — open/close, rebuild-on-open, no diffing.
 
 import { state } from './state.js';
-import { BIOMES, CHAPTERS, questsFor } from './biomes.js';
-import { getSelectedBiome, setSelectedBiome, isBiomeUnlocked, questCount, cyclesOf } from './campaign.js';
+import { BIOMES, CHAPTERS } from './biomes.js';
+import { getSelectedBiome, setSelectedBiome, isBiomeUnlocked, cyclesOf } from './campaign.js';
 import { initAudio, sfx } from './audio.js';
 import { mapBtn, mapOverlay, mapListEl, mapCloseBtn } from './dom.js';
+
+let mapHintTimer = 0;
+
+// Transient bubble at the top of the map card («выполни задания в …»).
+function showMapHint(text) {
+    let el = document.getElementById('map-hint');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'map-hint';
+        document.getElementById('map-card').appendChild(el);
+    }
+    el.textContent = text;
+    el.classList.add('visible');
+    clearTimeout(mapHintTimer);
+    mapHintTimer = setTimeout(() => el.classList.remove('visible'), 2000);
+}
 
 function openMap() {
     if (state.isPlaying) return;
@@ -39,22 +56,6 @@ function onSelectCard(biomeId) {
     updateMapBtnLabel();
     renderMap(); // refresh the selection ring
     closeMap();
-}
-
-// One quest-checklist line for a locked world's unlocking biome, e.g.
-// "Перепрыгни 5 сучков — 3/5" with a done class once n >= target.
-function buildQuestsList(unlockBiomeId) {
-    const wrap = document.createElement('div');
-    wrap.className = 'map-quests';
-    questsFor(unlockBiomeId).forEach((q) => {
-        const n = Math.min(questCount(q.id), q.target);
-        const line = document.createElement('div');
-        const done = n >= q.target;
-        if (done) line.classList.add('done');
-        line.textContent = (done ? '✓ ' : '') + q.title + ' — ' + n + '/' + q.target;
-        wrap.appendChild(line);
-    });
-    return wrap;
 }
 
 function buildBiomeCard(biomeId) {
@@ -102,10 +103,14 @@ function buildBiomeCard(biomeId) {
         lock.className = 'map-done';
         lock.textContent = '🔒';
         card.appendChild(lock);
-        if (b.unlock && b.unlock.questsOf) {
-            card.appendChild(buildQuestsList(b.unlock.questsOf));
-        }
-        card.addEventListener('click', () => shakeCard(card));
+        card.addEventListener('click', () => {
+            shakeCard(card);
+            if (b.unlock && b.unlock.questsOf) {
+                showMapHint('Выполни задания в биоме «' + BIOMES[b.unlock.questsOf].title + '»');
+            } else {
+                showMapHint('Скоро!');
+            }
+        });
     }
     return card;
 }
@@ -140,21 +145,7 @@ function buildCard(cardValue) {
 function renderMap() {
     mapListEl.innerHTML = '';
 
-    CHAPTERS.forEach((chapter) => {
-        const chapterEl = document.createElement('div');
-        chapterEl.className = 'map-chapter';
-        const titleEl = document.createElement('div');
-        titleEl.className = 'map-chapter-title';
-        titleEl.textContent = chapter.title;
-        const rowEl = document.createElement('div');
-        rowEl.className = 'map-cards';
-        chapter.cards.forEach((cardValue) => rowEl.appendChild(buildCard(cardValue)));
-        chapterEl.appendChild(titleEl);
-        chapterEl.appendChild(rowEl);
-        mapListEl.appendChild(chapterEl);
-    });
-
-    // Events section: slot only, data arrives with the first event.
+    // Events section first: slot only, data arrives with the first event.
     const eventsChapter = document.createElement('div');
     eventsChapter.className = 'map-chapter';
     const eventsTitle = document.createElement('div');
@@ -169,6 +160,20 @@ function renderMap() {
     eventsChapter.appendChild(eventsTitle);
     eventsChapter.appendChild(eventsRow);
     mapListEl.appendChild(eventsChapter);
+
+    CHAPTERS.forEach((chapter) => {
+        const chapterEl = document.createElement('div');
+        chapterEl.className = 'map-chapter';
+        const titleEl = document.createElement('div');
+        titleEl.className = 'map-chapter-title';
+        titleEl.textContent = chapter.title;
+        const rowEl = document.createElement('div');
+        rowEl.className = 'map-cards';
+        chapter.cards.forEach((cardValue) => rowEl.appendChild(buildCard(cardValue)));
+        chapterEl.appendChild(titleEl);
+        chapterEl.appendChild(rowEl);
+        mapListEl.appendChild(chapterEl);
+    });
 }
 
 export function updateMapBtnLabel() {

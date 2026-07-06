@@ -5,21 +5,26 @@
 // the same class names, so id/cssClass here are the single source of truth.
 import { DAY_SUNSET_MS, DAY_NIGHT_MS, DAY_STORM_MS, DAY_DAWN_MS, DAY_CYCLE_MS } from './config.js';
 
-// Every palette class the day cycle can put on <body> — game.js clears these
-// before applying the next one.
-export const DAY_PHASE_CLASSES = ['biome-day', 'biome-sunset', 'biome-night', 'biome-storm', 'biome-dawn'];
+// Palette classes per day segment. Worlds override this in BIOMES[..].dayPalette;
+// audio.js MOODS are keyed by the same class names.
+const DAY_PALETTE_DEFAULT = {
+    noon: 'biome-day', sunset: 'biome-sunset', night: 'biome-night',
+    storm: 'biome-storm', dawn: 'biome-dawn',
+};
 
 // Run-elapsed (ms) -> current day segment. The cycle wraps every DAY_CYCLE_MS:
 // storm is the boss-window segment (hardest palette read), dawn is the
 // victory lap right after it, then the palette loops back to noon — while
 // elapsed itself keeps growing (difficulty reads it raw, unaffected).
-export function dayPhaseFor(elapsed) {
+export function dayPhaseFor(elapsed, biomeId) {
     const t = elapsed % DAY_CYCLE_MS;
-    if (t >= DAY_DAWN_MS) return { id: 'dawn', cssClass: 'biome-dawn' };
-    if (t >= DAY_STORM_MS) return { id: 'storm', cssClass: 'biome-storm' };
-    if (t >= DAY_NIGHT_MS) return { id: 'night', cssClass: 'biome-night' };
-    if (t >= DAY_SUNSET_MS) return { id: 'sunset', cssClass: 'biome-sunset' };
-    return { id: 'noon', cssClass: 'biome-day' };
+    const seg = t >= DAY_DAWN_MS ? 'dawn'
+        : t >= DAY_STORM_MS ? 'storm'
+        : t >= DAY_NIGHT_MS ? 'night'
+        : t >= DAY_SUNSET_MS ? 'sunset'
+        : 'noon';
+    const pal = (biomeId && BIOMES[biomeId] && BIOMES[biomeId].dayPalette) || DAY_PALETTE_DEFAULT;
+    return { id: seg, cssClass: pal[seg] };
 }
 
 // How many full days this run has survived (0 during the first cycle).
@@ -35,6 +40,9 @@ export const QUESTS = [
     { id: 'earth_coins_night', biome: 'earth', title: 'Собери 3 монетки ночью', type: 'coin', dayPhase: 'night', target: 3 },
     { id: 'earth_knots', biome: 'earth', title: 'Перепрыгни 5 сучков', type: 'clear', obTypes: ['knot', 'double'], target: 5 },
     { id: 'earth_boss', biome: 'earth', title: 'Одолей белую акулу', type: 'boss', target: 1 },
+    { id: 'winter_coins', biome: 'winter', title: 'Собери 10 монеток в Зимнем', type: 'coin', target: 10 },
+    { id: 'winter_branches', biome: 'winter', title: 'Перепрыгни 3 ледяных шипа', type: 'clear', obTypes: ['branch'], target: 3 },
+    { id: 'winter_boss', biome: 'winter', title: 'Одолей косатку', type: 'boss', target: 1 },
 ];
 
 export function questsFor(biomeId) {
@@ -59,10 +67,27 @@ export function bossFor(biomeId) {
 // obstacle art). unlock: {questsOf: biomeId} = all quests of that biome done.
 export const BIOMES = {
     earth: { id: 'earth', title: 'Земля', emoji: '🌍', worldClass: 'world-earth', playable: true, unlock: null },
-    winter: { id: 'winter', title: 'Зимний', emoji: '❄️', worldClass: 'world-winter', playable: false, announced: true, unlock: { questsOf: 'earth' } },
+    winter: {
+        id: 'winter', title: 'Зимний', emoji: '❄️', worldClass: 'world-winter', playable: true, unlock: { questsOf: 'earth' },
+        dayPalette: { noon: 'biome-w-day', sunset: 'biome-w-sunset', night: 'biome-w-night', storm: 'biome-w-storm', dawn: 'biome-w-dawn' },
+    },
     lava: { id: 'lava', title: 'Лавовый', emoji: '🌋', playable: false, announced: true },
     space: { id: 'space', title: 'Космос', emoji: '🚀', playable: false, announced: true },
 };
+
+// Every palette class the day cycle can put on <body> — game.js clears these
+// before applying the next one. Computed from the default palette plus every
+// world's dayPalette override, so a new world only needs to list its classes
+// once (here, implicitly, via BIOMES[..].dayPalette).
+export const DAY_PHASE_CLASSES = (() => {
+    const set = {};
+    Object.keys(DAY_PALETTE_DEFAULT).forEach((k) => { set[DAY_PALETTE_DEFAULT[k]] = 1; });
+    Object.keys(BIOMES).forEach((id) => {
+        const pal = BIOMES[id].dayPalette;
+        if (pal) Object.keys(pal).forEach((k) => { set[pal[k]] = 1; });
+    });
+    return Object.keys(set);
+})();
 
 // The campaign line: chapters of 4 cards each, all visible from day one.
 // A card is: a biome id from BIOMES (playable or announced), OR a plain

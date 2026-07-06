@@ -296,7 +296,7 @@ function celebrateQuests(completedQuests) {
 }
 
 function applyBiome(elapsed) {
-    const next = dayPhaseFor(elapsed).cssClass;
+    const next = dayPhaseFor(elapsed, runBiomeId).cssClass;
     if (next === currentBiome) return;
     currentBiome = next;
     document.body.classList.remove(...DAY_PHASE_CLASSES);
@@ -309,9 +309,11 @@ function applyBiome(elapsed) {
 // Per-world reskin: swaps the body world-* class (bark/wood palette vars,
 // obstacle art — css/styles.css). The tutorial always runs on Земля.
 let currentWorld = '';
+let runBiomeId = 'earth'; // the biome this run actually plays (tutorial forces earth)
 
 function applyWorld(biomeId) {
-    const cls = (BIOMES[biomeId] && BIOMES[biomeId].worldClass) || 'world-earth';
+    runBiomeId = BIOMES[biomeId] ? biomeId : 'earth';
+    const cls = (BIOMES[runBiomeId] && BIOMES[runBiomeId].worldClass) || 'world-earth';
     if (cls === currentWorld) return;
     if (currentWorld) document.body.classList.remove(currentWorld);
     currentWorld = cls;

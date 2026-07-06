@@ -177,6 +177,11 @@ const MOODS = {
     'biome-night':  { bpm: 76,  root: 220, scale: [0, 3, 5, 7, 10], arpDensity: 0.25, bassSteps: [0] },
     'biome-storm':  { bpm: 116, root: 196, scale: [0, 3, 5, 6, 10], arpDensity: 0.6,  bassSteps: [0, 2, 4, 6] },
     'biome-dawn':   { bpm: 90,  root: 262, scale: [0, 2, 4, 7, 9],  arpDensity: 0.35, bassSteps: [0, 4] },
+    'biome-w-day':    { bpm: 92,  root: 294, scale: [0, 2, 4, 7, 9],  arpDensity: 0.45, bassSteps: [0, 4] },
+    'biome-w-sunset': { bpm: 84,  root: 262, scale: [0, 2, 4, 7, 9],  arpDensity: 0.35, bassSteps: [0, 4] },
+    'biome-w-night':  { bpm: 70,  root: 196, scale: [0, 3, 5, 7, 10], arpDensity: 0.2,  bassSteps: [0] },
+    'biome-w-storm':  { bpm: 126, root: 220, scale: [0, 3, 5, 6, 10], arpDensity: 0.7,  bassSteps: [0, 2, 4, 6] },
+    'biome-w-dawn':   { bpm: 90,  root: 262, scale: [0, 2, 4, 7, 9],  arpDensity: 0.4,  bassSteps: [0, 4] },
 };
 const DEFAULT_MOOD = 'biome-day';
 

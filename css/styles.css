@@ -136,6 +136,42 @@ body.biome-dawn {
     --cloud: rgba(255, 220, 190, 0.6);
 }
 
+/* === WINTER WORLD (biome-w-*: the day cycle of the Зимний биом) === */
+body.biome-w-day {
+    --sky-top: #6db8dc; --sky-mid: #9fd4ea; --sky-bottom: #cfeaf5;
+    --water-1: #1a7ea5; --water-2: #0d4a66; --water-3: #082a3d;
+    --wave-back: rgba(190, 230, 245, 0.5); --wave-front: rgba(220, 245, 255, 0.6);
+    --wave-far: rgba(160, 210, 230, 0.35); --cloud: rgba(255, 255, 255, 0.9);
+}
+
+body.biome-w-sunset {
+    --sky-top: #4a3a7a; --sky-mid: #c46a8a; --sky-bottom: #f0b088;
+    --water-1: #3a5e8c; --water-2: #1e3556; --water-3: #101c30;
+    --wave-back: rgba(200, 150, 170, 0.45); --wave-front: rgba(235, 180, 190, 0.55);
+    --wave-far: rgba(170, 120, 140, 0.3); --cloud: rgba(255, 210, 200, 0.65);
+}
+
+body.biome-w-night {
+    --sky-top: #0a1526; --sky-mid: #152438; --sky-bottom: #1a2f47;
+    --water-1: #0f3d5e; --water-2: #082540; --water-3: #041525;
+    --wave-back: rgba(60, 110, 160, 0.5); --wave-front: rgba(90, 140, 200, 0.55);
+    --wave-far: rgba(40, 80, 130, 0.35); --cloud: rgba(150, 170, 200, 0.3);
+}
+
+body.biome-w-storm {
+    --sky-top: #2a3540; --sky-mid: #4a5a68; --sky-bottom: #7a8a98;
+    --water-1: #3a5462; --water-2: #1c2e38; --water-3: #0e1a20;
+    --wave-back: rgba(200, 215, 225, 0.55); --wave-front: rgba(230, 240, 248, 0.65);
+    --wave-far: rgba(170, 185, 195, 0.4); --cloud: rgba(210, 220, 228, 0.9);
+}
+
+body.biome-w-dawn {
+    --sky-top: #3a4a6a; --sky-mid: #d88a6a; --sky-bottom: #f5c88a;
+    --water-1: #2a5a80; --water-2: #143550; --water-3: #0a2030;
+    --wave-back: rgba(235, 180, 140, 0.45); --wave-front: rgba(250, 205, 160, 0.55);
+    --wave-far: rgba(200, 150, 110, 0.3); --cloud: rgba(255, 225, 200, 0.6);
+}
+
 /* === LOG PALETTE (bark/wood) ===
    Defaults mirror the original hardcoded hex in #log-svg (the SVG attributes
    remain in place as a fallback for webviews where CSS on SVG loses). Future
@@ -167,6 +203,23 @@ body.biome-dawn {
 #log-svg .wood-core-2 { fill: var(--wood-core-2); }
 #log-svg .wood-crack { stroke: var(--wood-crack); }
 #log-svg .wood-crack-fill { fill: var(--wood-crack); }
+
+/* Winter world: the log freezes over — icy bark, pale frosted face. Only
+   variables change; geometry/hitboxes are untouched. */
+body.world-winter {
+    --bark-1: #7aa8c4;
+    --bark-stroke: #4a768f;
+    --bark-2: #a8d0e4;
+    --bark-3: #5d8dab;
+    --wood-face-1: #eef8fd;
+    --wood-face-2: #cfe8f4;
+    --wood-face-3: #a4cee2;
+    --wood-ring-1: #8fb8d0;
+    --wood-ring-2: #79a6c2;
+    --wood-core-1: #6d9cb8;
+    --wood-core-2: #55809b;
+    --wood-crack: #79a6c2;
+}
 
 /* Standalone Safari (home-screen PWA) ignores body overflow for its rubber
    page-pan: off-screen scenery (clouds animating past the edges) makes the
@@ -230,25 +283,25 @@ body {
         box-shadow 2.5s ease, opacity 2.5s ease;
 }
 
-body.biome-sunset #celestial {
+body.biome-sunset #celestial, body.biome-w-sunset #celestial {
     top: 44%;
     left: 60%;
     background: #ff9440;
     box-shadow: 0 0 70px 28px rgba(255, 130, 60, 0.5);
 }
 
-body.biome-night #celestial {
+body.biome-night #celestial, body.biome-w-night #celestial {
     top: 9%;
     left: 66%;
     background: #e8eef5;
     box-shadow: 0 0 40px 12px rgba(200, 220, 255, 0.35);
 }
 
-body.biome-storm #celestial {
+body.biome-storm #celestial, body.biome-w-storm #celestial {
     opacity: 0;
 }
 
-body.biome-dawn #celestial {
+body.biome-dawn #celestial, body.biome-w-dawn #celestial {
     top: 40%;
     left: 20%;
     background: #ffb75e;
@@ -368,15 +421,15 @@ body.biome-dawn #celestial {
     }
 }
 
-body.biome-night .stars {
+body.biome-night .stars, body.biome-w-night .stars {
     opacity: 1;
 }
 
-body.biome-storm .stars {
+body.biome-storm .stars, body.biome-w-storm .stars {
     opacity: 0.15;
 }
 
-body.biome-dawn .stars {
+body.biome-dawn .stars, body.biome-w-dawn .stars {
     opacity: 0.25;
 }
 
@@ -389,7 +442,7 @@ body.biome-dawn .stars {
     opacity: 0;
 }
 
-body.biome-storm .lightning {
+body.biome-storm .lightning, body.biome-w-storm .lightning {
     animation: lightningFlash 8s linear infinite;
 }
 
@@ -1133,6 +1186,14 @@ body.biome-storm .lightning {
     opacity: 0;
     pointer-events: none;
     will-change: transform;
+}
+
+/* Winter waters are orca territory: the ambient fins go black-and-white and
+   ride a touch taller. */
+body.world-winter .shark-fin {
+    height: 20px;
+    background: linear-gradient(200deg, #10181f, #05090c);
+    box-shadow: inset 0 -4px 0 rgba(240, 248, 255, 0.35);
 }
 
 body.fins-on .shark-fin {
@@ -1895,6 +1956,34 @@ body.boss-fight .shark-fin {
     background: #d98a2b;
     border-radius: 50% 50% 40% 40%;
     box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+}
+
+/* Winter art for the obstacles: the mossy knot becomes an ice hummock with a
+   snow cap; the tall branch becomes a sheer icicle spike. Colors only — the
+   hitboxes live in JS and the base geometry stays identical. */
+body.world-winter .obstacle-inner.ob-knot {
+    background: linear-gradient(180deg, #9fd4ea, #4a86ad);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.75);
+}
+
+body.world-winter .obstacle-inner.ob-knot::before {
+    background: #f4fbff;
+    box-shadow: inset 0 -3px 0 rgba(120, 170, 200, 0.45);
+}
+
+body.world-winter .obstacle-inner.ob-branch {
+    background: linear-gradient(180deg, #d8f0fa, #5d9cc0);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
+}
+
+body.world-winter .obstacle-inner.ob-branch::before {
+    background: #9fd4ea;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+
+body.world-winter .obstacle-inner.ob-branch::after {
+    background: #f4fbff;
+    box-shadow: inset 0 -3px 0 rgba(120, 170, 200, 0.4);
 }
 
 .obstacle-inner.cleared {

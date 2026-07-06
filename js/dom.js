@@ -50,6 +50,7 @@ export const steerHint = document.getElementById('steer-hint');
 export const tutorialBanner = document.getElementById('tutorial-banner');
 export const tutorialSkipBtn = document.getElementById('tutorial-skip');
 export const questToastEl = document.getElementById('quest-toast');
+export const questHudEl = document.getElementById('quest-hud');
 export const dangerVignette = document.getElementById('danger-vignette');
 export const hitFlash = document.getElementById('hit-flash');
 export const desktopStub = document.getElementById('desktop-stub');

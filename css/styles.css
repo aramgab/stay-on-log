@@ -2899,6 +2899,34 @@ body.world-winter .obstacle-inner.ob-branch::after {
     opacity: 1;
 }
 
+/* In-run quest tracker: three tiny rows pinned to the left edge, out of the
+   log's way. pointer-events:none — taps must stay jumps. */
+#quest-hud {
+    position: fixed;
+    left: 8px;
+    top: 34%;
+    z-index: 15;
+    max-width: 34vw;
+    text-align: left;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.92);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+#quest-hud.visible {
+    opacity: 1;
+}
+
+#quest-hud .qh-line.done {
+    color: #7dde8a;
+    opacity: 0.85;
+}
+
 /* Interactive tutorial: "skip" button, bottom-right corner. Unlike the coach
    banners, this IS clickable (pointer-events:auto) — it's an escape hatch,
    not an instruction. Hidden by default; game.js toggles display only while

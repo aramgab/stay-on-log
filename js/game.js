@@ -69,6 +69,7 @@ import {
     runCoinsEl,
     questResultEl,
     questToastEl,
+    questHudEl,
     coinsDisplayEl,
     startBtn,
     reviveBtn,
@@ -112,8 +113,8 @@ import { initShop, hasPendingHeart, consumePendingHeart, spendCoins } from './sh
 import { initLeaderboard, submitScore } from './leaderboard.js';
 import { setMainArrow, setPreviewArrow, promoteArrows, cancelPromote, resetArrows } from './dirarrow.js';
 import { deathQuip } from './quips.js';
-import { DAY_PHASE_CLASSES, dayPhaseFor, cycleOf, BIOMES, BOSSES } from './biomes.js';
-import { cycleCompleted, flushCampaign, syncCampaignFromCloud, getSelectedBiome, questEvent, devCompleteAllQuests } from './campaign.js';
+import { DAY_PHASE_CLASSES, dayPhaseFor, cycleOf, BIOMES, BOSSES, questsFor } from './biomes.js';
+import { cycleCompleted, flushCampaign, syncCampaignFromCloud, getSelectedBiome, questEvent, questCount, devCompleteAllQuests } from './campaign.js';
 import { initMap, updateMapBtnLabel } from './map.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord, hapticCoin } from './haptics.js';
@@ -295,6 +296,27 @@ function celebrateQuests(completedQuests) {
     questToastTimer = setTimeout(() => questToastEl.classList.remove('visible'), 2400);
 }
 
+// In-run quest tracker: one line per quest of the biome being played.
+// Rebuilt on start and on every quest tick — three tiny rows, cheap.
+function updateQuestHud() {
+    const quests = questsFor(getSelectedBiome());
+    const open = quests.filter((q) => questCount(q.id) < q.target);
+    if (tutorialMode || !state.isPlaying || !quests.length || !open.length) {
+        questHudEl.classList.remove('visible');
+        return;
+    }
+    questHudEl.innerHTML = '';
+    quests.forEach((q) => {
+        const n = Math.min(questCount(q.id), q.target);
+        const line = document.createElement('div');
+        const done = n >= q.target;
+        line.className = 'qh-line' + (done ? ' done' : '');
+        line.textContent = done ? '✓ ' + q.title : '• ' + q.title + ' — ' + n + '/' + q.target;
+        questHudEl.appendChild(line);
+    });
+    questHudEl.classList.add('visible');
+}
+
 function applyBiome(elapsed) {
     const next = dayPhaseFor(elapsed, runBiomeId).cssClass;
     if (next === currentBiome) return;
@@ -459,6 +481,7 @@ function gameLoop() {
         // Campaign quest tick: the obstacle is still active while 'cleared'
         // fires (it dives later), so its type is readable right here.
         celebrateQuests(questEvent('clear', { obType: activeObstacleType() }));
+        updateQuestHud();
     } else if (obEvent === 'hit' && registerHit(playerPosition)) {
         return; // fatal hit — loop stopped inside gameOver
     }
@@ -478,6 +501,7 @@ function gameLoop() {
         // Campaign quest tick: a pickup counts as ONE coin regardless of its
         // wallet value (the quest text says "монетки", not "кошелёк").
         celebrateQuests(questEvent('coin', { dayPhase: dayPhaseFor(state.elapsed).id }));
+        updateQuestHud();
     }
 
     // 2c. Scene palette follows elapsed time (day -> sunset -> night -> storm)
@@ -1180,6 +1204,7 @@ function showCountdown(startTutorialMode) {
     runCoinsEl.innerText = '';
     questResultEl.innerText = '';
     questToastEl.classList.remove('visible');
+    questHudEl.classList.remove('visible');
     playerEl.classList.remove('visible', 'falling', 'jumping', 'hit');
     playerEl.style.opacity = '0';
     dangerVignette.style.opacity = 0;
@@ -1281,6 +1306,7 @@ function startGame() {
     state.elapsed = 0;
     runCycle = 0;
     runQuestTitles = [];
+    updateQuestHud();
     state.recordCelebrated = false;
     state.revivedThisRun = false;
     state.lastChangeAt = -Infinity;
@@ -1393,6 +1419,7 @@ function showReviveCountdown() {
     runCoinsEl.innerText = '';
     questResultEl.innerText = '';
     questToastEl.classList.remove('visible');
+    questHudEl.classList.remove('visible');
     hideFallFx();
 
     // gameOver removed the motion listener — bring the controls back.
@@ -1449,6 +1476,7 @@ function resumeRun() {
     // of quiet log before anything surfaces again.
     spawnObstacles();
     spawnCoins();
+    updateQuestHud();
     bossResume(); // if a boss fight was in progress, restart its current beat
 
     // Shield: blink without the sad face (.invuln, not .hit).
@@ -1494,6 +1522,7 @@ function gameOver(normPos, cause) {
     dangerVignette.style.opacity = 0;
     dangerVignette.className = '';
     heartsEl.style.display = 'none';
+    questHudEl.classList.remove('visible');
     // Defensive: the normal flow never reaches gameOver while tutorialMode is
     // active (see the gameLoop gates), but guard the UI anyway.
     hideTutorialUI();

@@ -185,7 +185,7 @@ export const COIN_COOLDOWN_MAX_ROT = 2.0; // rotations between coins (max)
 export const COIN_COLLECT_WINDOW = 14;    // angular window (deg) to collect
 export const COIN_HIGH_CHANCE = 0.35;     // chance the coin spawns floating
 export const COIN_VALUE = 1;              // wallet value of a ground coin
-export const COIN_HIGH_VALUE = 2;         // wallet value of a floating coin
+export const COIN_HIGH_VALUE = 1;         // floating coin pays the same as a ground one — the jump catch is for style/quests, not extra pay
 export const COIN_RADIUS_LOW = 118;       // px from log center (on the surface)
 // High coin sits between the standing head (~162) and the jump apex (player
 // center 135 + 58px of playerJump lift = ~193) — clearly out of reach until

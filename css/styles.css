@@ -1196,8 +1196,8 @@ body.biome-storm .lightning, body.biome-w-storm .lightning {
     inset: 0;
     background: linear-gradient(200deg, #2c3e50, #17242f);
     /* graceful degrade first (old webviews without clip-path keep a hump) */
-    border-radius: 92% 10% 12% 4% / 96% 18% 8% 4%;
-    clip-path: polygon(0% 100%, 10% 60%, 26% 22%, 40% 4%, 48% 0%, 58% 14%, 70% 42%, 84% 72%, 100% 100%);
+    border-radius: 10% 92% 4% 12% / 18% 96% 4% 8%;
+    clip-path: polygon(0% 100%, 16% 72%, 30% 42%, 42% 14%, 52% 0%, 60% 4%, 74% 22%, 90% 60%, 100% 100%);
 }
 
 /* Foam wake at the base — the fin CUTS the water instead of hovering. */
@@ -1258,7 +1258,7 @@ body.fins-on .f3 {
    overrides every frame. */
 @keyframes finDrift1 {
     0% {
-        transform: translateX(-40px) translateY(0) skewX(-14deg);
+        transform: translateX(-40px) translateY(0) skewX(14deg);
         opacity: 0;
     }
 
@@ -1267,15 +1267,15 @@ body.fins-on .f3 {
     }
 
     25% {
-        transform: translateX(25vw) translateY(2px) skewX(-14deg);
+        transform: translateX(25vw) translateY(2px) skewX(14deg);
     }
 
     50% {
-        transform: translateX(50vw) translateY(-2px) skewX(-14deg);
+        transform: translateX(50vw) translateY(-2px) skewX(14deg);
     }
 
     75% {
-        transform: translateX(75vw) translateY(2px) skewX(-14deg);
+        transform: translateX(75vw) translateY(2px) skewX(14deg);
     }
 
     94% {
@@ -1283,7 +1283,7 @@ body.fins-on .f3 {
     }
 
     100% {
-        transform: translateX(calc(100vw + 40px)) translateY(0) skewX(-14deg);
+        transform: translateX(calc(100vw + 40px)) translateY(0) skewX(14deg);
         opacity: 0;
     }
 }
@@ -1292,7 +1292,7 @@ body.fins-on .f3 {
    fins all drifting in lockstep. */
 @keyframes finDrift2 {
     0% {
-        transform: translateX(calc(100vw + 40px)) translateY(0) skewX(14deg) scaleX(-1) scale(0.8);
+        transform: translateX(calc(100vw + 40px)) translateY(0) skewX(-14deg) scaleX(-1) scale(0.8);
         opacity: 0;
     }
 
@@ -1301,15 +1301,15 @@ body.fins-on .f3 {
     }
 
     25% {
-        transform: translateX(75vw) translateY(2px) skewX(14deg) scaleX(-1) scale(0.8);
+        transform: translateX(75vw) translateY(2px) skewX(-14deg) scaleX(-1) scale(0.8);
     }
 
     50% {
-        transform: translateX(50vw) translateY(-2px) skewX(14deg) scaleX(-1) scale(0.8);
+        transform: translateX(50vw) translateY(-2px) skewX(-14deg) scaleX(-1) scale(0.8);
     }
 
     75% {
-        transform: translateX(25vw) translateY(2px) skewX(14deg) scaleX(-1) scale(0.8);
+        transform: translateX(25vw) translateY(2px) skewX(-14deg) scaleX(-1) scale(0.8);
     }
 
     94% {
@@ -1317,14 +1317,14 @@ body.fins-on .f3 {
     }
 
     100% {
-        transform: translateX(-40px) translateY(0) skewX(14deg) scaleX(-1) scale(0.8);
+        transform: translateX(-40px) translateY(0) skewX(-14deg) scaleX(-1) scale(0.8);
         opacity: 0;
     }
 }
 
 @keyframes finDrift3 {
     0% {
-        transform: translateX(-40px) translateY(0) scale(0.65) skewX(-14deg);
+        transform: translateX(-40px) translateY(0) scale(0.65) skewX(14deg);
         opacity: 0;
     }
 
@@ -1333,15 +1333,15 @@ body.fins-on .f3 {
     }
 
     25% {
-        transform: translateX(25vw) translateY(2px) scale(0.65) skewX(-14deg);
+        transform: translateX(25vw) translateY(2px) scale(0.65) skewX(14deg);
     }
 
     50% {
-        transform: translateX(50vw) translateY(-2px) scale(0.65) skewX(-14deg);
+        transform: translateX(50vw) translateY(-2px) scale(0.65) skewX(14deg);
     }
 
     75% {
-        transform: translateX(75vw) translateY(2px) scale(0.65) skewX(-14deg);
+        transform: translateX(75vw) translateY(2px) scale(0.65) skewX(14deg);
     }
 
     94% {
@@ -1349,7 +1349,7 @@ body.fins-on .f3 {
     }
 
     100% {
-        transform: translateX(calc(100vw + 40px)) translateY(0) scale(0.65) skewX(-14deg);
+        transform: translateX(calc(100vw + 40px)) translateY(0) scale(0.65) skewX(14deg);
         opacity: 0;
     }
 }

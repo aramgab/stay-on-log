@@ -1350,6 +1350,14 @@ body.biome-night .shark-fin {
     opacity: 0;
 }
 
+/* Fail-safe: with no state class on the layer NOTHING inside may render,
+   whatever happens to the per-child rules below (a stale/partial cached
+   stylesheet in the Telegram webview once painted a fullscreen shark on the
+   start screen). Every visible state sets 'on', so this can't hide a fight. */
+#boss-layer:not(.on) > * {
+    display: none !important;
+}
+
 /* Ambient foreshadowing fins yield to the real shark once the fight begins. */
 body.boss-fight .shark-fin {
     animation: none;

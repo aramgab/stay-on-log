@@ -15,7 +15,11 @@
     <meta name="twitter:image" content="https://stay-on-log.vercel.app/assets/avatar.png">
     <!-- Telegram Mini App SDK (no-op outside Telegram; init is guarded in game.js) -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="css/styles.css">
+    <!-- ?v= is a cache-buster: the Telegram webview happily serves a stale
+         stylesheet against max-age=0 (fullscreen-shark incident, июль 2026).
+         index.html itself always revalidates, so bumping v here on css
+         changes guarantees clients fetch the fresh file. -->
+    <link rel="stylesheet" href="css/styles.css?v=3">
 </head>
 
 <body>

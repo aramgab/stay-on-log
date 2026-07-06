@@ -22,6 +22,7 @@ import {
 } from './config.js';
 import { coinLayer } from './dom.js';
 import { isObstacleApproaching } from './obstacles.js';
+import { isBossActive } from './boss.js';
 
 // Normalize an angle to the range (-180, 180] — same helper as obstacles.js.
 function normalizeAngle(deg) {
@@ -121,8 +122,9 @@ export function stepCoins(logSpeedAbs) {
         accum += logSpeedAbs;
         // Fairness: never surface while an obstacle is riding toward the
         // player — a coin jump must not turn into a surprise knot meeting.
-        // The cooldown keeps accumulating, so the coin pops right after.
-        if (accum >= cooldownTarget && !isObstacleApproaching()) emerge();
+        // Also never surface while the boss owns the arena. The cooldown
+        // keeps accumulating in both cases, so the coin pops right after.
+        if (accum >= cooldownTarget && !isObstacleApproaching() && !isBossActive()) emerge();
         return 0;
     }
 

@@ -46,6 +46,9 @@ import {
     REVIVE_COUNT_FROM,
     REVIVE_COUNT_TICK_MS,
     REVIVE_MIN_CHANGE_GAP_MS,
+    DAY_STORM_MS,
+    DAY_CYCLE_MS,
+    BOSS_DEFEAT_POINTS,
 } from './config.js';
 import {
     logWrapper,
@@ -109,11 +112,12 @@ import { initLeaderboard, submitScore } from './leaderboard.js';
 import { setMainArrow, setPreviewArrow, promoteArrows, cancelPromote, resetArrows } from './dirarrow.js';
 import { deathQuip } from './quips.js';
 import { DAY_PHASE_CLASSES, dayPhaseFor, cycleOf } from './biomes.js';
-import { cycleCompleted, flushCampaign, syncCampaignFromCloud, getSelectedBiome, questEvent } from './campaign.js';
+import { cycleCompleted, flushCampaign, syncCampaignFromCloud, getSelectedBiome, questEvent, devCompleteAllQuests } from './campaign.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord, hapticCoin } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
 import { initTelegram, tgUser, cloudGet, cloudSet, shareScore } from './tg.js';
+import { stepBoss, isBossActive, bossReset, bossHide, bossResume } from './boss.js';
 
 initTelegram();
 
@@ -522,8 +526,10 @@ function gameLoop() {
         // Fairness: while a double is riding the log its gap was computed for
         // the current speed — postpone the change entirely (pendingChange
         // survives, so the preview keeps promising the same thing) until it
-        // dives.
-        if (activeObstacleType() === 'double') {
+        // dives. Same postponement while the boss is on stage: while it owns
+        // the arena a reversal would be unreadable — the pending promise
+        // survives untouched.
+        if (activeObstacleType() === 'double' || isBossActive()) {
             scheduleNextChange();
         } else {
             applyPendingChange();
@@ -569,6 +575,25 @@ function gameLoop() {
     const danger = Math.min(1, Math.max(0, (Math.abs(normPos) - DANGER_WARN_FROM) / (FALL_THRESHOLD - DANGER_WARN_FROM)));
     dangerVignette.style.opacity = danger;
     dangerVignette.className = danger > 0 ? (normPos > 0 ? 'right' : 'left') : '';
+
+    // 6b3. Boss fight (storm segment; js/boss.js owns the state machine —
+    // obstacle/coin spawns freeze and direction changes postpone while it
+    // is on stage). Hits ride the same hp/invuln path as obstacles.
+    if (!tutorialMode) {
+        const bossEvent = stepBoss(dtMs, normPos);
+        if (bossEvent === 'hit' && registerHit(playerPosition, 'boss')) {
+            return; // fatal — loop stopped inside gameOver
+        }
+        if (bossEvent === 'victory') {
+            state.eventScore += BOSS_DEFEAT_POINTS;
+            sfx.combo(COMBO_MAX_MULT);
+            hapticRecord();
+            const bxy = playerXY();
+            burst(bxy.x, bxy.y, { color: '#ff5252', count: 26, size: 12, up: 95, spread: 140 });
+            floatText(window.innerWidth / 2, window.innerHeight * 0.32, '🦈 ПОБЕДА! +' + BOSS_DEFEAT_POINTS, '#ffd93d');
+            celebrateQuests(questEvent('boss', { bossId: 'shark' }));
+        }
+    }
 
     // 6b2. Tutorial step logic (balance hold / jump prompt / outro timing).
     if (tutorialMode) tutorialTick(dtMs, normPos);
@@ -787,15 +812,19 @@ function triggerHitFlash() {
     hitFlash.classList.add('active');
 }
 
-// Apply an obstacle hit. Returns true if it was fatal (game over triggered).
-function registerHit(playerPosition) {
+// Apply an obstacle (or boss) hit. Returns true if it was fatal (game over
+// triggered). `source` is 'boss' for a boss strike, undefined for the
+// obstacle path (existing call site is unchanged).
+function registerHit(playerPosition, source) {
     state.hp -= 1;
     state.combo = 0;
     updateHearts();
 
     if (state.hp <= 0) {
-        // Which obstacle killed us — read BEFORE gameOver's resetObstacles.
-        gameOver(normalizePos(playerPosition), 'hit-' + (activeObstacleType() || 'knot'));
+        // Which threat killed us — read BEFORE gameOver's resetObstacles.
+        gameOver(normalizePos(playerPosition), source === 'boss'
+            ? 'boss'
+            : 'hit-' + (activeObstacleType() || 'knot'));
         return true;
     }
 
@@ -1148,6 +1177,7 @@ function showCountdown(startTutorialMode) {
     state.invulnerable = false;
     resetObstacles();
     resetCoins();
+    bossReset();
     applyBiome(0); // back to day for the new run
 
     // Hide falling player & splash from prev game — full reset
@@ -1396,6 +1426,7 @@ function resumeRun() {
     // of quiet log before anything surfaces again.
     spawnObstacles();
     spawnCoins();
+    bossResume(); // if a boss fight was in progress, restart its current beat
 
     // Shield: blink without the sad face (.invuln, not .hit).
     state.invulnerable = true;
@@ -1445,6 +1476,7 @@ function gameOver(normPos, cause) {
     hideTutorialUI();
     window.removeEventListener('devicemotion', handleMotion);
     document.body.classList.remove('fins-on');
+    bossHide(); // fade the shark out; state survives for a possible revive
     music.stop();
     sfx.splash();
     hapticFall();
@@ -1673,6 +1705,29 @@ function buildTunePanel() {
     addTuneSlider(panel, 'tilt rate', getTiltRateMax, setTiltRateMax, 1.0, 6.0, 0.1, 1);
     addTuneSlider(panel, 'tilt expo', getTiltExpo, setTiltExpo, 1.0, 2.5, 0.05, 2);
     addTuneSlider(panel, 'tilt dz', getTiltDeadzone, setTiltDeadzone, 0, 8, 0.25, 2);
+
+    // Campaign shortcuts: the boss lives 140s into a run — untestable by
+    // waiting on every deploy. «→шторм» warps elapsed to just before the
+    // storm segment of the CURRENT cycle (nextChangeTime is pushed too, so
+    // the warp doesn't instantly fire a stale direction change).
+    const devRow = document.createElement('label');
+    devRow.innerHTML = 'campaign <span id="dt-storm" class="dt-seg-btn">→шторм</span>' +
+        '<span id="dt-unlock" class="dt-seg-btn">анлок</span>';
+    panel.appendChild(devRow);
+    const stormBtn = devRow.querySelector('#dt-storm');
+    const unlockBtn = devRow.querySelector('#dt-unlock');
+    [stormBtn, unlockBtn].forEach((btn) => {
+        btn.style.cssText = 'padding:2px 8px;border-radius:6px;background:rgba(255,255,255,0.12);cursor:pointer;';
+    });
+    stormBtn.addEventListener('click', () => {
+        if (!state.isPlaying) return;
+        state.elapsed = cycleOf(state.elapsed) * DAY_CYCLE_MS + DAY_STORM_MS - 2000;
+        state.nextChangeTime = state.elapsed + 8000;
+    });
+    unlockBtn.addEventListener('click', () => {
+        devCompleteAllQuests();
+        unlockBtn.textContent = 'анлок ✓';
+    });
 }
 
 // Shared row-builder for the tilt sliders: same markup/wiring pattern as the

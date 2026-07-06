@@ -307,6 +307,22 @@
             <div class="reflection r3"></div>
         </div>
 
+        <!-- Boss layer (js/boss.js): the shark's intro/attack visuals. Sits
+             above the water, below the HUD; never intercepts taps. All the
+             choreography is CSS classes driven by the boss state machine. -->
+        <div id="boss-layer" aria-hidden="true">
+            <div id="boss-glow-left"></div>
+            <div id="boss-glow-right"></div>
+            <div id="boss-shark">
+                <div class="bs-body"></div>
+                <div class="bs-fin"></div>
+                <div class="bs-eye"></div>
+                <div class="bs-teeth"></div>
+            </div>
+            <div id="boss-jaw"></div>
+        </div>
+        <div id="boss-hint" aria-hidden="true"></div>
+
         <!-- Falling player clone (for fall animation) -->
         <svg id="falling-player" width="44" height="55" viewBox="0 0 44 55" xmlns="http://www.w3.org/2000/svg">
             <!-- Same character, fail-state face: eyes shut, mouth an "o" -->

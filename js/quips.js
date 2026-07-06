@@ -29,6 +29,12 @@ const BY_CAUSE = {
         'Первый перепрыгнул. Второй обиделся',
         'Ритм — это пока не твоё',
     ],
+    boss: [
+        'Акула засчитала себе обед',
+        'Это была её территория',
+        'У акулы сегодня разгрузочный день. Был.',
+        'Море попросило не беспокоить',
+    ],
 };
 
 // Context pools take priority: when one applies, the quip is drawn from it
@@ -58,7 +64,7 @@ function pick(pool) {
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
-// cause: 'fall' | 'hit-knot' | 'hit-branch' | 'hit-double'
+// cause: 'fall' | 'hit-knot' | 'hit-branch' | 'hit-double' | 'boss'
 // ctx: { recentChange, storm, fast } (all booleans, all optional)
 export function deathQuip(cause, ctx) {
     const contextPool = [];

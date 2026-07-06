@@ -105,6 +105,16 @@ export function setSelectedBiome(biomeId) {
     flushCampaign(); // selection is rare and worth syncing right away
 }
 
+// Dev-panel cheat (?dev=1): complete every quest — the unlock chain can't be
+// playtested by grinding on every deploy. Writes real progress on purpose.
+export function devCompleteAllQuests() {
+    QUESTS.forEach((q) => {
+        if ((data.quests[q.id] || 0) < q.target) data.quests[q.id] = q.target;
+    });
+    persistLocal();
+    flushCampaign();
+}
+
 // --- CloudStorage merge (async, runs once on boot from game.js) ---
 // Counters take max() per key; `selected` follows the shop's equipped-skin
 // rule: an explicit local choice wins, cloud only fills a local void. If the

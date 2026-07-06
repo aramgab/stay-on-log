@@ -203,6 +203,18 @@ export const REVIVE_COUNT_FROM = 2;      // quick countdown before resuming
 export const REVIVE_COUNT_TICK_MS = 700;
 export const REVIVE_MIN_CHANGE_GAP_MS = 3000; // no direction change right after revive
 
+// === BOSS FIGHTS (campaign) ===
+// One boss per biome, living in the storm segment of the day cycle. The
+// fight is a scripted series of telegraphed attacks; timings below are the
+// shared engine constants (per-boss scripts live in js/boss.js).
+export const BOSS_INTRO_DELAY_MS = 1200; // storm begins -> beat before the intro banner
+export const BOSS_INTRO_MS = 2600;       // intro banner + fins converge
+export const BOSS_TELEGRAPH_MS = 1500;   // attack warning (same read-time as CHANGE_WARN_MS)
+export const BOSS_STRIKE_MS = 600;       // danger window of a single attack
+export const BOSS_ATTACK_GAP_MS = 2500;  // breather between attacks
+export const BOSS_LUNGE_SAFE_DEG = 45;   // lunge bites the side arc beyond ±this from the top
+export const BOSS_DEFEAT_POINTS = 150;   // eventScore bonus for surviving the pattern
+
 // === DEATH QUIPS (funny "why you fell" line on the result screen) ===
 // A direction change within this window before death counts as "it got you".
 export const QUIP_RECENT_CHANGE_MS = 2000;

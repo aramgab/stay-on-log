@@ -40,3 +40,15 @@ export const QUESTS = [
 export function questsFor(biomeId) {
     return QUESTS.filter((q) => q.biome === biomeId);
 }
+
+// === BOSSES ===
+// One per biome; the engine (js/boss.js) picks by the selected biome. Titles
+// feed the intro banner and the map UI.
+export const BOSSES = {
+    shark: { id: 'shark', biome: 'earth', title: 'БЕЛАЯ АКУЛА', emoji: '🦈' },
+};
+
+export function bossFor(biomeId) {
+    for (const k in BOSSES) if (BOSSES[k].biome === biomeId) return BOSSES[k];
+    return null;
+}

@@ -65,3 +65,5 @@ export const playerNameEl = document.getElementById('player-name');
 export const nicknameOverlay = document.getElementById('nickname-overlay');
 export const nicknameInput = document.getElementById('nickname-input');
 export const nicknameSaveBtn = document.getElementById('nickname-save-btn');
+export const bossLayer = document.getElementById('boss-layer');
+export const bossHintEl = document.getElementById('boss-hint');

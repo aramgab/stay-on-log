@@ -24,6 +24,7 @@ import {
     PHASE2_MS,
 } from './config.js';
 import { obstacleLayer, obstacleSplash } from './dom.js';
+import { isBossActive } from './boss.js';
 
 // Normalize an angle to the range (-180, 180].
 function normalizeAngle(deg) {
@@ -189,7 +190,10 @@ export function stepObstacles(logSpeedAbs) {
         // Grace period: nothing surfaces for the first OBSTACLE_START_MS.
         if (state.elapsed < OBSTACLE_START_MS) return null;
         accum += logSpeedAbs;
-        if (accum >= cooldownTarget) emerge();
+        // Boss fairness: the arena belongs to the shark — nothing new
+        // surfaces mid-fight (the cooldown keeps accumulating, so obstacles
+        // resume right after). Active obstacles finish their trip normally.
+        if (accum >= cooldownTarget && !isBossActive()) emerge();
         return null;
     }
 

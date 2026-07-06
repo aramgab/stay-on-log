@@ -1175,25 +1175,54 @@ body.biome-storm .lightning, body.biome-w-storm .lightning {
    fin at this size without any SVG. */
 .shark-fin {
     position: absolute;
-    top: -13px;
-    /* above the container edge = poking out of the water */
+    /* #water-container clips its overflow and the VISIBLE wave crest sits
+       ~25px below its top edge (the wave svg tops are transparent) — a
+       negative top here got clipped to a floating 4px dash. The fin lives
+       fully inside the container, tip just above the crest line. */
+    top: 14px;
     left: 0;
-    width: 26px;
-    height: 16px;
-    background: linear-gradient(200deg, #2c3e50, #17242f);
-    border-radius: 92% 10% 12% 4% / 96% 18% 8% 4%;
-    transform: skewX(-14deg);
+    width: 34px;
+    height: 22px;
     opacity: 0;
     pointer-events: none;
     will-change: transform;
 }
 
+/* The fin silhouette lives on ::before: clip-path clips the whole element
+   box including ::after, so the foam wake below needs the parent unclipped. */
+.shark-fin::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(200deg, #2c3e50, #17242f);
+    /* graceful degrade first (old webviews without clip-path keep a hump) */
+    border-radius: 92% 10% 12% 4% / 96% 18% 8% 4%;
+    clip-path: polygon(0% 100%, 10% 60%, 26% 22%, 40% 4%, 48% 0%, 58% 14%, 70% 42%, 84% 72%, 100% 100%);
+}
+
+/* Foam wake at the base — the fin CUTS the water instead of hovering. */
+.shark-fin::after {
+    content: '';
+    position: absolute;
+    left: -18%;
+    right: -18%;
+    bottom: -1px;
+    height: 3px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.4);
+    filter: blur(1px);
+}
+
 /* Winter waters are orca territory: the ambient fins go black-and-white and
    ride a touch taller. */
 body.world-winter .shark-fin {
-    height: 20px;
+    height: 27px;
+    top: 11px;
+}
+
+body.world-winter .shark-fin::before {
+    /* Orca dorsal: taller, pure black (the white belly never surfaces). */
     background: linear-gradient(200deg, #10181f, #05090c);
-    box-shadow: inset 0 -4px 0 rgba(240, 248, 255, 0.35);
 }
 
 body.fins-on .shark-fin {
@@ -1205,21 +1234,21 @@ body.fins-on .f1 {
     animation-name: finDrift1;
     animation-duration: 17s;
     animation-delay: 0s;
-    top: -12px;
+    top: 13px;
 }
 
 body.fins-on .f2 {
     animation-name: finDrift2;
     animation-duration: 23s;
     animation-delay: 6s;
-    top: -10px;
+    top: 17px;
 }
 
 body.fins-on .f3 {
     animation-name: finDrift3;
     animation-duration: 29s;
     animation-delay: 12s;
-    top: -8px;
+    top: 20px;
 }
 
 /* The fin slides across the whole screen, bobbing with the waves; opacity
@@ -1327,7 +1356,7 @@ body.fins-on .f3 {
 
 /* Night: the fins come closer to the surface line and read darker — the
    foreshadowing tightens as the boss hour approaches. */
-body.biome-night .shark-fin {
+body.biome-night .shark-fin::before {
     background: linear-gradient(200deg, #1a2733, #0c141c);
 }
 

@@ -1382,14 +1382,18 @@ body.boss-fight .shark-fin {
 #boss-layer.tele-left #boss-glow-left,
 #boss-layer.strike-left #boss-glow-left,
 #boss-layer.intro #boss-glow-left,
+#boss-layer.tele-snap #boss-glow-left,
 #boss-layer.tele-right #boss-glow-right,
 #boss-layer.strike-right #boss-glow-right,
-#boss-layer.intro #boss-glow-right {
+#boss-layer.intro #boss-glow-right,
+#boss-layer.tele-snap #boss-glow-right {
     display: block;
 }
 
 #boss-layer.tele-left #boss-glow-left,
-#boss-layer.tele-right #boss-glow-right {
+#boss-layer.tele-right #boss-glow-right,
+#boss-layer.tele-snap #boss-glow-left,
+#boss-layer.tele-snap #boss-glow-right {
     animation: bossGlowPulse 0.5s ease-in-out infinite alternate;
 }
 
@@ -1526,6 +1530,52 @@ body.boss-fight .shark-fin {
     transition: transform 0.8s ease-in, opacity 0.8s ease-in;
 }
 
+/* Chase (orca): no left/right lunge — the whole silhouette sits low and
+   centered behind/below the log, swimming hard, visible through the entire
+   fight. tele-snap rears it up (danger everywhere, glows pulse both sides —
+   see #boss-glow-* above); strike-snap is the fast lunge itself. */
+#boss-layer.chase #boss-shark {
+    display: block;
+    left: 50%;
+    right: auto;
+    bottom: 12%;
+    opacity: 1;
+    transform: translateX(-50%) translateY(35%);
+    animation: bossChasePursue 1.4s ease-in-out infinite alternate;
+    transition: transform 0.25s ease;
+}
+
+@keyframes bossChasePursue {
+    from {
+        transform: translateX(-50%) translateY(35%);
+    }
+
+    to {
+        transform: translateX(-50%) translateY(28%) rotate(-2deg);
+    }
+}
+
+#boss-layer.chase.tele-snap #boss-shark {
+    opacity: 1;
+    animation: bossChaseShake 0.25s ease-in-out infinite alternate;
+}
+
+@keyframes bossChaseShake {
+    from {
+        transform: translateX(-50%) translateY(10%) scale(1.06) rotate(-2deg);
+    }
+
+    to {
+        transform: translateX(-50%) translateY(10%) scale(1.06) rotate(2deg);
+    }
+}
+
+#boss-layer.chase.strike-snap #boss-shark {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-8%) scale(1.12);
+    transition: transform 0.18s cubic-bezier(0.3, 1.4, 0.6, 1), opacity 0.15s ease;
+}
+
 /* Body: tall rounded teardrop, dark slate gradient, slight lean toward the log. */
 .bs-body {
     position: absolute;
@@ -1570,6 +1620,32 @@ body.boss-fight .shark-fin {
     transform: rotate(18deg);
     background: repeating-linear-gradient(135deg, #fff 0 6px, transparent 6px 12px);
     opacity: 0.9;
+}
+
+/* Orca variant: same four shark parts (js/boss.js sets layerVariant='orca'
+   alongside the state class), restyled for black-and-white markings instead
+   of a restyle-free reuse. .bs-teeth is left as-is (already white). */
+.orca .bs-body {
+    background: linear-gradient(160deg, #10181f, #05090c);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 -14px 18px -6px rgba(240, 248, 255, 0.4);
+}
+
+.orca .bs-fin {
+    background: #05090c;
+    transform: skewX(-14deg) rotate(-8deg) scaleY(1.4);
+}
+
+/* Eye patch: the orca's signature marking — a bigger, rotated, pure-white
+   oval with no pupil (unlike the shark's dark-pupiled circle). */
+.orca .bs-eye {
+    top: 18%;
+    left: 22%;
+    width: 26px;
+    height: 15px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: none;
+    transform: rotate(-20deg);
 }
 
 /* The bite sweep: a wide low shape at the log-top height. Looms at one edge

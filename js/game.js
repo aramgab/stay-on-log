@@ -112,14 +112,14 @@ import { initShop, hasPendingHeart, consumePendingHeart, spendCoins } from './sh
 import { initLeaderboard, submitScore } from './leaderboard.js';
 import { setMainArrow, setPreviewArrow, promoteArrows, cancelPromote, resetArrows } from './dirarrow.js';
 import { deathQuip } from './quips.js';
-import { DAY_PHASE_CLASSES, dayPhaseFor, cycleOf, BIOMES } from './biomes.js';
+import { DAY_PHASE_CLASSES, dayPhaseFor, cycleOf, BIOMES, BOSSES } from './biomes.js';
 import { cycleCompleted, flushCampaign, syncCampaignFromCloud, getSelectedBiome, questEvent, devCompleteAllQuests } from './campaign.js';
 import { initMap, updateMapBtnLabel } from './map.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord, hapticCoin } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
 import { initTelegram, tgUser, cloudGet, cloudSet, shareScore } from './tg.js';
-import { stepBoss, isBossActive, bossReset, bossHide, bossResume } from './boss.js';
+import { stepBoss, isBossActive, bossReset, bossHide, bossResume, bossSpeedFactor, activeBossId } from './boss.js';
 
 initTelegram();
 
@@ -336,6 +336,10 @@ function gameLoop() {
     const dtMs = Math.min(50, Math.max(0, nowTs - lastFrameTs));
     lastFrameTs = nowTs;
     const dtF = dtMs / (1000 / 60);
+    // Chase-boss world acceleration: one factor, applied to every consumer of
+    // the log's rotation this frame (log step, obstacle/coin stepping, assist
+    // compensation) so collisions stay in sync. 1.0 outside a chase.
+    const bossFac = tutorialMode ? 1 : bossSpeedFactor();
     // Tutorial: elapsed stays frozen at 0 — this alone disables obstacle
     // auto-spawn (obstacles.js gates on state.elapsed < OBSTACLE_START_MS,
     // which stays permanently true), the direction-change timer, biomes, and
@@ -376,7 +380,7 @@ function gameLoop() {
             ? state.targetSpeed
             : state.logSpeed + step;
     }
-    state.logAngle += state.logSpeed * state.logDirection * dtF;
+    state.logAngle += state.logSpeed * state.logDirection * dtF * bossFac;
     logWrapper.style.transform = `rotate(${state.logAngle}deg)`;
 
     // 1b. The jump no longer freezes the player: being airborne only grants the
@@ -394,8 +398,8 @@ function gameLoop() {
         // Must adjust BOTH angles: input.js low-passes userAngle toward
         // contAngle every sample, so nudging only one gets smoothed away —
         // the assist would be silently eaten by the very next devicemotion tick.
-        state.contAngle -= state.logSpeed * state.logDirection * assist * dtF;
-        state.userAngle -= state.logSpeed * state.logDirection * assist * dtF;
+        state.contAngle -= state.logSpeed * state.logDirection * assist * dtF * bossFac;
+        state.userAngle -= state.logSpeed * state.logDirection * assist * dtF * bossFac;
     }
 
     // 2. Player position
@@ -404,7 +408,7 @@ function gameLoop() {
 
     // 2b. Obstacles (rotate with the log, then handle the collision event)
     renderObstacleLayer();
-    const obEvent = stepObstacles(Math.abs(state.logSpeed) * dtF);
+    const obEvent = stepObstacles(Math.abs(state.logSpeed) * dtF * bossFac);
     if (tutorialMode) {
         // Knot step only: no score/combo, no hp/gameOver — soft feedback
         // either way, and the step counter is what actually advances. If the
@@ -463,7 +467,7 @@ function gameLoop() {
     // high coins need a jump). Gated by elapsed internally, so the tutorial
     // (elapsed frozen at 0) never spawns any.
     renderCoinLayer();
-    const coinVal = stepCoins(Math.abs(state.logSpeed) * dtF);
+    const coinVal = stepCoins(Math.abs(state.logSpeed) * dtF * bossFac);
     if (coinVal) {
         state.runCoins += coinVal;
         sfx.coin();
@@ -606,8 +610,9 @@ function gameLoop() {
             hapticRecord();
             const bxy = playerXY();
             burst(bxy.x, bxy.y, { color: '#ff5252', count: 26, size: 12, up: 95, spread: 140 });
-            floatText(window.innerWidth / 2, window.innerHeight * 0.32, '🦈 ПОБЕДА! +' + BOSS_DEFEAT_POINTS, '#ffd93d');
-            celebrateQuests(questEvent('boss', { bossId: 'shark' }));
+            const beatEmoji = (BOSSES[activeBossId()] && BOSSES[activeBossId()].emoji) || '🏆';
+            floatText(window.innerWidth / 2, window.innerHeight * 0.32, beatEmoji + ' ПОБЕДА! +' + BOSS_DEFEAT_POINTS, '#ffd93d');
+            celebrateQuests(questEvent('boss', { bossId: activeBossId() }));
         }
     }
 
@@ -839,7 +844,7 @@ function registerHit(playerPosition, source) {
     if (state.hp <= 0) {
         // Which threat killed us — read BEFORE gameOver's resetObstacles.
         gameOver(normalizePos(playerPosition), source === 'boss'
-            ? 'boss'
+            ? 'boss-' + (activeBossId() || 'shark')
             : 'hit-' + (activeObstacleType() || 'knot'));
         return true;
     }
@@ -1824,5 +1829,5 @@ updateHighScoreDisplay();
 updateCoinsDisplay();
 shareBtn.style.display = state.highScore > 0 ? 'block' : 'none';
 updatePlayerNameDisplay();
-applyBiome(0);
 applyWorld(getSelectedBiome());
+applyBiome(0);

@@ -215,6 +215,14 @@ export const BOSS_ATTACK_GAP_MS = 2500;  // breather between attacks
 export const BOSS_LUNGE_SAFE_DEG = 45;   // lunge bites the side arc beyond ±this from the top
 export const BOSS_DEFEAT_POINTS = 150;   // eventScore bonus for surviving the pattern
 
+// Chase-type boss (косатка): no attack script — the world accelerates and
+// the orca snaps at the player on a timer; surviving the clock wins.
+export const BOSS_CHASE_MS = 35000;        // survive this long = victory
+export const BOSS_CHASE_FACTOR_MAX = 1.3;  // world-speed multiplier ramps 1.0 -> this
+export const BOSS_SNAP_EVERY_MS = 5000;    // a snap attack begins every N ms
+export const BOSS_SNAP_TELEGRAPH_MS = 1200; // snap warning
+export const BOSS_SNAP_STRIKE_MS = 500;    // snap danger window (jump beats it)
+
 // === DEATH QUIPS (funny "why you fell" line on the result screen) ===
 // A direction change within this window before death counts as "it got you".
 export const QUIP_RECENT_CHANGE_MS = 2000;

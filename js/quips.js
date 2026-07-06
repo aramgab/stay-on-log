@@ -30,10 +30,19 @@ const BY_CAUSE = {
         'Ритм — это пока не твоё',
     ],
     boss: [
-        'Акула засчитала себе обед',
         'Это была её территория',
-        'У акулы сегодня разгрузочный день. Был.',
         'Море попросило не беспокоить',
+        'Хищник дня: не ты',
+    ],
+    'boss-shark': [
+        'Акула засчитала себе обед',
+        'У акулы сегодня разгрузочный день. Был.',
+        'Белая, большая, права',
+    ],
+    'boss-orca': [
+        'Косатка даже не ускорялась по-настоящему',
+        'Чёрно-белое кино. Ты — эпизод',
+        'Догнала. Вопросы?',
     ],
 };
 
@@ -64,7 +73,7 @@ function pick(pool) {
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
-// cause: 'fall' | 'hit-knot' | 'hit-branch' | 'hit-double' | 'boss'
+// cause: 'fall' | 'hit-knot' | 'hit-branch' | 'hit-double' | 'boss-<id>'
 // ctx: { recentChange, storm, fast } (all booleans, all optional)
 export function deathQuip(cause, ctx) {
     const contextPool = [];
@@ -72,7 +81,13 @@ export function deathQuip(cause, ctx) {
     if (ctx && ctx.storm) contextPool.push(...BY_CONTEXT.storm);
     if (ctx && ctx.fast) contextPool.push(...BY_CONTEXT.fast);
 
-    const causePool = BY_CAUSE[cause] || BY_CAUSE.fall;
+    // A boss-* cause without its own pool falls back to the generic boss
+    // pool; everything else falls back to 'fall'. Mixing per-boss and generic
+    // lines is intentional for a cause that DOES have its own pool — the
+    // union reads richer than either pool alone.
+    const causePool = cause && cause.indexOf('boss') === 0
+        ? (BY_CAUSE[cause] ? BY_CAUSE[cause].concat(BY_CAUSE.boss) : BY_CAUSE.boss)
+        : (BY_CAUSE[cause] || BY_CAUSE.fall);
     // 65%: the context line (it references what actually killed the run).
     const pool = contextPool.length && Math.random() < 0.65 ? contextPool : causePool;
     lastQuip = pick(pool);

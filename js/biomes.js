@@ -54,6 +54,7 @@ export function questsFor(biomeId) {
 // feed the intro banner and the map UI.
 export const BOSSES = {
     shark: { id: 'shark', biome: 'earth', title: 'БЕЛАЯ АКУЛА', emoji: '🦈' },
+    orca: { id: 'orca', biome: 'winter', title: 'КОСАТКА', emoji: '🐋' },
 };
 
 export function bossFor(biomeId) {

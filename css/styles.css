@@ -1467,8 +1467,9 @@ body.boss-fight .shark-fin {
     position: absolute;
     bottom: 24%;
     left: 6%;
-    width: 130px;
-    height: 170px;
+    /* box matches the 140:240 viewBox of the inline silhouette SVGs */
+    width: 126px;
+    height: 216px;
     opacity: 0;
     transform: translateY(120%);
     display: none;
@@ -1616,76 +1617,29 @@ body.boss-fight .shark-fin {
     transition: transform 0.18s cubic-bezier(0.3, 1.4, 0.6, 1), opacity 0.15s ease;
 }
 
-/* Body: tall rounded teardrop, dark slate gradient, slight lean toward the log. */
-.bs-body {
+/* The silhouettes are hand-drawn inline SVGs in index.html (#shark-svg and
+   #orca-svg — breach pose, jaw toward the log). The shark shows by default;
+   the .orca variant class on the layer (js/boss.js) swaps them. A soft
+   drop-shadow follows the drawn outline. */
+#boss-shark svg {
     position: absolute;
     inset: 0;
-    background: linear-gradient(160deg, #2c3e50, #17242f);
-    border-radius: 50% 50% 46% 46% / 62% 62% 38% 38%;
-    transform: rotate(-8deg);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.45));
 }
 
-/* Dorsal fin: same shape trick as the ambient .shark-fin, scaled up. */
-.bs-fin {
-    position: absolute;
-    top: -14px;
-    left: 38%;
-    width: 46px;
-    height: 34px;
-    background: linear-gradient(200deg, #2c3e50, #17242f);
-    border-radius: 92% 10% 12% 4% / 96% 18% 8% 4%;
-    transform: skewX(-14deg) rotate(-8deg);
+#boss-shark #orca-svg {
+    display: none;
 }
 
-/* Eye: small white circle with a dark pupil near the top of the body. */
-.bs-eye {
-    position: absolute;
-    top: 22%;
-    left: 28%;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #f4f4f4;
-    box-shadow: inset 0 0 0 5px #17242f;
+#boss-layer.orca #boss-shark #shark-svg {
+    display: none;
 }
 
-/* Teeth: a white zigzag strip near the top-inner edge. */
-.bs-teeth {
-    position: absolute;
-    top: 30%;
-    right: 10%;
-    width: 44px;
-    height: 12px;
-    transform: rotate(18deg);
-    background: repeating-linear-gradient(135deg, #fff 0 6px, transparent 6px 12px);
-    opacity: 0.9;
-}
-
-/* Orca variant: same four shark parts (js/boss.js sets layerVariant='orca'
-   alongside the state class), restyled for black-and-white markings instead
-   of a restyle-free reuse. .bs-teeth is left as-is (already white). */
-.orca .bs-body {
-    background: linear-gradient(160deg, #10181f, #05090c);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 -14px 18px -6px rgba(240, 248, 255, 0.4);
-}
-
-.orca .bs-fin {
-    background: #05090c;
-    transform: skewX(-14deg) rotate(-8deg) scaleY(1.4);
-}
-
-/* Eye patch: the orca's signature marking — a bigger, rotated, pure-white
-   oval with no pupil (unlike the shark's dark-pupiled circle). */
-.orca .bs-eye {
-    top: 18%;
-    left: 22%;
-    width: 26px;
-    height: 15px;
-    border-radius: 50%;
-    background: #fff;
-    box-shadow: none;
-    transform: rotate(-20deg);
+#boss-layer.orca #boss-shark #orca-svg {
+    display: block;
 }
 
 /* The bite sweep: a wide low shape at the log-top height. Looms at one edge

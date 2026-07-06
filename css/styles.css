@@ -1571,50 +1571,131 @@ body.boss-fight .shark-fin {
     transition: transform 0.8s ease-in, opacity 0.8s ease-in;
 }
 
-/* Chase (orca): no left/right lunge — the whole silhouette sits low and
-   centered behind/below the log, swimming hard, visible through the entire
-   fight. tele-snap rears it up (danger everywhere, glows pulse both sides —
-   see #boss-glow-* above); strike-snap is the fast lunge itself. */
+/* Chase (orca) — the dodge choreography in three beats. Base: she trails
+   low in the water behind the log, only head and dorsal above the surface.
+   tele-snap: she SUBMERGES and trembles (winding up — the player has the
+   whole telegraph to prepare the jump). strike-snap: a full breach straight
+   up to the log; jumping over the leap IS the dodge. snap-recover: she
+   plunges back and resumes the pursuit. */
 #boss-layer.chase #boss-shark {
     display: block;
     left: 50%;
     right: auto;
     bottom: 12%;
     opacity: 1;
-    transform: translateX(-50%) translateY(35%);
     animation: bossChasePursue 1.4s ease-in-out infinite alternate;
-    transition: transform 0.25s ease;
 }
 
 @keyframes bossChasePursue {
     from {
-        transform: translateX(-50%) translateY(35%);
+        transform: translateX(-50%) translateY(46%);
     }
 
     to {
-        transform: translateX(-50%) translateY(28%) rotate(-2deg);
+        transform: translateX(-50%) translateY(39%) rotate(-2deg);
     }
 }
 
 #boss-layer.chase.tele-snap #boss-shark {
     opacity: 1;
-    animation: bossChaseShake 0.25s ease-in-out infinite alternate;
+    animation: bossChaseCharge 0.22s ease-in-out infinite alternate;
 }
 
-@keyframes bossChaseShake {
+@keyframes bossChaseCharge {
     from {
-        transform: translateX(-50%) translateY(10%) scale(1.06) rotate(-2deg);
+        transform: translateX(-51%) translateY(80%) rotate(-2deg);
     }
 
     to {
-        transform: translateX(-50%) translateY(10%) scale(1.06) rotate(2deg);
+        transform: translateX(-49%) translateY(82%) rotate(2deg);
     }
 }
 
 #boss-layer.chase.strike-snap #boss-shark {
     opacity: 1;
-    transform: translateX(-50%) translateY(-8%) scale(1.12);
-    transition: transform 0.18s cubic-bezier(0.3, 1.4, 0.6, 1), opacity 0.15s ease;
+    animation: bossSnapBreach 0.45s cubic-bezier(0.25, 1.25, 0.45, 1) forwards;
+}
+
+@keyframes bossSnapBreach {
+    from {
+        transform: translateX(-50%) translateY(80%);
+    }
+
+    to {
+        transform: translateX(-50%) translateY(-92%) rotate(-8deg);
+    }
+}
+
+/* After the strike window the engine parks the layer in snap-recover: the
+   orca dives back in and the pursuit bob resumes (second animation kicks in
+   after the dive finishes). */
+#boss-layer.chase.snap-recover #boss-shark {
+    opacity: 1;
+    animation: bossSnapDive 0.45s ease-in, bossChasePursue 1.4s ease-in-out 0.45s infinite alternate;
+}
+
+@keyframes bossSnapDive {
+    from {
+        transform: translateX(-50%) translateY(-92%) rotate(-8deg);
+    }
+
+    to {
+        transform: translateX(-50%) translateY(46%);
+    }
+}
+
+/* Foam burst at the waterline when the orca breaches and when she plunges
+   back — sells the leap without any extra JS (class-driven, like the rest). */
+#boss-splash {
+    position: absolute;
+    left: 50%;
+    bottom: 10%;
+    width: 170px;
+    height: 46px;
+    transform: translateX(-50%);
+    display: none;
+    pointer-events: none;
+}
+
+#boss-splash::before,
+#boss-splash::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+}
+
+#boss-splash::before {
+    inset: 14px 10px 8px;
+    filter: blur(2px);
+}
+
+#boss-splash::after {
+    inset: 4px 34px 22px;
+    background: rgba(255, 255, 255, 0.55);
+    filter: blur(4px);
+}
+
+#boss-layer.strike-snap #boss-splash,
+#boss-layer.snap-recover #boss-splash {
+    display: block;
+    animation: bossSplashBurst 0.55s ease-out forwards;
+}
+
+@keyframes bossSplashBurst {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) scale(0.35);
+    }
+
+    25% {
+        opacity: 0.95;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateX(-50%) scale(1.6) translateY(-10px);
+    }
 }
 
 /* The silhouettes are hand-drawn inline SVGs in index.html (#shark-svg and
@@ -2853,27 +2934,46 @@ body.world-winter .obstacle-inner.ob-branch::after {
     opacity: 1;
 }
 
-/* In-run quest tracker: three tiny rows pinned to the left edge, out of the
-   log's way. pointer-events:none — taps must stay jumps. */
+/* In-run quest tracker: a proper card, top-center under the HUD. It is NOT
+   permanent — game.js flashes it for a few seconds at run start and again on
+   every progress tick, so it informs without covering the play field.
+   pointer-events:none — taps must stay jumps. */
 #quest-hud {
     position: fixed;
-    left: 8px;
-    top: 34%;
+    top: 11%;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 15;
-    max-width: 34vw;
+    min-width: 200px;
+    max-width: min(86vw, 340px);
+    padding: 9px 16px 8px;
+    border-radius: 14px;
+    background: rgba(8, 18, 28, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     text-align: left;
-    font-size: 10.5px;
+    font-size: 11.5px;
     font-weight: 700;
-    line-height: 1.5;
-    color: rgba(255, 255, 255, 0.92);
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.94);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.35s ease;
     pointer-events: none;
 }
 
 #quest-hud.visible {
     opacity: 1;
+}
+
+#quest-hud .qh-title {
+    font-size: 9.5px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-bottom: 2px;
+    text-align: center;
 }
 
 #quest-hud .qh-line.done {

@@ -315,7 +315,8 @@ function stepChase(dtMs) {
 function endSnap() {
     snapState = 0;
     nextSnapAt = t + BOSS_SNAP_EVERY_MS;
-    setLayer('on chase');
+    // snap-recover: css plays the dive-back, then the pursuit bob resumes.
+    setLayer('on chase snap-recover');
     bossHintEl.innerText = '🐋 ДЕРЖИСЬ!';
 }
 

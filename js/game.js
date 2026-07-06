@@ -281,31 +281,37 @@ let currentBiome = '';
 let runCycle = 0; // full days survived this run (for the wrap badge)
 
 let runQuestTitles = []; // quests completed THIS run (shown on the result screen)
-let questToastTimer = 0;
 
-// One-shot "задание выполнено" banner + a small celebration. Consecutive
-// completions just restart the timer (rare enough that queueing is overkill).
+// Quest completion beat: fanfare + haptic; the visual is the quest CARD
+// flashing right after with the line turned green («✓ …») — a separate
+// «задание выполнено» toast used to pile up on top of the card in the same
+// screen spot, so the card owns the moment alone now.
 function celebrateQuests(completedQuests) {
     if (!completedQuests || !completedQuests.length) return;
     completedQuests.forEach((q) => runQuestTitles.push(q.title));
     sfx.combo(3);
     hapticClear(3);
-    questToastEl.innerText = '✅ Задание выполнено: ' + completedQuests.map((q) => q.title).join(' · ');
-    questToastEl.classList.add('visible');
-    clearTimeout(questToastTimer);
-    questToastTimer = setTimeout(() => questToastEl.classList.remove('visible'), 2400);
 }
 
-// In-run quest tracker: one line per quest of the biome being played.
-// Rebuilt on start and on every quest tick — three tiny rows, cheap.
-function updateQuestHud() {
+// In-run quest tracker: a card FLASHED for a few seconds — at run start and
+// again on every progress tick — so it informs without ever sitting over
+// the play field (owner feedback: a permanent panel felt in the way).
+let questHudTimer = 0;
+
+function updateQuestHud(showForMs) {
     const quests = questsFor(getSelectedBiome());
     const open = quests.filter((q) => questCount(q.id) < q.target);
+    clearTimeout(questHudTimer);
     if (tutorialMode || !state.isPlaying || !quests.length || !open.length) {
         questHudEl.classList.remove('visible');
         return;
     }
     questHudEl.innerHTML = '';
+    const title = document.createElement('div');
+    title.className = 'qh-title';
+    const b = BIOMES[getSelectedBiome()];
+    title.textContent = 'Задания · ' + (b ? b.title : '');
+    questHudEl.appendChild(title);
     quests.forEach((q) => {
         const n = Math.min(questCount(q.id), q.target);
         const line = document.createElement('div');
@@ -315,6 +321,7 @@ function updateQuestHud() {
         questHudEl.appendChild(line);
     });
     questHudEl.classList.add('visible');
+    questHudTimer = setTimeout(() => questHudEl.classList.remove('visible'), showForMs || 2500);
 }
 
 function applyBiome(elapsed) {
@@ -481,7 +488,7 @@ function gameLoop() {
         // Campaign quest tick: the obstacle is still active while 'cleared'
         // fires (it dives later), so its type is readable right here.
         celebrateQuests(questEvent('clear', { obType: activeObstacleType() }));
-        updateQuestHud();
+        updateQuestHud(2500);
     } else if (obEvent === 'hit' && registerHit(playerPosition)) {
         return; // fatal hit — loop stopped inside gameOver
     }
@@ -501,7 +508,7 @@ function gameLoop() {
         // Campaign quest tick: a pickup counts as ONE coin regardless of its
         // wallet value (the quest text says "монетки", not "кошелёк").
         celebrateQuests(questEvent('coin', { dayPhase: dayPhaseFor(state.elapsed).id }));
-        updateQuestHud();
+        updateQuestHud(2500);
     }
 
     // 2c. Scene palette follows elapsed time (day -> sunset -> night -> storm)
@@ -1306,7 +1313,7 @@ function startGame() {
     state.elapsed = 0;
     runCycle = 0;
     runQuestTitles = [];
-    updateQuestHud();
+    updateQuestHud(5000); // показать цели биома на старте, потом убраться с глаз
     state.recordCelebrated = false;
     state.revivedThisRun = false;
     state.lastChangeAt = -Infinity;
@@ -1476,7 +1483,7 @@ function resumeRun() {
     // of quiet log before anything surfaces again.
     spawnObstacles();
     spawnCoins();
-    updateQuestHud();
+    updateQuestHud(3000);
     bossResume(); // if a boss fight was in progress, restart its current beat
 
     // Shield: blink without the sad face (.invuln, not .hit).

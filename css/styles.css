@@ -1430,7 +1430,10 @@ body.boss-fight .shark-fin {
 /* The shark silhouette: rises beside the log during a lunge. Composed from
    four children (body/fin/eye/teeth) instead of one image — same "shapes,
    not assets" idiom as the ambient .shark-fin above. Hidden (sunk below the
-   frame) unless a tele-*/strike-* class of the LUNGE variety is active. */
+   frame) unless a lunge-variety tele-/strike- state class is active.
+   (NB: never write "-*" followed by "/" in these comments — the star-slash
+   pair terminates the comment early and the parser then eats the NEXT rule;
+   exactly that dropped this #boss-shark base rule in июль 2026.) */
 #boss-shark {
     position: absolute;
     bottom: 24%;

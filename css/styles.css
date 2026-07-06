@@ -2074,32 +2074,41 @@ body.boss-fight .shark-fin {
     box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25);
 }
 
-/* Winter art for the obstacles: the mossy knot becomes an ice hummock with a
-   snow cap; the tall branch becomes a sheer icicle spike. Colors only — the
-   hitboxes live in JS and the base geometry stays identical. */
+/* Winter art for the obstacles: the mossy knot becomes an ice cube, the tall
+   branch becomes a sharp jutting ice shard. Visuals only — the hitboxes live
+   in JS and the base geometry (left/width/height) stays identical. */
 body.world-winter .obstacle-inner.ob-knot {
-    background: linear-gradient(180deg, #9fd4ea, #4a86ad);
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.75);
+    background: linear-gradient(155deg, rgba(222, 244, 253, 0.95), rgba(138, 196, 226, 0.92) 55%, rgba(90, 152, 190, 0.95));
+    border-radius: 5px;
+    box-shadow: inset 0 0 7px rgba(255, 255, 255, 0.65), 0 0 0 2px rgba(255, 255, 255, 0.6);
 }
 
+/* The mossy cap becomes a glare: a small rounded highlight in the corner. */
 body.world-winter .obstacle-inner.ob-knot::before {
-    background: #f4fbff;
-    box-shadow: inset 0 -3px 0 rgba(120, 170, 200, 0.45);
+    top: 3px;
+    left: 3px;
+    right: auto;
+    width: 9px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 3px;
+    box-shadow: none;
 }
 
 body.world-winter .obstacle-inner.ob-branch {
-    background: linear-gradient(180deg, #d8f0fa, #5d9cc0);
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
+    background: linear-gradient(170deg, #ecf9ff, #9fd0e8 45%, #4f8cb4);
+    border-radius: 0;
+    box-shadow: none;
+    /* box-shadow gets clipped away by clip-path — the contrast ring moves to
+       a drop-shadow filter, which follows the clipped silhouette. */
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 2px rgba(255, 255, 255, 0.7));
+    clip-path: polygon(50% 0%, 72% 26%, 62% 30%, 88% 62%, 72% 64%, 84% 100%, 16% 100%, 26% 66%, 10% 60%, 36% 30%, 26% 24%);
 }
 
-body.world-winter .obstacle-inner.ob-branch::before {
-    background: #9fd4ea;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
-}
-
+/* Twig and leaf tuft make no sense on a shard — gone. */
+body.world-winter .obstacle-inner.ob-branch::before,
 body.world-winter .obstacle-inner.ob-branch::after {
-    background: #f4fbff;
-    box-shadow: inset 0 -3px 0 rgba(120, 170, 200, 0.4);
+    display: none;
 }
 
 .obstacle-inner.cleared {

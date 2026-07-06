@@ -12,7 +12,7 @@
 
 import { lsGet, lsSet } from './state.js';
 import { cloudGet, cloudSet } from './tg.js';
-import { QUESTS, questsFor } from './biomes.js';
+import { QUESTS, questsFor, BIOMES } from './biomes.js';
 
 const KEY = 'stayOnLog_campaign_v1';
 
@@ -92,11 +92,23 @@ export function cycleCompleted(biomeId) {
     persistLocal();
 }
 
-// --- biome selection (the map UI lands in a later commit; 'earth' is the
-// only world until then, so the fallback default is fine everywhere) ---
+// A biome is playable when it has content AND its unlock condition is met.
+export function isBiomeUnlocked(biomeId) {
+    const b = BIOMES[biomeId];
+    if (!b || !b.playable) return false;
+    if (!b.unlock) return true;
+    if (b.unlock.questsOf) return allQuestsDone(b.unlock.questsOf);
+    return false;
+}
+
+// --- biome selection ('earth' is the only world unlocked from the start,
+// so it is always a safe fallback) ---
 
 export function getSelectedBiome() {
-    return data.selected || 'earth';
+    // A cloud-synced selection must never start a locked/empty world on this
+    // device (e.g. quests were only completed elsewhere) — fall back to the
+    // one world that's always unlocked.
+    return isBiomeUnlocked(data.selected) ? data.selected : 'earth';
 }
 
 export function setSelectedBiome(biomeId) {

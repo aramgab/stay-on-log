@@ -52,3 +52,28 @@ export function bossFor(biomeId) {
     for (const k in BOSSES) if (BOSSES[k].biome === biomeId) return BOSSES[k];
     return null;
 }
+
+// === WORLD REGISTRY (campaign) ===
+// playable: has real content today. announced: named card on the map, locked
+// «скоро». worldClass goes on <body> for per-world reskins (bark/wood vars,
+// obstacle art). unlock: {questsOf: biomeId} = all quests of that biome done.
+export const BIOMES = {
+    earth: { id: 'earth', title: 'Земля', emoji: '🌍', worldClass: 'world-earth', playable: true, unlock: null },
+    winter: { id: 'winter', title: 'Зимний', emoji: '❄️', worldClass: 'world-winter', playable: false, announced: true, unlock: { questsOf: 'earth' } },
+    lava: { id: 'lava', title: 'Лавовый', emoji: '🌋', playable: false, announced: true },
+    space: { id: 'space', title: 'Космос', emoji: '🚀', playable: false, announced: true },
+};
+
+// The campaign line: chapters of 4 cards each, all visible from day one.
+// A card is: a biome id from BIOMES (playable or announced), OR a plain
+// string (named teaser, no content yet), OR null (a pure «?» mystery).
+export const CHAPTERS = [
+    { id: 'stihii', title: 'I. Стихии', cards: ['earth', 'winter', 'lava', 'space'] },
+    { id: 'civ', title: 'II. Цивилизации', cards: [null, null, null, null] },
+    { id: 'smysly', title: 'III. Смыслы', cards: [null, null, null, null] },
+    { id: 'ritm', title: 'Ритм', cards: ['Диско', 'Рок', 'Рэп', 'Классика'] },
+    { id: 'detstvo', title: 'Детство', cards: ['Игрушки', 'Цирк', 'Кубический', 'Мультяшный'] },
+    { id: 'iskusstvo', title: 'Искусство', cards: [null, null, null, null] },
+    { id: 'sport', title: 'Спорт', cards: [null, null, null, null] },
+    { id: 'strany', title: '🌏 Страны мира', arc: true, cards: [null, null, null, null] },
+];

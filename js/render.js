@@ -16,6 +16,7 @@ import {
     reviveBtn,
     shareBtn,
     shopBtn,
+    mapBtn,
 } from './dom.js';
 import { countUp } from './fx.js';
 
@@ -102,5 +103,6 @@ export function animateFall(normPos) {
         }
         if (state.highScore > 0) shareBtn.style.display = 'block';
         shopBtn.style.display = ''; // hidden during the run, back on the result screen
+        mapBtn.style.display = ''; // hidden during the run, back on the result screen
     }, 1200);
 }

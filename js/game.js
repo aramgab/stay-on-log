@@ -86,6 +86,7 @@ import {
     nicknameInput,
     nicknameSaveBtn,
     shopBtn,
+    mapBtn,
     obSideHint,
     dangerVignette,
     hitFlash,
@@ -111,8 +112,9 @@ import { initShop, hasPendingHeart, consumePendingHeart, spendCoins } from './sh
 import { initLeaderboard, submitScore } from './leaderboard.js';
 import { setMainArrow, setPreviewArrow, promoteArrows, cancelPromote, resetArrows } from './dirarrow.js';
 import { deathQuip } from './quips.js';
-import { DAY_PHASE_CLASSES, dayPhaseFor, cycleOf } from './biomes.js';
+import { DAY_PHASE_CLASSES, dayPhaseFor, cycleOf, BIOMES } from './biomes.js';
 import { cycleCompleted, flushCampaign, syncCampaignFromCloud, getSelectedBiome, questEvent, devCompleteAllQuests } from './campaign.js';
+import { initMap, updateMapBtnLabel } from './map.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord, hapticCoin } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
@@ -302,6 +304,18 @@ function applyBiome(elapsed) {
     music.setMood(next);
     // Mark the transition audibly mid-run (not on the reset back to day).
     if (state.isPlaying && elapsed > 0) { sfx.whoosh(); hapticTick(); }
+}
+
+// Per-world reskin: swaps the body world-* class (bark/wood palette vars,
+// obstacle art — css/styles.css). The tutorial always runs on Земля.
+let currentWorld = '';
+
+function applyWorld(biomeId) {
+    const cls = (BIOMES[biomeId] && BIOMES[biomeId].worldClass) || 'world-earth';
+    if (cls === currentWorld) return;
+    if (currentWorld) document.body.classList.remove(currentWorld);
+    currentWorld = cls;
+    document.body.classList.add(cls);
 }
 
 // === MAIN GAME LOOP ===
@@ -1148,6 +1162,7 @@ function showCountdown(startTutorialMode) {
     shareBtn.style.display = 'none';
     reviveBtn.style.display = 'none';
     shopBtn.style.display = 'none'; // no shopping mid-run (a tap = a jump)
+    mapBtn.style.display = 'none'; // no world-hopping mid-run either
     resetArrows();
     state.pendingChange = null;
     arrowWarningVisible = false;
@@ -1178,7 +1193,8 @@ function showCountdown(startTutorialMode) {
     resetObstacles();
     resetCoins();
     bossReset();
-    applyBiome(0); // back to day for the new run
+    applyWorld(startTutorialMode ? 'earth' : getSelectedBiome());
+    applyBiome(0); // back to noon for the new run
 
     // Hide falling player & splash from prev game — full reset
     hideFallFx();
@@ -1557,7 +1573,7 @@ nicknameInput.addEventListener('keydown', function (e) {
 // silent-switch), so re-running initAudio() on every tap keeps it resumed
 // instead of relying solely on the one-time unlock at Start.
 document.addEventListener('pointerdown', function (e) {
-    if (e.target.closest && e.target.closest('#mute-btn, #howto-btn, #howto-overlay, #shop-btn, #shop-overlay, #lb-btn, #lb-overlay, #revive-btn, #dev-tune, #tutorial-skip')) return;
+    if (e.target.closest && e.target.closest('#mute-btn, #howto-btn, #howto-overlay, #shop-btn, #shop-overlay, #lb-btn, #lb-overlay, #revive-btn, #dev-tune, #tutorial-skip, #map-btn, #map-overlay')) return;
     initAudio();
     if (state.isPlaying) doJump();
 });
@@ -1795,6 +1811,9 @@ initShop(updateCoinsDisplay);
 // if /api/top answers — a deploy without the env degrades silently)
 initLeaderboard();
 
+// Campaign map: wire the overlay, show the selected world on the map button.
+initMap();
+
 // Campaign progress: pull the cloud copy and max-merge it into local.
 syncCampaignFromCloud();
 
@@ -1804,3 +1823,4 @@ updateCoinsDisplay();
 shareBtn.style.display = state.highScore > 0 ? 'block' : 'none';
 updatePlayerNameDisplay();
 applyBiome(0);
+applyWorld(getSelectedBiome());

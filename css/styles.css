@@ -647,6 +647,27 @@ body.biome-storm .lightning {
     transform: scale(0.95);
 }
 
+/* Campaign entry point next to START — same quiet pill as #share-btn, but
+   visible from boot (js/game.js hides it in showCountdown, render.js/
+   js/map.js restore it — mirrors #shop-btn's lifecycle). */
+#map-btn {
+    background: rgba(0, 0, 0, 0.35);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    padding: 8px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    border-radius: 16px;
+    cursor: pointer;
+    margin-top: 10px;
+    letter-spacing: 1px;
+}
+
+#map-btn:active {
+    transform: scale(0.95);
+}
+
 /* === COUNTDOWN OVERLAY === */
 #countdown-overlay {
     position: fixed;
@@ -2120,6 +2141,151 @@ body.boss-fight .shark-fin {
     border-radius: 14px;
     cursor: pointer;
     margin-top: 4px;
+}
+
+/* === CAMPAIGN MAP (js/map.js) — same overlay pattern as the shop === */
+#map-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 20, 30, 0.95);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+#map-overlay.active {
+    display: flex;
+}
+
+#map-card {
+    text-align: center;
+    width: min(340px, 88vw);
+    max-height: 82dvh;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+#map-card h2 {
+    font-size: 26px;
+    margin-bottom: 6px;
+}
+
+/* CRITICAL for scrolling on phone: body has touch-action:none, so the list
+   must explicitly reclaim vertical panning or it won't scroll in the webview. */
+#map-list {
+    overflow-y: auto;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+    min-height: 0;
+    flex: 1;
+}
+
+.map-chapter {
+    margin-bottom: 14px;
+}
+
+.map-chapter-title {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    opacity: 0.8;
+    text-align: left;
+    margin: 8px 2px 6px;
+    text-transform: uppercase;
+}
+
+.map-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+/* Named map-card-item (not #map-card, the overlay container) to avoid a
+   class/id clash. Title text inherits this 11px/700 (only the first line —
+   the emoji — is bumped back up to 24px below). */
+.map-card-item {
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 8px 4px;
+    text-align: center;
+    min-height: 74px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.map-card-item > div:first-child {
+    font-size: 24px;
+}
+
+.map-card-item.locked,
+.map-card-item.announced,
+.map-card-item.mystery {
+    opacity: 0.55;
+}
+
+.map-card-item.selected {
+    border-color: #7dde8a;
+    box-shadow: 0 0 12px rgba(125, 222, 138, 0.35);
+    background: rgba(125, 222, 138, 0.12);
+}
+
+.map-done {
+    font-size: 10px;
+    color: #7dde8a;
+    font-weight: 700;
+}
+
+.map-quests {
+    font-size: 9.5px;
+    line-height: 1.35;
+    opacity: 0.9;
+    text-align: left;
+}
+
+.map-quests .done {
+    color: #7dde8a;
+}
+
+.map-card-item.shake {
+    animation: mapShake 0.3s ease;
+}
+
+@keyframes mapShake {
+
+    25% {
+        transform: translateX(-4px);
+    }
+
+    75% {
+        transform: translateX(4px);
+    }
+}
+
+.map-event {
+    grid-column: 1 / -1;
+    min-height: 46px;
+}
+
+/* Same green pill as the other overlay close buttons */
+#map-close {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+    border: none;
+    padding: 12px 34px;
+    font-size: 17px;
+    font-weight: 700;
+    border-radius: 14px;
+    cursor: pointer;
+    margin-top: 8px;
 }
 
 /* === COINS (js/coins.js) — same layer/pin geometry as obstacles === */

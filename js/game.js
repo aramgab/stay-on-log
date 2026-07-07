@@ -73,6 +73,7 @@ import {
     questHudEl,
     coinsDisplayEl,
     kcalDisplayEl,
+    kcalEl,
     startBtn,
     reviveBtn,
     shareBtn,
@@ -1247,6 +1248,7 @@ function showCountdown(startTutorialMode) {
     deathQuipEl.innerText = '';
     runCoinsEl.innerText = '';
     questResultEl.innerText = '';
+    kcalEl.innerText = '';
     questToastEl.classList.remove('visible');
     questHudEl.classList.remove('visible');
     playerEl.classList.remove('visible', 'falling', 'jumping', 'hit');
@@ -1465,6 +1467,7 @@ function showReviveCountdown() {
     deathQuipEl.innerText = '';
     runCoinsEl.innerText = '';
     questResultEl.innerText = '';
+    kcalEl.innerText = '';
     questToastEl.classList.remove('visible');
     questHudEl.classList.remove('visible');
     hideFallFx();

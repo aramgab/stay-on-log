@@ -195,6 +195,11 @@ body.biome-w-dawn {
        Attributes on the SVG remain as a webview fallback, same as the log. */
     --char-skin: #ff5252;
     --char-line: #ffffff;
+    /* Skin rarity frame colours (shop 2.0 cards). */
+    --rar-common: #9aa4ad;
+    --rar-rare: #3da5ff;
+    --rar-epic: #a24dff;
+    --rar-legend: #ffb43d;
 }
 
 #log-svg .bark-rim { fill: var(--bark-1); stroke: var(--bark-stroke); }

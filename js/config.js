@@ -203,6 +203,31 @@ export const REVIVE_COUNT_FROM = 2;      // quick countdown before resuming
 export const REVIVE_COUNT_TICK_MS = 700;
 export const REVIVE_MIN_CHANGE_GAP_MS = 3000; // no direction change right after revive
 
+// === CHARACTER SKINS (shop 2.0) ===
+// Rarity sets the card frame colour (--rar-* in css) and the price band;
+// prices climb steeply with rarity so legendaries are a long grind (wallet
+// is local-only for now). Slots: head/body/legs are individual pieces, suit
+// is a full costume that overrides all three (see js/shop.js applyCharSkin).
+export const SKIN_RARITY = {
+    common: { label: 'Обычный', order: 0 },
+    rare: { label: 'Редкий', order: 1 },
+    epic: { label: 'Эпик', order: 2 },
+    legend: { label: 'Легенда', order: 3 },
+};
+
+export const SKINS = [
+    { id: 'head_cap', slot: 'head', name: 'Кепка', rarity: 'common', price: 60, icon: '🧢' },
+    { id: 'head_helm', slot: 'head', name: 'Шлем', rarity: 'rare', price: 200, icon: '⛑️' },
+    { id: 'head_crown', slot: 'head', name: 'Корона', rarity: 'legend', price: 800, icon: '👑' },
+    { id: 'body_tee', slot: 'body', name: 'Футболка', rarity: 'common', price: 70, icon: '👕' },
+    { id: 'body_armor', slot: 'body', name: 'Броня', rarity: 'rare', price: 260, icon: '🛡️' },
+    { id: 'body_cape', slot: 'body', name: 'Плащ', rarity: 'epic', price: 400, icon: '🦸' },
+    { id: 'legs_boots', slot: 'legs', name: 'Сапоги', rarity: 'common', price: 60, icon: '👢' },
+    { id: 'legs_jeans', slot: 'legs', name: 'Джинсы', rarity: 'rare', price: 180, icon: '👖' },
+    { id: 'suit_ninja', slot: 'suit', name: 'Ниндзя', rarity: 'epic', price: 550, icon: '🥷' },
+    { id: 'suit_gold', slot: 'suit', name: 'Золотой', rarity: 'legend', price: 1000, icon: '✨' },
+];
+
 // === BOSS FIGHTS (campaign) ===
 // One boss per biome, living in the storm segment of the day cycle. The
 // fight is a scripted series of telegraphed attacks; timings below are the

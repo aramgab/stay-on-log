@@ -655,6 +655,16 @@ body.biome-storm .lightning, body.biome-w-storm .lightning {
     text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
+/* "≈N ккал" flavor stat on the result screen — a light joke about the
+   run, not a medical claim. */
+#kcal-result {
+    font-size: 12px;
+    font-weight: 600;
+    color: #ff8a65;
+    margin-top: 2px;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
 #new-record {
     font-size: 20px;
     font-weight: 900;

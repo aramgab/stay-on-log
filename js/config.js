@@ -129,6 +129,12 @@ export const OBSTACLE_CLEAR_POINTS = 25;
 // Consecutive clears without a hit multiply the clear points, capped here.
 export const COMBO_MAX_MULT = 5;
 
+// === RESULT SCREEN FLAVOR STATS ===
+// Fun number on the death screen, not a medical claim. ~1 kcal/min sits in
+// the middle of the plausible range for light phone-tilting activity
+// (~0.8-1.3 kcal/min).
+export const KCAL_PER_MIN = 1.0;
+
 // === DIFFICULTY PHASES (time-based, ms) ===
 // Decoupled from score now that score is event-based. Timings match the old
 // 250/400/800-score thresholds (~25/40/80 s).

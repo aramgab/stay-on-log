@@ -962,14 +962,17 @@ body.biome-storm .lightning, body.biome-w-storm .lightning {
     will-change: transform;
 }
 
-/* === SIDE-VIEW RUNNING STICKMAN === */
+/* === SIDE-VIEW RUNNING STICKMAN ===
+   Rendered ~1.36× the 44x55 viewBox (60x75) so shop skins read at a glance;
+   purely visual — gameplay is driven by the orbit angle, not the figure's
+   pixels. top is raised to keep the feet planted on the log top. */
 #player {
     position: absolute;
-    top: -25px;
+    top: -42px;
     left: 50%;
     transform: translateX(-50%);
-    width: 44px;
-    height: 60px;
+    width: 60px;
+    height: 75px;
     opacity: 0;
     transition: none;
 }
@@ -4095,7 +4098,7 @@ body.is-desktop .howto-desktop {
     }
 
     50% {
-        transform: translateX(-50%) translateY(-58px) scaleY(1.04);
+        transform: translateX(-50%) translateY(-72px) scaleY(1.04);
         animation-timing-function: cubic-bezier(0.33, 0, 0.66, 0.33);
     }
 

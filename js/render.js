@@ -37,9 +37,10 @@ export function animateFall(normPos) {
     let pX = centerX + Math.cos(rad) * ORBIT_RADIUS;
     let pY = centerY + Math.sin(rad) * ORBIT_RADIUS;
 
-    // Offset for the player element bounds (44x55 px), centering it on the orbit point.
-    let startX = pX - 22;
-    let startY = pY - 27;
+    // Offset for the player element bounds (60x75 px, ~1.36× the viewBox),
+    // centering it on the orbit point.
+    let startX = pX - 30;
+    let startY = pY - 37;
 
     // Water position
     let waterRect = waterContainer.getBoundingClientRect();

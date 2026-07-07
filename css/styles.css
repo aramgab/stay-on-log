@@ -2258,7 +2258,11 @@ body.boss-fight #howto-btn {
     max-width: min(86vw, 420px);
 }
 
-#boss-layer.on ~ #boss-hint {
+/* :not(.hidden) matters on the death/result screen: bossHide() (game.js
+   gameOver) keeps '.on' so a revive can resume the fight, but adds '.hidden'
+   to fade the boss itself — the hint pill must follow suit, not just its
+   text (which bossHide() also clears, belt-and-suspenders). */
+#boss-layer.on:not(.hidden) ~ #boss-hint {
     opacity: 1;
 }
 

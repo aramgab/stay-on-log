@@ -12,6 +12,7 @@ import { AVATAR_SKIN_PRICE, SPARE_HEART_PRICE, SKINS, SKIN_RARITY } from './conf
 import {
     logSvg,
     playerEl,
+    fallingPlayerEl,
     shopBtn,
     shopOverlay,
     shopBalanceEl,
@@ -181,8 +182,8 @@ function buildMannequin() {
 
 function applyCharSkin() {
     applyClasses(playerEl);
+    applyClasses(fallingPlayerEl); // keep the fall clone dressed too
     if (mannequinFig) applyClasses(mannequinFig);
-    // #falling-player is dressed too — wired in a later commit.
 }
 
 // --- Overlay UI ---

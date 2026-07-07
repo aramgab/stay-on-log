@@ -569,6 +569,11 @@
 
         <!-- Falling player clone (for fall animation) -->
         <svg id="falling-player" class="char-fig" width="60" height="75" viewBox="0 0 44 55" xmlns="http://www.w3.org/2000/svg">
+            <!-- Skins live here too (flat — the clone doesn't animate), so a
+                 dressed character keeps its look through the fall. Same toggle
+                 classes drive them (js/shop.js applyClasses). Cape first = behind. -->
+            <path class="skin skin-body-cape" d="M17.5,17 L26.5,17 L30,40 L22,36.5 L14,40 Z" fill="#7a1fa2" />
+            <path class="skin skin-body-cape" d="M22,17 L22,36.5 L14,40 Z" fill="#611780" />
             <!-- Same character, fail-state face: eyes shut, mouth an "o" -->
             <circle class="char-head" cx="22" cy="9" r="7.5" fill="#ff5252" stroke="white" stroke-width="2" />
             <path d="M23.5 4.5 Q26 3.5 28 5" fill="none" stroke="white" stroke-width="1.2" stroke-linecap="round" />
@@ -579,6 +584,24 @@
             <line class="char-line" x1="22" y1="20" x2="30" y2="28" stroke="white" stroke-width="2.5" stroke-linecap="round" />
             <line class="char-line" x1="21" y1="32" x2="14" y2="46" stroke="white" stroke-width="2.5" stroke-linecap="round" />
             <line class="char-line" x1="21" y1="32" x2="28" y2="46" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+            <!-- Legs skins (flat). -->
+            <line class="skin skin-legs-jeans" x1="21" y1="32" x2="13.5" y2="45.5" stroke="#3a5a9a" stroke-width="4" stroke-linecap="round" />
+            <line class="skin skin-legs-jeans" x1="21" y1="32" x2="28.5" y2="45.5" stroke="#3a5a9a" stroke-width="4" stroke-linecap="round" />
+            <path class="skin skin-legs-boots" d="M12.5,41 L15.5,41 L16,47 L10.5,47 L11,44.5 Z" fill="#5a3a1c" />
+            <path class="skin skin-legs-boots" d="M26.5,41 L29.5,41 L31,47 L26,47 Z" fill="#5a3a1c" />
+            <!-- Body skins over the torso. -->
+            <path class="skin skin-body-tee" d="M16.5,17 Q22,15.5 27.5,17 L26.5,27 Q22,28.5 17.5,27 Z" fill="#3fa35b" />
+            <path class="skin skin-body-armor" d="M16.5,17.5 Q22,15.5 27.5,17.5 L26.5,28 Q22,30 17.5,28 Z" fill="#8b95a1" />
+            <line class="skin skin-body-armor" x1="22" y1="17.5" x2="22" y2="28" stroke="#c3ccd6" stroke-width="0.7" />
+            <!-- Head skins on top. -->
+            <path class="skin skin-head-cap" d="M14.6,9.5 A7.5,7.5 0 0 1 29.4,9.5 Z" fill="#3a7bd5" />
+            <path class="skin skin-head-cap" d="M27,9.3 L34.5,8 L34.5,10 L27.5,10.6 Z" fill="#2f66b5" />
+            <path class="skin skin-head-helm" d="M14,9.5 A8,8 0 0 1 30,9.5 L30,11.5 L14,11.5 Z" fill="#9aa4ad" />
+            <rect class="skin skin-head-helm" x="26.5" y="9" width="1.5" height="4.6" rx="0.5" fill="#7a828a" />
+            <path class="skin skin-head-crown" d="M15,6.5 L15,3 L18,5.5 L22,1.5 L26,5.5 L29,3 L29,6.5 Z" fill="#ffd21f" stroke="#c99700" stroke-width="0.4" />
+            <circle class="skin skin-head-crown" cx="22" cy="4.6" r="0.9" fill="#ff4d6d" />
+            <rect class="skin skin-suit-ninja-head" x="14.5" y="6.4" width="15" height="2.2" fill="#c0392b" />
+            <path class="skin skin-suit-ninja-head" d="M14.6,7 L8.5,9 L9.5,10.6 L14.6,8.8 Z" fill="#c0392b" />
         </svg>
 
         <!-- Approach-side hint: which side the obstacle will come from -->

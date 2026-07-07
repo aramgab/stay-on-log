@@ -72,6 +72,19 @@ export function tgStartParam() {
     }
 }
 
+// Hidden dev mode: either the URL query (?dev=1, works in any plain
+// browser) OR a Telegram deep link (t.me/<bot>/<app>?startapp=dev). The
+// second path exists because battles/CloudStorage only work with a REAL
+// Telegram session — a bare browser tab has no access to data that lives in
+// the actual Telegram webview's storage, so ?dev=1 alone can't reach e.g. an
+// in-progress battle for testing.
+export function isDevMode() {
+    try {
+        if (new URLSearchParams(location.search).has('dev')) return true;
+    } catch (e) { /* ignore */ }
+    return tgStartParam() === 'dev';
+}
+
 // Anonymous per-chat fingerprint (present when the app was opened from a
 // chat). UX hints only — the battle side is decided SERVER-side from the
 // signed initData, never from this unsafe copy.

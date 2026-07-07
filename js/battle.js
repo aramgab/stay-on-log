@@ -11,7 +11,7 @@
 //                                   scoreB, myTotal, canRename?, finished? }
 
 import { state, lsGet, lsSet } from './state.js';
-import { isInTelegram, tgInitData, tgUser, tgStartParam, shareScore } from './tg.js';
+import { isInTelegram, tgInitData, tgUser, tgStartParam, shareScore, isDevMode } from './tg.js';
 import { battleBtn, battleBadge, battleOverlay, battleCloseBtn } from './dom.js';
 import { whenBackendAlive } from './leaderboard.js';
 import { initAudio } from './audio.js';
@@ -511,7 +511,7 @@ export function initBattle() {
 
     // Dev-only fast-forward: the button starts display:none in the markup,
     // this is the ONLY place that ever reveals it.
-    if (new URLSearchParams(location.search).has('dev')) {
+    if (isDevMode()) {
         devExpireLink.style.display = '';
         devExpireLink.addEventListener('click', () => {
             const b = getActiveBattle();

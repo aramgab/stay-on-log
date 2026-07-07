@@ -123,7 +123,7 @@ import { initMap, updateMapBtnLabel } from './map.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord, hapticCoin } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
-import { initTelegram, tgUser, cloudGet, cloudSet, shareScore } from './tg.js';
+import { initTelegram, tgUser, cloudGet, cloudSet, shareScore, isDevMode } from './tg.js';
 import { stepBoss, isBossActive, bossReset, bossHide, bossResume, bossSpeedFactor, activeBossId, bossHitDir } from './boss.js';
 
 initTelegram();
@@ -138,11 +138,12 @@ const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 const isDesktop = !isTouchDevice;
 if (isDesktop) document.body.classList.add('is-desktop'); // flips on desktop-only CSS hints
 
-// Hidden dev mode (open with ?dev=1): skips the stub entirely and adds the
-// live tuning panel. Keyboard control itself is now available to everyone on
-// desktop via the stub's button (and stays on for ?dev=1 too, for debugging
-// on a phone with a keyboard attached).
-const devMode = new URLSearchParams(location.search).has('dev');
+// Hidden dev mode (?dev=1, or startapp=dev from inside real Telegram — see
+// isDevMode() in tg.js): skips the stub entirely and adds the live tuning
+// panel. Keyboard control itself is now available to everyone on desktop via
+// the stub's button (and stays on for dev mode too, for debugging on a phone
+// with a keyboard attached).
+const devMode = isDevMode();
 const DEV_KEY_SPEED = 2.5; // deg per 60 Hz frame (dt-scaled in the loop)
 const devKeys = { left: false, right: false };
 

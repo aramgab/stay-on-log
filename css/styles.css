@@ -222,6 +222,47 @@ body.biome-w-dawn {
     stroke: var(--char-line);
 }
 
+/* === CHARACTER SKINS (shop 2.0) ===
+   Every skin piece is an inline group hidden by default; a toggle class on
+   the figure root reveals its slot. Pieces live inside .head / the torso /
+   .leg-* so they ride the run/jump/knockback animations for free. Costumes
+   recolour the whole figure via --char-* and add one accent piece, and
+   hide the individual head/body/legs pieces. Same rules serve #player and
+   its falling clone. (Comment safety: no star-slash pairs below.) */
+:is(#player, #falling-player) .skin {
+    display: none;
+}
+
+:is(#player, #falling-player).char-head-cap .skin-head-cap,
+:is(#player, #falling-player).char-head-helm .skin-head-helm,
+:is(#player, #falling-player).char-head-crown .skin-head-crown,
+:is(#player, #falling-player).char-body-tee .skin-body-tee,
+:is(#player, #falling-player).char-body-armor .skin-body-armor,
+:is(#player, #falling-player).char-body-cape .skin-body-cape,
+:is(#player, #falling-player).char-legs-boots .skin-legs-boots,
+:is(#player, #falling-player).char-legs-jeans .skin-legs-jeans,
+:is(#player, #falling-player).char-costume-ninja .skin-suit-ninja-head {
+    display: inline;
+}
+
+/* Costume recolours (custom properties cascade onto the figure subtree). */
+#player.char-costume-ninja,
+#falling-player.char-costume-ninja {
+    --char-skin: #2f2f37;
+    --char-line: #45454f;
+}
+
+#player.char-costume-gold,
+#falling-player.char-costume-gold {
+    --char-skin: #f4c53a;
+    --char-line: #ffe07a;
+}
+
+/* A costume owns the whole look — individual head/body/legs pieces yield. */
+:is(#player, #falling-player)[class*="char-costume-"] :is([class*="skin-head-"], [class*="skin-body-"], [class*="skin-legs-"]) {
+    display: none !important;
+}
+
 /* Winter world: the log freezes over — icy bark, pale frosted face. Only
    variables change; geometry/hitboxes are untouched. */
 body.world-winter {

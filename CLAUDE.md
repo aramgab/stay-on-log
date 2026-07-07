@@ -13,7 +13,10 @@ Mini App: `t.me/StayOnLog_bot/game`** (бот `@StayOnLog_bot`; токен — �
 «Похвастаться» шарит deep-link Mini App. **Лидерборд**: `api/top` + `api/score` (Vercel
 serverless в этом же репо, zero-deps; серверная валидация initData) — клиент самоскрывающийся:
 кнопка 🏆 появляется только если `/api/top` отвечает; включение — `docs/BACKEND_SETUP.md`
-(Upstash + `TG_BOT_TOKEN` в env). Экономика: монеты на бревне → магазин 🛒 (аватар-бревно,
+(Upstash + `TG_BOT_TOKEN` в env). **Битвы чатов (волна 4, MVP)**: чат против чата, окно 24ч,
+счёт команды = сумма очков всех забегов участников; вызов шарится ссылкой
+`SHARE_URL?startapp=b_<id>` (`api/battle.js` + `js/battle.js`), без призрачного реплея — тот
+задел на следующую волну. Экономика: монеты на бревне → магазин 🛒 (аватар-бревно,
 запасное сердце) и revive на экране смерти. **Кампания (волна 3)**: биом выбирается на старте
 (карта 🗺 — главы по 4 карточки, «?»-тизеры будущих миров), внутри биома цикл суток
 полдень→закат→ночь→шторм→рассвет→полдень (он же таймлайн сложности), 3 обязательных задания
@@ -74,11 +77,12 @@ serverless в этом же репо, zero-deps; серверная валида
 | `coins.js` | Монеты на бревне: та же стейт-машина, что у препятствий; обычная — сбор контактом (`COIN_VALUE`), «парящая» — только в прыжке (`COIN_HIGH_*`, ценность=1, как обычная — прыжок за ней ради стиля/квестов, не двойной выгоды). Не выныривает при `isObstacleApproaching()` и при активном боссе (`isBossActive()`). `stepCoins` возвращает собранную ценность. |
 | `shop.js` | Магазин 🛒: аватар-бревно (`photo_url` клипом в `#log-svg`), запасное сердце (`stayOnLog_pendingHeart`), `spendCoins` (общий кошелёк-райтер, его же юзает revive). Скины в localStorage+CloudStorage (union-merge). |
 | `quips.js` | Забавная строка «почему упал» (`deathQuip(cause, ctx)`): пулы по причине (`fall/hit-knot/hit-branch/hit-double` + `boss-<id>` — свои пулы акулы/косатки смешиваются с генериком `boss`) + контекстные (недавняя смена/шторм/скорость), без повтора подряд. |
-| `leaderboard.js` | Клиент лидерборда: одна проба `/api/top` на буте → показать 🏆; `submitScore` из `gameOver` (fire-and-forget, только в TG); оверлей топ-10 с медалями, имена через `textContent`. |
+| `leaderboard.js` | Клиент лидерборда: одна проба `/api/top` на буте → показать 🏆; `submitScore` из `gameOver` (fire-and-forget, только в TG); оверлей топ-10 с медалями, имена через `textContent`. Экспортирует `whenBackendAlive` — единая проба живости бэка, на неё вешаются другие самоскрывающиеся фичи (см. `battle.js`). |
+| `battle.js` | Клиент битв чатов (волна 4): самоскрытие — только в Telegram И по `whenBackendAlive`; стейт `stayOnLog_activeBattle` {id,side,ends,имена,счёт,myTotal,canRename,finished}; кнопка `⚔️` с бейджем «мои:вражьи»; оверлей `#battle-overlay` с 6 состояниями (создать / подтверждение вызова / выбор стороны / имя команды / активный бой / финал победа-поражение-ничья); поллинг `BATTLE_POLL_MS=10000` только при открытом оверлее; `submitBattleScore` из `gameOver` — дельта по `state.runId` (дедуп на сервере по `uid:runId`, переживает revive); boot-роутинг `startapp=b_<id>` → подтверждение вступления. Имена — только `textContent`. |
 | `render.js` | Анимация падения в воду + брызги + экран результата (`УПАЛ! Очки` + квип + «+N 🪙» + кнопки, включая revive). |
 | `audio.js` | Синтез-SFX (Web Audio): `jump/hit/splash/point/combo/whoosh` + **процедурная музыка** (бас/арпеджио/пад, lookahead-планировщик; `music.setMood(biome)` меняет BPM/лад/плотность по биому, ассетов нет). Mute в localStorage, unmute возвращает музыку сразу. `AudioContext` ленивый, резюм по жесту. |
 | `haptics.js` | Вибрация: сначала Telegram `HapticFeedback`, иначе `navigator.vibrate`. События: jump/hit/fall/clear(combo)/tick/record. На десктопе/iOS Safari — no-op. |
-| `tg.js` | Мост к Telegram WebApp SDK (весь доступ к `window.Telegram` — только отсюда): `initTelegram`, `isInTelegram` (по непустой `initData`!), `tgUser`, `cloudGet/cloudSet` (CloudStorage, гард версии ≥6.9), `shareScore` (TG share → Web Share → clipboard). Вне TG всё деградирует в no-op. |
+| `tg.js` | Мост к Telegram WebApp SDK (весь доступ к `window.Telegram` — только отсюда): `initTelegram`, `isInTelegram` (по непустой `initData`!), `tgUser`, `cloudGet/cloudSet` (CloudStorage, гард версии ≥6.9), `shareScore` (TG share → Web Share → clipboard), `tgStartParam`/`tgChatInstance` (для UX битв чатов — сторону всё равно решает сервер по подписанному `chat_instance`). Вне TG всё деградирует в no-op. |
 | `fx.js` | «Сочность»: `screenShake`, `burst` (частицы, Web Animations API), `floatText` (попап «+50 ×2»), `countUp`. DOM-based, без canvas. |
 
 Визуал: палитра сцены — CSS-переменные, зарегистрированные через `@property` (`styles.css`);
@@ -152,11 +156,21 @@ serverless в этом же репо, zero-deps; серверная валида
   CloudStorage > профиль; см. `nameSource` в game.js); рекорд/ник/скины синхронятся с
   CloudStorage (merge: больший рекорд побеждает, скины — union). Шаринг: `SHARE_URL` уже
   шарит deep-link `t.me/StayOnLog_bot/game`.
-- **Лидерборд**: `api/_kv.js` (общие хелперы: Upstash REST pipeline, `validateInitData`),
+- **Лидерборд**: `api/_kv.js` (общие хелперы: Upstash REST pipeline, `validateInitData` →
+  `{user, chatInstance, chatType, startParam}`, HMAC покрывает все поля),
   `api/score.js` (POST, HMAC-проверка, `ZADD GT lb`, имя из проверенной initData),
   `api/top.js` (GET топ-10 + ранг, кэш s-maxage=15). Env: `TG_BOT_TOKEN`,
   `UPSTASH_REDIS_REST_URL/TOKEN` (или `KV_REST_API_*`); без них — 503 `{disabled}` и клиент
   прячет 🏆. Включение: `docs/BACKEND_SETUP.md`. Файлы `api/_*` Vercel не деплоит как функции.
+- **Битвы чатов (волна 4)**: `api/battle.js` — один эндпоинт, op-роутинг
+  `create/join/state/submit/rename`. Битва = чат против чата, окно 24ч, счёт команды = сумма
+  очков всех забегов всех участников. Команды авто по `chat_instance` (создательский чат = A,
+  первый чужой клеймит B через `HSETNX`; сторона юзера навсегда; личка/третий чат → ручной
+  выбор). Дельта-дедуп по `uid:runId` (revive не даёт двойного счёта). Имя команды — первому
+  вошедшему (`nameSetBy*`), rename доступен пока команда не сыграла (`score=0`). Ключи `bt:<id>`
+  (+`:members/:contrib/:names/:runs`) TTL 8 дней, `bt:u:<uid>` — одна активная битва на юзера.
+  `state` кэшируется s-maxage=5. Санити-кап 50000, санитизация имён (24 символа,
+  control-символы режутся). Клиент — `js/battle.js` (см. таблицу модулей выше).
 
 ## Грабли
 - **Репозиторий публичный** — не клади сюда секреты/приватное.

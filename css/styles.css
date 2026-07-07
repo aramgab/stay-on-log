@@ -1456,6 +1456,15 @@ body.boss-fight .shark-fin {
     opacity: 0;
 }
 
+/* During a boss fight only the battle and mute buttons stay reachable in the
+   top-right cluster — shop/leaderboard/howto would be a distraction (and a
+   way to accidentally leave the fight's telegraphs unread). */
+body.boss-fight #shop-btn,
+body.boss-fight #lb-btn,
+body.boss-fight #howto-btn {
+    display: none;
+}
+
 /* Crimson danger glows on the screen edges — same idiom as #danger-vignette,
    shown only while the layer is telegraphing/striking on that side. Pulses
    during the telegraph (read time), solid+bright during the strike. */

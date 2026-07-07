@@ -1854,16 +1854,43 @@ body.boss-fight .shark-fin {
     clip-path: path('M4,48 C12,30 20,12 44,2 C36,18 38,32 50,48 Z');
 }
 
+/* Shark side profile for the bite sweep — same sibling contract as the
+   giant. The body axis rides the log-top line: a standing player is raked
+   by the head, a jumped player clears the back with room to read it. */
+#boss-shark-side {
+    position: absolute;
+    top: calc(50% - 185px);
+    left: 50%;
+    width: 260px;
+    height: 90px;
+    margin-left: -130px;
+    z-index: 4;
+    display: none;
+    pointer-events: none;
+    will-change: transform;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+#boss-shark-side svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
 /* Fail-safes — same contract as the layer's own children: nothing may
    render without the layer's active state, and the death-screen fade of
    the layer must reach the siblings too. */
 #boss-layer:not(.on) ~ #boss-orca-giant,
-#boss-layer:not(.on) ~ #boss-shadow {
+#boss-layer:not(.on) ~ #boss-shadow,
+#boss-layer:not(.on) ~ #boss-shark-side {
     display: none !important;
 }
 
 #boss-layer.hidden ~ #boss-orca-giant,
-#boss-layer.hidden ~ #boss-shadow {
+#boss-layer.hidden ~ #boss-shadow,
+#boss-layer.hidden ~ #boss-shark-side {
     opacity: 0;
 }
 

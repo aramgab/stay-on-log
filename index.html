@@ -19,7 +19,7 @@
          stylesheet against max-age=0 (fullscreen-shark incident, июль 2026).
          index.html itself always revalidates, so bumping v here on css
          changes guarantees clients fetch the fresh file. -->
-    <link rel="stylesheet" href="css/styles.css?v=9">
+    <link rel="stylesheet" href="css/styles.css?v=10">
 </head>
 
 <body>
@@ -443,6 +443,56 @@
         <div id="boss-shadow" aria-hidden="true">
             <div class="mass"></div>
             <div class="fin"></div>
+        </div>
+        <!-- Shark in side profile for the bite sweep: replaces the abstract
+             #boss-jaw div — the whole shark now races along the log top,
+             mouth agape. Nose points right (enters from the left); the
+             bite-rev variant mirrors the run. Sits behind the log/player
+             like the giant, so the jumping player reads in front of her. -->
+        <div id="boss-shark-side" aria-hidden="true">
+            <svg viewBox="0 0 260 90" xmlns="http://www.w3.org/2000/svg">
+                <g class="ss-tail">
+                    <path d="M42,44 C28,26 14,12 2,6 C8,20 10,34 8,46 C10,58 8,70 3,80 C15,72 28,58 42,48 Z" fill="#41586b" />
+                </g>
+                <g class="ss-fin-dorsal">
+                    <path d="M106,22 C114,8 128,1 144,0 C138,10 137,19 142,27 C130,22 116,21 106,22 Z" fill="#33475a" />
+                </g>
+                <g class="ss-fin-pect">
+                    <path d="M138,64 C132,76 122,85 110,90 C122,88 134,85 143,78 C140,72 139,68 138,64 Z" fill="#33475a" />
+                </g>
+                <g class="ss-body">
+                    <path d="M40,44 C66,20 132,8 192,14 C222,18 246,24 258,32 C246,40 232,46 218,50 C212,52 206,53 200,54 C150,74 88,70 40,46 Z" fill="#4a616f" />
+                    <!-- darker back -->
+                    <path d="M40,44 C66,20 132,8 192,14 C222,18 246,24 258,32 C244,31 224,28 200,26 C140,22 84,30 40,44 Z" fill="#33475a" />
+                    <!-- white belly -->
+                    <path d="M52,52 C96,68 152,72 202,64 C208,61 212,57 213,53 C186,64 120,66 60,50 Z" fill="#eef3f6" />
+                </g>
+                <!-- open gape: dark wedge under the snout -->
+                <g class="ss-maw">
+                    <path d="M258,32 C246,40 232,46 218,50 C212,52 206,53 202,54 C208,60 218,63 228,61 C242,55 252,44 258,32 Z" fill="#3f1216" />
+                </g>
+                <g class="ss-jaw-upper">
+                    <!-- upper tooth row along the snout underside -->
+                    <path d="M254,34 L250,44 L245,36 Z" fill="#ffffff" />
+                    <path d="M242,39 L238,49 L233,41 Z" fill="#ffffff" />
+                    <path d="M229,44 L225,53 L221,45 Z" fill="#ffffff" />
+                </g>
+                <g class="ss-jaw-lower">
+                    <path d="M208,55 C224,58 238,64 246,73 C237,77 226,77 217,73 C210,68 207,61 208,55 Z" fill="#4a616f" />
+                    <path d="M212,68 C222,73 232,75 241,74 C233,77 224,77 217,73 C214,71 213,70 212,68 Z" fill="#dfe5e9" />
+                    <!-- lower teeth pointing up -->
+                    <path d="M213,57 L217,49 L221,58 Z" fill="#ffffff" />
+                    <path d="M225,60 L229,52 L233,61 Z" fill="#ffffff" />
+                    <path d="M237,65 L241,58 L244,67 Z" fill="#ffffff" />
+                </g>
+                <g class="ss-eye">
+                    <circle cx="234" cy="30" r="3.5" fill="#0c1116" />
+                    <circle cx="233" cy="29" r="1" fill="#dfe8ee" />
+                </g>
+                <g class="ss-gills">
+                    <path d="M198,26 q-5,11 0,22 M205,25 q-5,12 0,24 M212,24 q-5,13 0,26" stroke="#2b3d4d" stroke-width="2" fill="none" stroke-linecap="round" />
+                </g>
+            </svg>
         </div>
         <div id="boss-hint" aria-hidden="true"></div>
 

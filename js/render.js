@@ -104,6 +104,6 @@ export function animateFall(normPos) {
         }
         if (state.highScore > 0) shareBtn.style.display = 'block';
         shopBtn.style.display = ''; // hidden during the run, back on the result screen
-        mapBtn.style.display = ''; // hidden during the run, back on the result screen
+        mapBtn.style.display = 'block'; // hidden during the run, back on the result screen
     }, 1200);
 }

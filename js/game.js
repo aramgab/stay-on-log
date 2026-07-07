@@ -874,7 +874,14 @@ function registerHit(playerPosition, source) {
 
     if (state.hp <= 0) {
         // Which threat killed us — read BEFORE gameOver's resetObstacles.
-        gameOver(normalizePos(playerPosition), source === 'boss'
+        // A fatal side-strike from a boss biases the fall AWAY from the
+        // impact so the splash direction sells the blow (render.js reads
+        // only the sign/offset for the arc; scoring is untouched).
+        let pos = normalizePos(playerPosition);
+        if (source === 'boss' && bossHitDir() !== 0 && Math.abs(pos) < 30) {
+            pos = -bossHitDir() * 35;
+        }
+        gameOver(pos, source === 'boss'
             ? 'boss-' + (activeBossId() || 'shark')
             : 'hit-' + (activeObstacleType() || 'knot'));
         return true;

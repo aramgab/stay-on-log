@@ -402,6 +402,37 @@ async function opRename(res, body) {
     });
 }
 
+// Dev-only (?dev=1 client gate): fast-forward the caller's OWN battle to end
+// in 5 minutes, so the win/lose/draw screens can be playtested without
+// waiting out the real 24h window. Membership is the entire authorization
+// surface (mirrors opRename). Only ever shortens `ends` — never extends it —
+// which as a side effect also refuses to resurrect an already-finished battle
+// (its `ends` is in the past, so `newEnds >= curEnds` is always true there).
+async function opDevExpire(res, body) {
+    const v = validateInitData(String(body.initData || ''));
+    if (!v) return json(res, 403, { error: 'invalid initData' });
+    const id = String(body.id || '');
+    if (!ID_RE.test(id)) return json(res, 400, { error: 'bad id' });
+    const uid = String(v.user.id);
+    const bt = 'bt:' + id;
+
+    const out = await kvPipeline([
+        ['HGETALL', bt],
+        ['HGET', bt + ':members', uid],
+    ]);
+    const meta = hashToObj(out[0] && out[0].result);
+    if (!meta.ends) return json(res, 404, { error: 'not found' });
+    const side = out[1] && out[1].result;
+    if (side !== 'A' && side !== 'B') return json(res, 403, { error: 'not a member' });
+
+    const newEnds = Date.now() + 5 * 60 * 1000;
+    const curEnds = Number(meta.ends) || 0;
+    if (newEnds >= curEnds) return json(res, 200, { ok: true, ends: curEnds, unchanged: true });
+
+    await kvPipeline([['HSET', bt, 'ends', String(newEnds)]]);
+    return json(res, 200, { ok: true, ends: newEnds });
+}
+
 module.exports = async (req, res) => {
     if (!kvConfigured() || !botConfigured()) {
         return json(res, 503, { disabled: true });
@@ -420,6 +451,7 @@ module.exports = async (req, res) => {
             if (body.op === 'join') return await opJoin(res, body);
             if (body.op === 'submit') return await opSubmit(res, body);
             if (body.op === 'rename') return await opRename(res, body);
+            if (body.op === 'devExpire') return await opDevExpire(res, body);
             if (body.op === 'state') return json(res, 405, { error: 'state is GET' });
             return json(res, 400, { error: 'unknown op' });
         }

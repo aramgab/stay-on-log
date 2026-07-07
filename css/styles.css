@@ -1791,6 +1791,47 @@ body.boss-fight .shark-fin {
     }
 }
 
+/* Mirrored run (bite-rev on the layer, js/boss.js alternates it per bite):
+   the shark looms at the RIGHT edge and races leftward; the danger glow
+   follows her to the right side. */
+#boss-layer.on.tele-bite.bite-rev ~ #boss-shark-side {
+    animation: sharkLoomRev 0.7s ease-in-out infinite alternate;
+}
+
+@keyframes sharkLoomRev {
+    from {
+        transform: translateX(calc(50vw + 50px)) scaleX(-1) translateY(0);
+    }
+
+    to {
+        transform: translateX(calc(50vw + 38px)) scaleX(-1) translateY(6px);
+    }
+}
+
+#boss-layer.on.strike-bite.bite-rev ~ #boss-shark-side {
+    animation: sharkSweepRev 0.6s linear forwards;
+}
+
+@keyframes sharkSweepRev {
+    from {
+        transform: translateX(calc(50vw + 348px)) scaleX(-1);
+    }
+
+    to {
+        transform: translateX(calc(-50vw - 132px)) scaleX(-1);
+    }
+}
+
+#boss-layer.tele-bite.bite-rev #boss-glow-left {
+    display: none;
+    animation: none;
+}
+
+#boss-layer.tele-bite.bite-rev #boss-glow-right {
+    display: block;
+    animation: bossGlowPulse 0.5s ease-in-out infinite alternate;
+}
+
 /* === BOSS REWORK 2.0: the giant orca lives BEHIND the log ===
    #boss-orca-giant and #boss-shadow are siblings of #boss-layer (like
    #boss-hint below), so the layer's state classes drive them through

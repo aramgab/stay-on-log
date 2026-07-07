@@ -51,6 +51,7 @@ let biteChecked = false;      // the single-instant bite check has run
 let fightKind = 'pattern'; // 'pattern' | 'chase'
 let lastBossId = '';       // id of the boss that is fighting / just fought
 let layerVariant = '';     // per-boss CSS class riding alongside the state class
+let biteFlip = false;      // bite sweeps alternate sides; true = mirrored run
 let snapState = 0;         // 0 none / 1 telegraph / 2 strike (chase-only)
 let snapT = 0;              // ms elapsed in the current snap phase
 let nextSnapAt = 0;         // t (chase clock) at which the next snap begins
@@ -79,7 +80,7 @@ function beginTelegraph(atk) {
         setLayer(sideResolved === -1 ? 'on tele-left' : 'on tele-right');
         bossHintEl.innerText = sideResolved === -1 ? '➡ УЙДИ ВПРАВО!' : '⬅ УЙДИ ВЛЕВО!';
     } else {
-        setLayer('on tele-bite');
+        setLayer('on tele-bite' + (biteFlip ? ' bite-rev' : ''));
         bossHintEl.innerText = '⬆ ПРЫГАЙ!';
     }
     sfx.whoosh();
@@ -92,8 +93,9 @@ function beginStrike(atk) {
         setLayer(sideResolved === -1 ? 'on strike-left' : 'on strike-right');
         sfx.splash();
     } else {
-        setLayer('on strike-bite');
+        setLayer('on strike-bite' + (biteFlip ? ' bite-rev' : ''));
         sfx.whoosh();
+        biteFlip = !biteFlip; // the next bite races in from the other side
     }
 }
 
@@ -128,6 +130,7 @@ export function bossReset() {
     fightKind = 'pattern';
     lastBossId = '';
     layerVariant = '';
+    biteFlip = false;
     snapState = 0;
     snapT = 0;
     nextSnapAt = 0;

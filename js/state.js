@@ -72,6 +72,11 @@ export const state = {
     // One paid revive per run (reset by startGame).
     revivedThisRun: false,
 
+    // Run identifier for the battle delta-dedup: generated ONLY in startGame
+    // and deliberately kept through a revive — both game overs of one run
+    // submit under the same id, the server counts the growth once.
+    runId: '',
+
     // Jump / lives
     isJumping: false,
     jumpStartTime: 0,   // Date.now() of the last jump start (branch timing check)

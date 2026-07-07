@@ -44,7 +44,13 @@ async function kvPipeline(commands) {
 //   secret = HMAC_SHA256(key="WebAppData", msg=bot_token)
 //   hash   = hex(HMAC_SHA256(key=secret, msg=data_check_string))
 // where data_check_string = sorted "key=value" lines of every field except
-// hash, with URL-decoded values. Returns the verified user object or null.
+// hash, with URL-decoded values. The HMAC covers EVERY field, so anything
+// parsed out below is as trustworthy as the user object itself. Returns
+//   { user, chatInstance, chatType, startParam }
+// or null when the signature/age/user check fails. chatInstance is the
+// anonymous per-chat fingerprint Telegram attaches when the app is opened
+// from a chat (battles team people by it); it is NOT a chat_id and carries
+// no title.
 function validateInitData(initData) {
     let params;
     try {
@@ -73,11 +79,20 @@ function validateInitData(initData) {
     const authDate = parseInt(params.get('auth_date'), 10) || 0;
     if (Math.abs(Date.now() / 1000 - authDate) > MAX_AUTH_AGE_S) return null;
 
+    let user;
     try {
-        return JSON.parse(params.get('user') || 'null');
+        user = JSON.parse(params.get('user') || 'null');
     } catch (e) {
         return null;
     }
+    if (!user || !user.id) return null;
+
+    return {
+        user,
+        chatInstance: params.get('chat_instance') || '',
+        chatType: params.get('chat_type') || '',
+        startParam: params.get('start_param') || '',
+    };
 }
 
 module.exports = { kvConfigured, botConfigured, kvPipeline, validateInitData };

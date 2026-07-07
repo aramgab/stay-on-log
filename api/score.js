@@ -36,14 +36,14 @@ module.exports = async (req, res) => {
         return;
     }
 
-    const user = validateInitData(String(initData));
-    if (!user || !user.id) {
+    const v = validateInitData(String(initData));
+    if (!v) {
         res.status(403).json({ error: 'invalid initData' });
         return;
     }
 
-    const uid = String(user.id);
-    const name = String(user.first_name || user.username || 'Игрок').slice(0, 16);
+    const uid = String(v.user.id);
+    const name = String(v.user.first_name || v.user.username || 'Игрок').slice(0, 16);
 
     try {
         const out = await kvPipeline([

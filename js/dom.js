@@ -72,3 +72,7 @@ export const nicknameInput = document.getElementById('nickname-input');
 export const nicknameSaveBtn = document.getElementById('nickname-save-btn');
 export const bossLayer = document.getElementById('boss-layer');
 export const bossHintEl = document.getElementById('boss-hint');
+export const battleBtn = document.getElementById('battle-btn');
+export const battleBadge = document.getElementById('battle-badge');
+export const battleOverlay = document.getElementById('battle-overlay');
+export const battleCloseBtn = document.getElementById('battle-close');

@@ -111,7 +111,7 @@ import {
 import { spawnCoins, renderCoinLayer, stepCoins, resetCoins } from './coins.js';
 import { initShop, hasPendingHeart, consumePendingHeart, spendCoins } from './shop.js';
 import { initLeaderboard, submitScore } from './leaderboard.js';
-import { submitBattleScore } from './battle.js';
+import { submitBattleScore, initBattle } from './battle.js';
 import { setMainArrow, setPreviewArrow, promoteArrows, cancelPromote, resetArrows } from './dirarrow.js';
 import { deathQuip } from './quips.js';
 import { DAY_PHASE_CLASSES, dayPhaseFor, cycleOf, BIOMES, BOSSES, questsFor } from './biomes.js';
@@ -1646,7 +1646,7 @@ nicknameInput.addEventListener('keydown', function (e) {
 // silent-switch), so re-running initAudio() on every tap keeps it resumed
 // instead of relying solely on the one-time unlock at Start.
 document.addEventListener('pointerdown', function (e) {
-    if (e.target.closest && e.target.closest('#mute-btn, #howto-btn, #howto-overlay, #shop-btn, #shop-overlay, #lb-btn, #lb-overlay, #revive-btn, #dev-tune, #tutorial-skip, #map-btn, #map-overlay')) return;
+    if (e.target.closest && e.target.closest('#mute-btn, #howto-btn, #howto-overlay, #shop-btn, #shop-overlay, #lb-btn, #lb-overlay, #battle-btn, #battle-overlay, #revive-btn, #dev-tune, #tutorial-skip, #map-btn, #map-overlay')) return;
     initAudio();
     if (state.isPlaying) doJump();
 });
@@ -1883,6 +1883,7 @@ initShop(updateCoinsDisplay);
 // Leaderboard: wire the overlay + probe the backend (button appears only
 // if /api/top answers — a deploy without the env degrades silently)
 initLeaderboard();
+initBattle();
 
 // Campaign map: wire the overlay, show the selected world on the map button.
 initMap();

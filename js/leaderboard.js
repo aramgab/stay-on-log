@@ -13,10 +13,22 @@ import { initAudio } from './audio.js';
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 let backendAlive = false;
+let aliveCbs = [];
 
 function myUid() {
     const u = tgUser();
     return u && u.id ? String(u.id) : '';
+}
+
+// Other self-hiding features (battles) piggyback on the same single probe
+// instead of firing their own: the callback runs once the backend answered,
+// or immediately if it already did.
+export function whenBackendAlive(cb) {
+    if (backendAlive) {
+        cb();
+        return;
+    }
+    aliveCbs.push(cb);
 }
 
 // One probe at boot: backend alive -> show the 🏆 button.
@@ -26,6 +38,7 @@ export function probeLeaderboard() {
             if (!r.ok) return;
             backendAlive = true;
             lbBtn.style.display = '';
+            aliveCbs.splice(0).forEach((cb) => cb());
         })
         .catch(() => { /* offline/сold backend — feature stays hidden */ });
 }

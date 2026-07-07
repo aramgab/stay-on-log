@@ -2767,6 +2767,286 @@ body.world-winter .obstacle-inner.ob-branch::after {
     margin-top: 4px;
 }
 
+/* === CHAT BATTLES (js/battle.js) — same overlay pattern as the leaderboard.
+   The card hosts several UI states as .bt-state sections; battle.js flips
+   the .on class, everything else stays hidden. === */
+#battle-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 20, 30, 0.95);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+#battle-overlay.active {
+    display: flex;
+}
+
+#battle-card {
+    text-align: center;
+    width: min(360px, 90vw);
+    max-height: 86dvh;
+    overflow-y: auto;
+    padding: 0 16px;
+}
+
+#battle-card h2 {
+    font-size: 26px;
+    margin-bottom: 14px;
+}
+
+.bt-state {
+    display: none;
+}
+
+.bt-state.on {
+    display: block;
+}
+
+.bt-note {
+    font-size: 14px;
+    line-height: 1.45;
+    opacity: 0.9;
+    margin-bottom: 12px;
+}
+
+.bt-hint {
+    font-size: 12px;
+    opacity: 0.65;
+    margin-top: 10px;
+    line-height: 1.4;
+}
+
+#bt-create-name,
+#bt-name-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    font-size: 16px;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.bt-primary {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 14px;
+    cursor: pointer;
+}
+
+.bt-side-btn {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    padding: 13px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+#bt-join-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 6px;
+}
+
+#bt-join-score {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--warn);
+    margin-bottom: 14px;
+}
+
+#bt-versus {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.bt-team {
+    flex: 1;
+    min-width: 0;
+    padding: 9px 8px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.bt-team.mine {
+    background: rgba(255, 217, 61, 0.16);
+    box-shadow: inset 0 0 0 1px rgba(255, 217, 61, 0.4);
+}
+
+.bt-team-name {
+    font-size: 13px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 3px;
+}
+
+.bt-team-score {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--warn);
+}
+
+#bt-vs {
+    align-self: center;
+    font-size: 13px;
+    font-weight: 800;
+    opacity: 0.6;
+}
+
+#bt-timer {
+    font-size: 14px;
+    font-weight: 700;
+    min-height: 18px;
+    margin-bottom: 4px;
+}
+
+#bt-verdict {
+    font-size: 22px;
+    font-weight: 900;
+    min-height: 0;
+    margin: 4px 0;
+}
+
+#bt-verdict.won {
+    color: #ffd93d;
+}
+
+#bt-verdict.lost {
+    color: #ff7a7a;
+}
+
+#bt-mine {
+    font-size: 13px;
+    font-weight: 700;
+    opacity: 0.9;
+    min-height: 16px;
+    margin-bottom: 6px;
+}
+
+#bt-rename {
+    font-size: 12px;
+    opacity: 0.75;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-bottom: 8px;
+}
+
+#bt-tables {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.bt-list {
+    flex: 1;
+    min-width: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+}
+
+.bt-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+}
+
+.bt-row:nth-child(even) {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.bt-row.you {
+    background: rgba(255, 217, 61, 0.18);
+    font-weight: 700;
+}
+
+.bt-row-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bt-row-score {
+    flex: 0 0 auto;
+    font-weight: 700;
+    color: var(--warn);
+}
+
+#bt-share-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+#bt-share-foe,
+#bt-share-own {
+    flex: 1;
+    padding: 11px 8px;
+    border: none;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    color: white;
+}
+
+#bt-share-foe {
+    background: linear-gradient(135deg, #c0392b, #e74c3c);
+}
+
+#bt-share-own {
+    background: linear-gradient(135deg, #2980b9, #3498db);
+}
+
+#bt-msg {
+    font-size: 13px;
+    font-weight: 700;
+    min-height: 17px;
+    margin: 6px 0 8px;
+    color: #ffd93d;
+}
+
+/* Same green pill as the other overlay close buttons */
+#battle-close {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+    border: none;
+    padding: 12px 34px;
+    font-size: 17px;
+    font-weight: 700;
+    border-radius: 14px;
+    cursor: pointer;
+    margin-top: 2px;
+}
+
 /* === CAMPAIGN MAP (js/map.js) — same overlay pattern as the shop === */
 #map-overlay {
     position: fixed;
@@ -3418,7 +3698,8 @@ body.world-winter .obstacle-inner.ob-branch::after {
 #mute-btn,
 #howto-btn,
 #shop-btn,
-#lb-btn {
+#lb-btn,
+#battle-btn {
     width: 40px;
     height: 40px;
     padding: 0;
@@ -3441,8 +3722,34 @@ body.world-winter .obstacle-inner.ob-branch::after {
 #mute-btn:active,
 #howto-btn:active,
 #shop-btn:active,
-#lb-btn:active {
+#lb-btn:active,
+#battle-btn:active {
     transform: scale(0.92);
+}
+
+/* Live team-score badge riding the ⚔️ button (js/battle.js). */
+#battle-btn {
+    position: relative;
+}
+
+#battle-badge {
+    display: none;
+    position: absolute;
+    top: -6px;
+    right: -10px;
+    padding: 2px 6px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #ffd93d, #ffb43d);
+    color: #4a2c00;
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+#battle-badge.on {
+    display: block;
 }
 
 /* === HOW-TO OVERLAY === */

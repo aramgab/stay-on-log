@@ -19,7 +19,7 @@
          stylesheet against max-age=0 (fullscreen-shark incident, июль 2026).
          index.html itself always revalidates, so bumping v here on css
          changes guarantees clients fetch the fresh file. -->
-    <link rel="stylesheet" href="css/styles.css?v=20">
+    <link rel="stylesheet" href="css/styles.css?v=21">
 </head>
 
 <body>
@@ -100,26 +100,23 @@
 
     <!-- Shop overlay (js/shop.js): the coin sink — avatar-on-the-log skin
          and the spare-heart consumable. Same overlay pattern as howto. -->
+    <!-- Shop 2.0 (js/shop.js): character skins across 4 slots + the log
+         avatar and spare heart under Прочее. The mannequin shows the
+         equipped look; tabs switch the grid; cards are rendered by shop.js
+         (names/icons are static registry data, safe as innerHTML). -->
     <div id="shop-overlay">
         <div id="shop-card">
             <h2>🛒 Магазин</h2>
             <div id="shop-balance">🪙 0</div>
-            <div class="shop-item">
-                <div class="shop-item-preview" id="shop-avatar-preview">🪵</div>
-                <div class="shop-item-info">
-                    <div class="shop-item-name">Твоё бревно</div>
-                    <div class="shop-item-desc">Аватарка из Telegram — на торце бревна</div>
-                </div>
-                <button class="shop-buy-btn" id="shop-avatar-btn">300 🪙</button>
+            <div id="shop-mannequin" aria-hidden="true"></div>
+            <div id="shop-tabs">
+                <button class="shop-tab active" data-slot="head">Голова</button>
+                <button class="shop-tab" data-slot="body">Тело</button>
+                <button class="shop-tab" data-slot="legs">Ноги</button>
+                <button class="shop-tab" data-slot="suit">Костюмы</button>
+                <button class="shop-tab" data-slot="misc">Прочее</button>
             </div>
-            <div class="shop-item">
-                <div class="shop-item-preview">❤️</div>
-                <div class="shop-item-info">
-                    <div class="shop-item-name">Запасное сердце</div>
-                    <div class="shop-item-desc">+1 жизнь на следующий забег</div>
-                </div>
-                <button class="shop-buy-btn" id="shop-heart-btn">25 🪙</button>
-            </div>
+            <div id="shop-grid"></div>
             <button id="shop-close">Готово</button>
         </div>
     </div>
@@ -314,7 +311,7 @@
             <!-- Player orbit -->
             <div id="player-orbit">
                 <!-- Side-view running stickman -->
-                <svg id="player" viewBox="0 0 44 55" xmlns="http://www.w3.org/2000/svg">
+                <svg id="player" class="char-fig" viewBox="0 0 44 55" xmlns="http://www.w3.org/2000/svg">
                     <!-- .rig wraps the whole figure: the svg root's transform is
                          owned by the jump (css playerJump), so knockback and any
                          future body-level animation live on this inner group. -->
@@ -571,7 +568,7 @@
         <div id="boss-hint" aria-hidden="true"></div>
 
         <!-- Falling player clone (for fall animation) -->
-        <svg id="falling-player" width="60" height="75" viewBox="0 0 44 55" xmlns="http://www.w3.org/2000/svg">
+        <svg id="falling-player" class="char-fig" width="60" height="75" viewBox="0 0 44 55" xmlns="http://www.w3.org/2000/svg">
             <!-- Same character, fail-state face: eyes shut, mouth an "o" -->
             <circle class="char-head" cx="22" cy="9" r="7.5" fill="#ff5252" stroke="white" stroke-width="2" />
             <path d="M23.5 4.5 Q26 3.5 28 5" fill="none" stroke="white" stroke-width="1.2" stroke-linecap="round" />

@@ -8,16 +8,16 @@
 // is safe — unlike the wallet, which stays local-only for now).
 
 import { state, lsGet, lsSet } from './state.js';
-import { AVATAR_SKIN_PRICE, SPARE_HEART_PRICE } from './config.js';
+import { AVATAR_SKIN_PRICE, SPARE_HEART_PRICE, SKINS, SKIN_RARITY } from './config.js';
 import {
     logSvg,
     playerEl,
     shopBtn,
     shopOverlay,
     shopBalanceEl,
-    shopAvatarBtn,
-    shopAvatarPreview,
-    shopHeartBtn,
+    shopMannequin,
+    shopTabs,
+    shopGrid,
     shopCloseBtn,
 } from './dom.js';
 import { isInTelegram, tgUser, cloudGet, cloudSet } from './tg.js';
@@ -165,81 +165,175 @@ function applyClasses(el) {
     charClasses().forEach((c) => el.classList.add(c));
 }
 
+// The shop mannequin is a static, animation-frozen clone of #player (css
+// freezes it) that always shows the equipped look.
+let mannequinFig = null;
+
+function buildMannequin() {
+    if (!shopMannequin || mannequinFig) return;
+    const clone = playerEl.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.removeAttribute('style');
+    clone.setAttribute('class', 'char-fig'); // drop #player state classes
+    shopMannequin.appendChild(clone);
+    mannequinFig = clone;
+}
+
 function applyCharSkin() {
     applyClasses(playerEl);
+    if (mannequinFig) applyClasses(mannequinFig);
     // #falling-player is dressed too — wired in a later commit.
 }
 
 // --- Overlay UI ---
-function refreshShopUI() {
+let activeTab = 'head';
+
+function isOwned(id) {
+    return ownedSkins.indexOf(id) !== -1;
+}
+
+function refreshBalance() {
     shopBalanceEl.innerText = '🪙 ' + state.coins;
+}
 
-    // Avatar item: preview shows the actual photo when we have one.
+// A character-skin card. Registry data (name/icon) is static, so building it
+// as an HTML string is safe — no user input goes in here.
+function skinCardHtml(skin) {
+    const owned = isOwned(skin.id);
+    const equipped = equip[skin.slot] === skin.id;
+    let btn;
+    if (equipped) btn = 'Снять ✓';
+    else if (owned) btn = 'Надеть';
+    else btn = skin.price + ' 🪙';
+    const disabled = !owned && state.coins < skin.price;
+    const rar = SKIN_RARITY[skin.rarity] ? SKIN_RARITY[skin.rarity].label : '';
+    return '<div class="skin-card rar-' + skin.rarity + (equipped ? ' equipped' : '') + '" data-id="' + skin.id + '">'
+        + '<div class="skin-card-icon">' + skin.icon + '</div>'
+        + '<div class="skin-card-name">' + skin.name + '</div>'
+        + '<div class="skin-card-rar">' + rar + '</div>'
+        + '<button class="skin-card-btn"' + (disabled ? ' disabled' : '') + '>' + btn + '</button>'
+        + '</div>';
+}
+
+// The Прочее tab keeps the log avatar and the spare heart.
+function miscCardsHtml() {
     const url = avatarUrl();
-    if (url) {
-        shopAvatarPreview.style.backgroundImage = `url("${url}")`;
-        shopAvatarPreview.innerText = '';
-    } else {
-        shopAvatarPreview.style.backgroundImage = '';
-        shopAvatarPreview.innerText = '🪵';
-    }
+    let avatarBtn;
+    let avatarDisabled = '';
     if (!isInTelegram() || !url) {
-        shopAvatarBtn.innerText = '🔒 В Telegram';
-        shopAvatarBtn.disabled = true;
+        avatarBtn = '🔒 В Telegram';
+        avatarDisabled = ' disabled';
     } else if (!ownsAvatar()) {
-        shopAvatarBtn.innerText = AVATAR_SKIN_PRICE + ' 🪙';
-        shopAvatarBtn.disabled = state.coins < AVATAR_SKIN_PRICE;
-    } else if (equip.log === 'avatar_log') {
-        shopAvatarBtn.innerText = 'Снять ✓';
-        shopAvatarBtn.disabled = false;
+        avatarBtn = AVATAR_SKIN_PRICE + ' 🪙';
+        if (state.coins < AVATAR_SKIN_PRICE) avatarDisabled = ' disabled';
     } else {
-        shopAvatarBtn.innerText = 'Надеть';
-        shopAvatarBtn.disabled = false;
+        avatarBtn = equip.log === 'avatar_log' ? 'Снять ✓' : 'Надеть';
     }
+    const avatarCard = '<div class="skin-card' + (equip.log === 'avatar_log' ? ' equipped' : '') + '" data-id="avatar_log">'
+        + '<div class="skin-card-icon">🪵</div>'
+        + '<div class="skin-card-name">Твоё бревно</div>'
+        + '<div class="skin-card-rar">аватар из TG</div>'
+        + '<button class="skin-card-btn"' + avatarDisabled + '>' + avatarBtn + '</button>'
+        + '</div>';
 
-    // Spare heart item.
-    if (hasPendingHeart()) {
-        shopHeartBtn.innerText = 'В запасе ✓';
-        shopHeartBtn.disabled = true;
+    const has = hasPendingHeart();
+    const heartBtn = has ? 'В запасе ✓' : (SPARE_HEART_PRICE + ' 🪙');
+    const heartDisabled = has || state.coins < SPARE_HEART_PRICE ? ' disabled' : '';
+    const heartCard = '<div class="skin-card" data-id="heart">'
+        + '<div class="skin-card-icon">❤️</div>'
+        + '<div class="skin-card-name">Сердце</div>'
+        + '<div class="skin-card-rar">+1 жизнь</div>'
+        + '<button class="skin-card-btn"' + heartDisabled + '>' + heartBtn + '</button>'
+        + '</div>';
+
+    return avatarCard + heartCard;
+}
+
+function renderGrid() {
+    if (activeTab === 'misc') {
+        shopGrid.innerHTML = miscCardsHtml();
+        return;
+    }
+    shopGrid.innerHTML = SKINS.filter((s) => s.slot === activeTab).map(skinCardHtml).join('');
+}
+
+function selectTab(slot) {
+    activeTab = slot;
+    Array.prototype.slice.call(shopTabs.children).forEach((b) => {
+        b.classList.toggle('active', b.dataset.slot === slot);
+    });
+    renderGrid();
+}
+
+// Buy (if not owned) or toggle equip/unequip a character skin.
+function buyOrToggleSkin(id) {
+    const skin = SKINS.find((s) => s.id === id);
+    if (!skin) return;
+    if (!isOwned(id)) {
+        if (!spendCoins(skin.price)) return;
+        ownedSkins.push(id);
+        equip[skin.slot] = id;
+        persistOwned();
+        sfx.combo(3); // a purchase is a small celebration
     } else {
-        shopHeartBtn.innerText = SPARE_HEART_PRICE + ' 🪙';
-        shopHeartBtn.disabled = state.coins < SPARE_HEART_PRICE;
+        equip[skin.slot] = equip[skin.slot] === id ? '' : id;
+        sfx.point();
     }
+    persistSlot(skin.slot);
+    applyCharSkin();
+    refreshBalance();
+    renderGrid();
 }
 
-function openShop() {
-    if (state.isPlaying) return;
-    initAudio();
-    refreshShopUI();
-    shopOverlay.classList.add('active');
-}
-
-function closeShop() {
-    shopOverlay.classList.remove('active');
-}
-
-function onAvatarBtn() {
+function onAvatar() {
     if (!ownsAvatar()) {
         if (!spendCoins(AVATAR_SKIN_PRICE)) return;
         ownedSkins.push('avatar_log');
         equip.log = 'avatar_log';
         persistOwned();
-        sfx.combo(3); // a purchase is a small celebration
+        sfx.combo(3);
     } else {
         equip.log = equip.log === 'avatar_log' ? '' : 'avatar_log';
         sfx.point();
     }
     persistSlot('log');
     applyLogSkin();
-    refreshShopUI();
+    refreshBalance();
+    renderGrid();
 }
 
-function onHeartBtn() {
+function onHeart() {
     if (hasPendingHeart()) return;
     if (!spendCoins(SPARE_HEART_PRICE)) return;
     lsSet('stayOnLog_pendingHeart', '1');
     sfx.point();
-    refreshShopUI();
+    refreshBalance();
+    renderGrid();
+}
+
+// One delegated handler for the whole grid — cards are re-rendered on every
+// change, so per-card listeners would go stale.
+function onGridClick(e) {
+    const card = e.target.closest && e.target.closest('.skin-card');
+    if (!card || (e.target.closest('button') && e.target.closest('button').disabled)) return;
+    const id = card.dataset.id;
+    if (id === 'avatar_log') onAvatar();
+    else if (id === 'heart') onHeart();
+    else buyOrToggleSkin(id);
+}
+
+function openShop() {
+    if (state.isPlaying) return;
+    initAudio();
+    buildMannequin();
+    if (mannequinFig) applyClasses(mannequinFig);
+    refreshBalance();
+    renderGrid();
+    shopOverlay.classList.add('active');
+}
+
+function closeShop() {
+    shopOverlay.classList.remove('active');
 }
 
 // CloudStorage merge: purchases are a set — union both sides; an equipped
@@ -283,8 +377,11 @@ export function initShop(walletChangedCb) {
     onWalletChange = walletChangedCb || null;
     shopBtn.addEventListener('click', openShop);
     shopCloseBtn.addEventListener('click', closeShop);
-    shopAvatarBtn.addEventListener('click', onAvatarBtn);
-    shopHeartBtn.addEventListener('click', onHeartBtn);
+    shopGrid.addEventListener('click', onGridClick);
+    shopTabs.addEventListener('click', (e) => {
+        const tab = e.target.closest('.shop-tab');
+        if (tab) selectTab(tab.dataset.slot);
+    });
     applyLogSkin();
     applyCharSkin();
     syncFromCloud();

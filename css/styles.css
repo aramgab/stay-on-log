@@ -215,56 +215,52 @@ body.biome-w-dawn {
 #log-svg .wood-crack { stroke: var(--wood-crack); }
 #log-svg .wood-crack-fill { fill: var(--wood-crack); }
 
-/* Character colours, shared by #player and its falling clone. */
-#player .char-head,
-#falling-player .char-head {
+/* === CHARACTER FIGURE + SKINS (shop 2.0) ===
+   .char-fig is the shared hook worn by #player, its falling clone, and the
+   shop mannequin, so one set of rules dresses all three. Every skin piece is
+   an inline group hidden by default; a toggle class on the figure reveals
+   its slot. Pieces live inside .head / the torso / .leg-* so they ride the
+   run/jump/knockback animations. Costumes recolour the whole figure via
+   --char-* plus one accent piece, and hide the individual head/body/legs
+   pieces. (Comment safety: no star-slash pairs below.) */
+.char-fig .char-head {
     fill: var(--char-skin);
     stroke: var(--char-line);
 }
 
-#player .char-line,
-#falling-player .char-line {
+.char-fig .char-line {
     stroke: var(--char-line);
 }
 
-/* === CHARACTER SKINS (shop 2.0) ===
-   Every skin piece is an inline group hidden by default; a toggle class on
-   the figure root reveals its slot. Pieces live inside .head / the torso /
-   .leg-* so they ride the run/jump/knockback animations for free. Costumes
-   recolour the whole figure via --char-* and add one accent piece, and
-   hide the individual head/body/legs pieces. Same rules serve #player and
-   its falling clone. (Comment safety: no star-slash pairs below.) */
-:is(#player, #falling-player) .skin {
+.char-fig .skin {
     display: none;
 }
 
-:is(#player, #falling-player).char-head-cap .skin-head-cap,
-:is(#player, #falling-player).char-head-helm .skin-head-helm,
-:is(#player, #falling-player).char-head-crown .skin-head-crown,
-:is(#player, #falling-player).char-body-tee .skin-body-tee,
-:is(#player, #falling-player).char-body-armor .skin-body-armor,
-:is(#player, #falling-player).char-body-cape .skin-body-cape,
-:is(#player, #falling-player).char-legs-boots .skin-legs-boots,
-:is(#player, #falling-player).char-legs-jeans .skin-legs-jeans,
-:is(#player, #falling-player).char-costume-ninja .skin-suit-ninja-head {
+.char-fig.char-head-cap .skin-head-cap,
+.char-fig.char-head-helm .skin-head-helm,
+.char-fig.char-head-crown .skin-head-crown,
+.char-fig.char-body-tee .skin-body-tee,
+.char-fig.char-body-armor .skin-body-armor,
+.char-fig.char-body-cape .skin-body-cape,
+.char-fig.char-legs-boots .skin-legs-boots,
+.char-fig.char-legs-jeans .skin-legs-jeans,
+.char-fig.char-costume-ninja .skin-suit-ninja-head {
     display: inline;
 }
 
 /* Costume recolours (custom properties cascade onto the figure subtree). */
-#player.char-costume-ninja,
-#falling-player.char-costume-ninja {
+.char-fig.char-costume-ninja {
     --char-skin: #2f2f37;
     --char-line: #45454f;
 }
 
-#player.char-costume-gold,
-#falling-player.char-costume-gold {
+.char-fig.char-costume-gold {
     --char-skin: #f4c53a;
     --char-line: #ffe07a;
 }
 
 /* A costume owns the whole look — individual head/body/legs pieces yield. */
-:is(#player, #falling-player)[class*="char-costume-"] :is([class*="skin-head-"], [class*="skin-body-"], [class*="skin-legs-"]) {
+.char-fig[class*="char-costume-"] :is([class*="skin-head-"], [class*="skin-body-"], [class*="skin-legs-"]) {
     display: none !important;
 }
 
@@ -2653,66 +2649,132 @@ body.world-winter .obstacle-inner.ob-branch::after {
 
 #shop-card {
     text-align: center;
-    width: min(340px, 88vw);
+    width: min(360px, 92vw);
+    max-height: 92dvh;
+    overflow-y: auto;
     padding: 0 16px;
 }
 
 #shop-card h2 {
     font-size: 26px;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 #shop-balance {
     font-size: 16px;
     font-weight: 700;
     color: var(--warn);
-    margin-bottom: 18px;
+    margin-bottom: 8px;
 }
 
-.shop-item {
+/* Mannequin: the frozen clone of #player showing the equipped look. */
+#shop-mannequin {
+    height: 92px;
     display: flex;
-    align-items: center;
-    gap: 12px;
-    text-align: left;
-    background: rgba(255, 255, 255, 0.07);
-    border-radius: 14px;
-    padding: 12px;
+    align-items: flex-end;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+#shop-mannequin svg {
+    width: 72px;
+    height: 90px;
+    overflow: visible;
+}
+
+#shop-mannequin svg * {
+    animation: none !important;
+}
+
+/* Slot tabs. */
+#shop-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
     margin-bottom: 12px;
 }
 
-.shop-item-preview {
-    flex: 0 0 48px;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.12) center/cover no-repeat;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-}
-
-.shop-item-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.shop-item-name {
+.shop-tab {
+    border: none;
+    border-radius: 999px;
+    padding: 7px 13px;
+    font-size: 13px;
     font-weight: 700;
-    font-size: 15px;
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
 }
 
-.shop-item-desc {
-    font-size: 12px;
-    opacity: 0.75;
-    margin-top: 2px;
+.shop-tab.active {
+    background: linear-gradient(135deg, #ffd93d, #ffb43d);
+    color: #1a1a1a;
 }
 
-.shop-buy-btn {
-    flex: 0 0 auto;
+/* Skin grid + cards; the frame colour reads the rarity. */
+#shop-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.skin-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 8px;
+    border-radius: 14px;
+    border: 2px solid var(--rar, rgba(255, 255, 255, 0.2));
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.skin-card.rar-common {
+    --rar: var(--rar-common);
+}
+
+.skin-card.rar-rare {
+    --rar: var(--rar-rare);
+}
+
+.skin-card.rar-epic {
+    --rar: var(--rar-epic);
+}
+
+.skin-card.rar-legend {
+    --rar: var(--rar-legend);
+}
+
+.skin-card.equipped {
+    box-shadow: 0 0 0 2px var(--rar, #ffd93d) inset;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.skin-card-icon {
+    font-size: 30px;
+    line-height: 1;
+}
+
+.skin-card-name {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.skin-card-rar {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--rar, rgba(255, 255, 255, 0.6));
+    opacity: 0.9;
+}
+
+.skin-card-btn {
+    margin-top: 4px;
     border: none;
     border-radius: 10px;
-    padding: 10px 12px;
+    padding: 8px 12px;
     font-size: 13px;
     font-weight: 700;
     color: #1a1a1a;
@@ -2720,7 +2782,7 @@ body.world-winter .obstacle-inner.ob-branch::after {
     cursor: pointer;
 }
 
-.shop-buy-btn:disabled {
+.skin-card-btn:disabled {
     opacity: 0.45;
     cursor: default;
 }

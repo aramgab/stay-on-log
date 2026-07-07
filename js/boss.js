@@ -143,9 +143,14 @@ export function bossReset() {
 }
 
 // Death screen: fade the layer out, but preserve all state (mode/attackIx/t)
-// so a revive can pick the fight back up exactly where it left off.
+// so a revive can pick the fight back up exactly where it left off. The hint
+// banner is keyed off #boss-layer's own '.on' class (kept for that same
+// revive resume), not '.hidden' — so it survives on top of the death/result
+// screen unless cleared here too. bossResume()/the next stepBoss() beat
+// always repopulate it before it needs to be visible again.
 export function bossHide() {
     bossLayer.classList.add('hidden');
+    bossHintEl.innerText = '';
 }
 
 // Revive: bring the layer back and restart the CURRENT beat from its top —

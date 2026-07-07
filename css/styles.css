@@ -1036,15 +1036,15 @@ body.biome-storm .lightning, body.biome-w-storm .lightning {
     }
 
     70% {
-        top: -20px;
+        top: -29px;
     }
 
     85% {
-        top: -30px;
+        top: -39px;
     }
 
     100% {
-        top: -25px;
+        top: -34px;
         opacity: 1;
     }
 }

@@ -1321,7 +1321,7 @@ function dropPlayer(onLanded) {
             playerEl.classList.remove('falling');
             playerEl.classList.add('visible');
             playerEl.style.opacity = '';
-            playerEl.style.top = '-25px';
+            playerEl.style.top = '-34px'; // raised off the base -25px so the figure reads as standing on the log, not sunk into it
             onLanded();
         }, { once: true });
     });

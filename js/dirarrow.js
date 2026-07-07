@@ -26,10 +26,10 @@ import { dirArrows, dirArrowMain, dirArrowPreview } from './dom.js';
 // main arrow exactly, so the post-morph path swap is seamless.
 const R_MAIN = 62;
 const R_PREV = 38;
-const HEAD_LEN = 14;      // main arrowhead length along the direction of motion
-const HEAD_HALF = 7;      // main arrowhead base half-width
-const HEAD_LEN_PREV = 8.6;
-const HEAD_HALF_PREV = 4.3;
+const HEAD_LEN = 20;      // main arrowhead length along the direction of motion
+const HEAD_HALF = 11;     // main arrowhead base half-width
+const HEAD_LEN_PREV = 12.25;
+const HEAD_HALF_PREV = 6.74;
 
 const mainArc = dirArrowMain.querySelector('.arc');
 const mainHead = dirArrowMain.querySelector('.head');

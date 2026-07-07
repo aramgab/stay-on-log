@@ -60,6 +60,30 @@ export function tgInitData() {
     }
 }
 
+// Deep-link payload from t.me/<bot>/<app>?startapp=<payload> — how battle
+// challenge links arrive (js/battle.js routes on it at boot). Empty when
+// the app was opened without one.
+export function tgStartParam() {
+    try {
+        const app = tgApp();
+        return (app && app.initDataUnsafe && app.initDataUnsafe.start_param) || '';
+    } catch (e) {
+        return '';
+    }
+}
+
+// Anonymous per-chat fingerprint (present when the app was opened from a
+// chat). UX hints only — the battle side is decided SERVER-side from the
+// signed initData, never from this unsafe copy.
+export function tgChatInstance() {
+    try {
+        const app = tgApp();
+        return (app && app.initDataUnsafe && app.initDataUnsafe.chat_instance) || '';
+    } catch (e) {
+        return '';
+    }
+}
+
 // CloudStorage requires a recent client (isVersionAtLeast itself can throw on
 // old clients that don't have it at all) — probe defensively before use.
 function cloudApi() {

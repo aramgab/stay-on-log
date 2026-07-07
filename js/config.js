@@ -236,3 +236,13 @@ export const QUIP_FAST_FRAC = 0.8;
 // referral/deep-link payloads. Plain-browser visitors still reach the game
 // via the t.me page's open-in-app flow.
 export const SHARE_URL = 'https://t.me/StayOnLog_bot/game';
+
+// === CHAT BATTLES (client-side constants; server caps live in api/battle.js) ===
+export const BATTLE_POLL_MS = 10000; // live-score poll while the battle overlay is open
+export const BATTLE_NAME_MAX = 24;   // team name length (the server cuts to the same)
+// Two share flavours around ONE link (the side is decided by chat_instance,
+// so the text is what tells "our" link from the enemy's).
+export const BATTLE_SHARE_FOE_TEXT =
+    '⚔️ Наш чат вызывает ваш на битву в «Stay on Log»! 24 часа, каждый забег — в общий счёт. Принимаете?';
+export const BATTLE_SHARE_OWN_TEXT =
+    '📣 Народ, у нас битва чатов в «Stay on Log»! Каждый твой забег капает в счёт команды. Врываемся!';

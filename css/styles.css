@@ -2895,6 +2895,15 @@ body.world-winter .obstacle-inner.ob-branch::after {
     white-space: nowrap;
 }
 
+/* "In battle" marker — a plain inline icon like the medals, not a pill
+   (that style is reserved for the ⚔️ button's score readout). */
+.lb-battle-badge {
+    flex: 0 0 auto;
+    font-size: 13px;
+    margin-right: 2px;
+    opacity: 0.9;
+}
+
 .lb-score {
     flex: 0 0 auto;
     font-weight: 700;

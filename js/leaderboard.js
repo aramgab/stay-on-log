@@ -58,9 +58,10 @@ export function submitScore(score) {
 
 function rowHtml(entry, index) {
     const medal = MEDALS[index] || (index + 1) + '.';
+    const badge = entry.inBattle ? '<span class="lb-battle-badge" title="В битве">⚔️</span>' : '';
     return '<li class="lb-row' + (entry.you ? ' you' : '') + '">'
         + '<span class="lb-rank">' + medal + '</span>'
-        + '<span class="lb-name"></span>'
+        + '<span class="lb-name"></span>' + badge
         + '<span class="lb-score">' + entry.score + '</span>'
         + '</li>';
 }
@@ -80,7 +81,7 @@ function renderList(data) {
     const me = data.me;
     const inTop = top.some((e) => e.you);
     if (me && !inTop) {
-        lbMeEl.innerText = 'Ты: #' + me.rank + ' · ' + me.score;
+        lbMeEl.innerText = 'Ты: #' + me.rank + ' · ' + me.score + (me.inBattle ? ' ⚔️' : '');
     } else if (!isInTelegram()) {
         lbMeEl.innerText = '';
     } else {

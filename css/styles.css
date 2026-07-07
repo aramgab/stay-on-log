@@ -189,6 +189,12 @@ body.biome-w-dawn {
     --wood-core-1: #9a7440;
     --wood-core-2: #7e5c30;
     --wood-crack: #8a6a3e;
+    /* Character (stickman) — skin fill of the head and the line colour of the
+       body/limbs. Colour skins (shop 2.0) retint the figure by overriding
+       these; the face marks stay hardcoded white so they read on any skin.
+       Attributes on the SVG remain as a webview fallback, same as the log. */
+    --char-skin: #ff5252;
+    --char-line: #ffffff;
 }
 
 #log-svg .bark-rim { fill: var(--bark-1); stroke: var(--bark-stroke); }
@@ -203,6 +209,18 @@ body.biome-w-dawn {
 #log-svg .wood-core-2 { fill: var(--wood-core-2); }
 #log-svg .wood-crack { stroke: var(--wood-crack); }
 #log-svg .wood-crack-fill { fill: var(--wood-crack); }
+
+/* Character colours, shared by #player and its falling clone. */
+#player .char-head,
+#falling-player .char-head {
+    fill: var(--char-skin);
+    stroke: var(--char-line);
+}
+
+#player .char-line,
+#falling-player .char-line {
+    stroke: var(--char-line);
+}
 
 /* Winter world: the log freezes over — icy bark, pale frosted face. Only
    variables change; geometry/hitboxes are untouched. */

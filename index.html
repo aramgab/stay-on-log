@@ -19,7 +19,7 @@
          stylesheet against max-age=0 (fullscreen-shark incident, июль 2026).
          index.html itself always revalidates, so bumping v here on css
          changes guarantees clients fetch the fresh file. -->
-    <link rel="stylesheet" href="css/styles.css?v=16">
+    <link rel="stylesheet" href="css/styles.css?v=17">
 </head>
 
 <body>
@@ -322,7 +322,7 @@
                     <!-- Head with a face: expressions are toggled purely via CSS
                          on the existing .jumping / .hit classes -->
                     <g class="head">
-                        <circle cx="22" cy="9" r="7.5" fill="#ff5252" stroke="white" stroke-width="2" />
+                        <circle class="char-head" cx="22" cy="9" r="7.5" fill="#ff5252" stroke="white" stroke-width="2" />
                         <path class="brow" d="M23.5 4.5 Q26 3.5 28 5" fill="none" stroke="white" stroke-width="1.2"
                             stroke-linecap="round" />
                         <g class="eye-open">
@@ -338,27 +338,27 @@
                             stroke-linecap="round" />
                     </g>
                     <!-- Body (slight lean forward) -->
-                    <line x1="22" y1="16" x2="21" y2="32" stroke="white" stroke-width="3" stroke-linecap="round" />
+                    <line class="char-line" x1="22" y1="16" x2="21" y2="32" stroke="white" stroke-width="3" stroke-linecap="round" />
                     <!-- Arms (animated) -->
                     <g class="arm-back">
-                        <line x1="22" y1="20" x2="14" y2="28" stroke="white" stroke-width="2.5"
+                        <line class="char-line" x1="22" y1="20" x2="14" y2="28" stroke="white" stroke-width="2.5"
                             stroke-linecap="round" />
                     </g>
                     <g class="arm-front">
-                        <line x1="22" y1="20" x2="30" y2="28" stroke="white" stroke-width="2.5"
+                        <line class="char-line" x1="22" y1="20" x2="30" y2="28" stroke="white" stroke-width="2.5"
                             stroke-linecap="round" />
                     </g>
                     <!-- Legs (animated) -->
                     <g class="leg-back">
-                        <line x1="21" y1="32" x2="14" y2="46" stroke="white" stroke-width="2.5"
+                        <line class="char-line" x1="21" y1="32" x2="14" y2="46" stroke="white" stroke-width="2.5"
                             stroke-linecap="round" />
-                        <line x1="14" y1="46" x2="12" y2="46" stroke="white" stroke-width="2.5"
+                        <line class="char-line" x1="14" y1="46" x2="12" y2="46" stroke="white" stroke-width="2.5"
                             stroke-linecap="round" />
                     </g>
                     <g class="leg-front">
-                        <line x1="21" y1="32" x2="28" y2="46" stroke="white" stroke-width="2.5"
+                        <line class="char-line" x1="21" y1="32" x2="28" y2="46" stroke="white" stroke-width="2.5"
                             stroke-linecap="round" />
-                        <line x1="28" y1="46" x2="30" y2="46" stroke="white" stroke-width="2.5"
+                        <line class="char-line" x1="28" y1="46" x2="30" y2="46" stroke="white" stroke-width="2.5"
                             stroke-linecap="round" />
                     </g>
                     </g>
@@ -551,15 +551,15 @@
         <!-- Falling player clone (for fall animation) -->
         <svg id="falling-player" width="44" height="55" viewBox="0 0 44 55" xmlns="http://www.w3.org/2000/svg">
             <!-- Same character, fail-state face: eyes shut, mouth an "o" -->
-            <circle cx="22" cy="9" r="7.5" fill="#ff5252" stroke="white" stroke-width="2" />
+            <circle class="char-head" cx="22" cy="9" r="7.5" fill="#ff5252" stroke="white" stroke-width="2" />
             <path d="M23.5 4.5 Q26 3.5 28 5" fill="none" stroke="white" stroke-width="1.2" stroke-linecap="round" />
             <path d="M24 8 L28.2 8" fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round" />
             <circle cx="26" cy="12.5" r="1.6" fill="white" />
-            <line x1="22" y1="16" x2="21" y2="32" stroke="white" stroke-width="3" stroke-linecap="round" />
-            <line x1="22" y1="20" x2="14" y2="28" stroke="white" stroke-width="2.5" stroke-linecap="round" />
-            <line x1="22" y1="20" x2="30" y2="28" stroke="white" stroke-width="2.5" stroke-linecap="round" />
-            <line x1="21" y1="32" x2="14" y2="46" stroke="white" stroke-width="2.5" stroke-linecap="round" />
-            <line x1="21" y1="32" x2="28" y2="46" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+            <line class="char-line" x1="22" y1="16" x2="21" y2="32" stroke="white" stroke-width="3" stroke-linecap="round" />
+            <line class="char-line" x1="22" y1="20" x2="14" y2="28" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+            <line class="char-line" x1="22" y1="20" x2="30" y2="28" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+            <line class="char-line" x1="21" y1="32" x2="14" y2="46" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+            <line class="char-line" x1="21" y1="32" x2="28" y2="46" stroke="white" stroke-width="2.5" stroke-linecap="round" />
         </svg>
 
         <!-- Approach-side hint: which side the obstacle will come from -->

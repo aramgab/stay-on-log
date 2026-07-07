@@ -268,6 +268,12 @@ export const QUIP_FAST_FRAC = 0.8;
 // via the t.me page's open-in-app flow.
 export const SHARE_URL = 'https://t.me/StayOnLog_bot/game';
 
+// === COMMUNITY ===
+// News/updates channel (owner's choice over the discussion chat — a simple
+// link-out, no subscription check: that would need the bot added as a
+// channel admin, which is out of scope for now).
+export const COMMUNITY_URL = 'https://t.me/StayOnLog';
+
 // === CHAT BATTLES (client-side constants; server caps live in api/battle.js) ===
 export const BATTLE_POLL_MS = 10000; // live-score poll while the battle overlay is open
 export const BATTLE_NAME_MAX = 24;   // team name length (the server cuts to the same)

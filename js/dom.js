@@ -21,6 +21,7 @@ export const reviveBtn = document.getElementById('revive-btn');
 export const shareBtn = document.getElementById('share-btn');
 export const heartsEl = document.getElementById('hearts-display');
 export const muteBtn = document.getElementById('mute-btn');
+export const communityBtn = document.getElementById('community-btn');
 export const howtoBtn = document.getElementById('howto-btn');
 export const howtoOverlay = document.getElementById('howto-overlay');
 export const howtoGoBtn = document.getElementById('howto-go');

@@ -50,6 +50,7 @@ import {
     DAY_CYCLE_MS,
     BOSS_DEFEAT_POINTS,
     KCAL_PER_MIN,
+    COMMUNITY_URL,
 } from './config.js';
 import {
     logWrapper,
@@ -59,6 +60,7 @@ import {
     highScoreEl,
     heartsEl,
     muteBtn,
+    communityBtn,
     howtoBtn,
     howtoOverlay,
     howtoGoBtn,
@@ -123,7 +125,7 @@ import { initMap, updateMapBtnLabel } from './map.js';
 import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord, hapticCoin } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
-import { initTelegram, tgUser, cloudGet, cloudSet, shareScore, isDevMode } from './tg.js';
+import { initTelegram, tgUser, cloudGet, cloudSet, shareScore, isDevMode, openTgLink } from './tg.js';
 import { stepBoss, isBossActive, bossReset, bossHide, bossResume, bossSpeedFactor, activeBossId, bossHitDir } from './boss.js';
 
 initTelegram();
@@ -1693,6 +1695,7 @@ function closeHowto() {
     lsSet('stayOnLog_seenHowto', '1');
 }
 howtoBtn.addEventListener('click', openHowto);
+communityBtn.addEventListener('click', () => openTgLink(COMMUNITY_URL));
 howtoGoBtn.addEventListener('click', function () {
     initAudio(); // this "Поехали!" tap may be the very first user gesture
     closeHowto();

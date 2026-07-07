@@ -1483,6 +1483,7 @@ body.boss-fight .shark-fin {
    way to accidentally leave the fight's telegraphs unread). */
 body.boss-fight #shop-btn,
 body.boss-fight #lb-btn,
+body.boss-fight #community-btn,
 body.boss-fight #howto-btn {
     display: none;
 }
@@ -3894,11 +3895,12 @@ body.world-winter .obstacle-inner.ob-branch::after {
     }
 }
 
-/* === SOUND / HOW-TO / SHOP / LEADERBOARD BUTTONS (HUD top-right) === */
+/* === SOUND / HOW-TO / SHOP / LEADERBOARD / COMMUNITY BUTTONS (HUD top-right) === */
 #mute-btn,
 #howto-btn,
 #shop-btn,
 #lb-btn,
+#community-btn,
 #battle-btn {
     width: 40px;
     height: 40px;
@@ -3923,6 +3925,7 @@ body.world-winter .obstacle-inner.ob-branch::after {
 #howto-btn:active,
 #shop-btn:active,
 #lb-btn:active,
+#community-btn:active,
 #battle-btn:active {
     transform: scale(0.92);
 }

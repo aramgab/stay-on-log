@@ -135,6 +135,26 @@ export function cloudSet(key, value) {
     }
 }
 
+// Open a t.me link, preferring Telegram's own in-app browser (stays inside
+// the client, no bounce to a system browser tab) with a plain new-tab
+// fallback outside Telegram.
+export function openTgLink(url) {
+    const app = tgApp();
+    // The SDK script builds window.Telegram.WebApp (with a real
+    // openTelegramLink method) even in a plain browser — isInTelegram()
+    // is the actual "is anyone home on the other end of postEvent" check
+    // (mirrors the same guard in shareScore below).
+    if (isInTelegram() && app && typeof app.openTelegramLink === 'function') {
+        try {
+            app.openTelegramLink(url);
+            return;
+        } catch (e) {
+            /* fall through */
+        }
+    }
+    window.open(url, '_blank');
+}
+
 // Three tiers of sharing, best available wins: Telegram's own share sheet ->
 // Web Share API -> clipboard fallback. Returns which one fired ('tg' / 'web'
 // / 'copy'), or null if the platform offers none of them, so the caller can

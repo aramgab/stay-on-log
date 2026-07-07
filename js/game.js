@@ -49,6 +49,7 @@ import {
     DAY_STORM_MS,
     DAY_CYCLE_MS,
     BOSS_DEFEAT_POINTS,
+    KCAL_PER_MIN,
 } from './config.js';
 import {
     logWrapper,
@@ -71,6 +72,7 @@ import {
     questToastEl,
     questHudEl,
     coinsDisplayEl,
+    kcalDisplayEl,
     startBtn,
     reviveBtn,
     shareBtn,
@@ -550,6 +552,7 @@ function gameLoop() {
     if (!tutorialMode) {
         state.score = Math.floor(state.elapsed / SURVIVAL_MS_PER_POINT) + state.eventScore;
         scoreEl.innerText = "Очки: " + state.score;
+        updateKcalHud();
 
         // Check for new record during gameplay
         if (state.score > state.highScore) {
@@ -836,6 +839,17 @@ function updateCoinsDisplay() {
     const total = state.coins + state.runCoins;
     coinsDisplayEl.innerText = '🪙 ' + total;
     coinsDisplayEl.style.display = total > 0 ? 'block' : 'none';
+}
+
+// Cumulative kcal (hud-left, under the wallet). Unlike runCoins, the current
+// run's slice isn't a separate accumulator — it's derived live from elapsed,
+// gated on isPlaying so the post-gameOver refresh (elapsed already banked
+// into totalKcal there) doesn't double-count it.
+function updateKcalHud() {
+    const live = state.isPlaying ? (state.elapsed / 60000) * KCAL_PER_MIN : 0;
+    const total = state.totalKcal + live;
+    kcalDisplayEl.innerText = '🔥 ' + total.toFixed(1) + ' ккал';
+    kcalDisplayEl.style.display = total > 0 ? 'block' : 'none';
 }
 
 // === LIVES / JUMP / OBSTACLE HITS ===
@@ -1583,6 +1597,15 @@ function gameOver(normPos, cause) {
         updateCoinsDisplay();
     }
 
+    // Bank this run's kcal (derived from elapsed, not a separate live
+    // accumulator like runCoins) into the cumulative total.
+    const runKcal = (state.elapsed / 60000) * KCAL_PER_MIN;
+    if (runKcal > 0) {
+        state.totalKcal += runKcal;
+        lsSet('stayOnLog_totalKcal', String(state.totalKcal));
+    }
+    updateKcalHud();
+
     // Result screen reads this snapshot ("✅ title · title" line in render.js).
     state.lastRunQuests = runQuestTitles.slice();
 
@@ -1891,9 +1914,10 @@ initMap();
 // Campaign progress: pull the cloud copy and max-merge it into local.
 syncCampaignFromCloud();
 
-// Show high score, coin wallet and nickname on load
+// Show high score, coin wallet, cumulative kcal and nickname on load
 updateHighScoreDisplay();
 updateCoinsDisplay();
+updateKcalHud();
 shareBtn.style.display = state.highScore > 0 ? 'block' : 'none';
 updatePlayerNameDisplay();
 applyWorld(getSelectedBiome());

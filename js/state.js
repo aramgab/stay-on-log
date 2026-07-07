@@ -38,6 +38,12 @@ export const state = {
     lastRunCoins: 0,
     lastRunQuests: [], // quest titles completed during the last run (result screen)
 
+    // Cumulative "calories burned" (persisted, same flavor-stat honesty as
+    // KCAL_PER_MIN in config.js) — the current run's slice is derived live
+    // from `elapsed`, not tracked separately like runCoins, and banked into
+    // this total by gameOver.
+    totalKcal: parseFloat(lsGet('stayOnLog_totalKcal')) || 0,
+
     // Physics
     logAngle: 0,
     logSpeed: 0.8,      // live speed (ramps toward targetSpeed in gameLoop)

@@ -15,6 +15,7 @@ export const runCoinsEl = document.getElementById('run-coins');
 export const questResultEl = document.getElementById('quest-result');
 export const kcalEl = document.getElementById('kcal-result');
 export const coinsDisplayEl = document.getElementById('coins-display');
+export const kcalDisplayEl = document.getElementById('kcal-display');
 export const startBtn = document.getElementById('start-btn');
 export const reviveBtn = document.getElementById('revive-btn');
 export const shareBtn = document.getElementById('share-btn');

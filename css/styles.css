@@ -637,6 +637,16 @@ body.biome-storm .lightning, body.biome-w-storm .lightning {
     display: none;
 }
 
+/* Cumulative calories (hud-left, under the wallet). Same live-update
+   treatment as #coins-display; coral ties it to #kcal-result's flavor. */
+#kcal-display {
+    font-size: 13px;
+    opacity: 0.85;
+    margin-top: 4px;
+    color: #ff8a65;
+    display: none;
+}
+
 /* "+N 🪙 за забег" on the result screen */
 #run-coins {
     font-size: 14px;

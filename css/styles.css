@@ -1525,17 +1525,45 @@ body.boss-fight .shark-fin {
     }
 }
 
-/* Lunge: fast snap toward the log, full opacity. */
+/* Lunge strike: a mouth-first THROW into the log's flank — she overshoots
+   into the bite, then settles clamped on, holding the pose through the
+   strike window. Timings untouched; this is pure presentation. */
 #boss-layer.strike-left #boss-shark {
     opacity: 1;
-    transform: translateY(-6%) rotate(6deg);
-    transition: transform 0.18s cubic-bezier(0.3, 1.4, 0.6, 1), opacity 0.15s ease;
+    animation: bossLungeThrowL 0.34s cubic-bezier(0.2, 1.3, 0.5, 1) forwards;
 }
 
 #boss-layer.strike-right #boss-shark {
     opacity: 1;
-    transform: translateY(-6%) scaleX(-1) rotate(6deg);
-    transition: transform 0.18s cubic-bezier(0.3, 1.4, 0.6, 1), opacity 0.15s ease;
+    animation: bossLungeThrowR 0.34s cubic-bezier(0.2, 1.3, 0.5, 1) forwards;
+}
+
+@keyframes bossLungeThrowL {
+    0% {
+        transform: translateY(60%);
+    }
+
+    55% {
+        transform: translateX(30%) translateY(-10%) rotate(16deg);
+    }
+
+    100% {
+        transform: translateX(24%) translateY(-6%) rotate(12deg);
+    }
+}
+
+@keyframes bossLungeThrowR {
+    0% {
+        transform: translateY(60%) scaleX(-1);
+    }
+
+    55% {
+        transform: translateX(-30%) translateY(-10%) scaleX(-1) rotate(-16deg);
+    }
+
+    100% {
+        transform: translateX(-24%) translateY(-6%) scaleX(-1) rotate(-12deg);
+    }
 }
 
 /* Intro: centered-bottom, slowly rising — "she's here". */

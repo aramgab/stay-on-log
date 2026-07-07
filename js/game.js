@@ -613,14 +613,22 @@ function gameLoop() {
         && state.nextChangeTime - state.elapsed > 0;
     if (wantsArrowWarning !== arrowWarningVisible) {
         arrowWarningVisible = wantsArrowWarning;
-        // Entering the warning window: make the promise honest before the
-        // player starts reading it (an approaching obstacle vetoes reversals),
-        // then redraw the preview in case the reconcile changed it.
-        if (arrowWarningVisible) {
-            reconcilePendingChange();
-            setPreviewArrow(state.pendingChange);
-        }
         dirArrows.classList.toggle('warning', arrowWarningVisible);
+    }
+    // Keep the promise honest for the WHOLE blink, not just its first frame:
+    // an obstacle can surface mid-warning (its spawn timer is unrelated to
+    // this one) — the preview used to only reconcile on the warning's rising
+    // edge, so a later obstacle silently flipped a promised reversal to a
+    // speed-only change at fire time with no visual warning, and the log
+    // appeared to "disobey" its own arrow. Reconciling every frame the
+    // warning is up catches the flip the moment it happens and redraws
+    // immediately; applyPendingChange's own reconcile call stays as a
+    // same-frame-as-fire safety net (fairness, not visuals — see its own
+    // comment above).
+    if (arrowWarningVisible) {
+        const before = state.pendingChange;
+        reconcilePendingChange();
+        if (state.pendingChange !== before) setPreviewArrow(state.pendingChange);
     }
 
     // 6. Check loss (can't slip off while airborne)
@@ -781,10 +789,12 @@ function rollNextChange() {
 // Fairness: a reversal while an obstacle is approaching would swing it back
 // down / flip its side — convert the pending reversal into a speed-only
 // change (skipping entirely would leave long stretches without variety).
-// Runs on the warning's rising edge, so the preview is honest for the whole
-// blink, and again as a final guard from applyPendingChange() in case the
-// obstacle surfaced mid-warning. The speed is re-rolled on conversion,
-// matching the old code where a converted reversal always rolled a speed.
+// Runs every frame the warning blink is up (gameLoop step 5), so a
+// mid-warning obstacle flips the preview the moment it appears instead of
+// only at fire time, and again as a same-frame-as-fire safety net from
+// applyPendingChange() (fairness guarantee, independent of the visual). The
+// speed is re-rolled on conversion, matching the old code where a converted
+// reversal always rolled a speed.
 function reconcilePendingChange() {
     const p = state.pendingChange;
     if (!p || p.dir === state.logDirection) return;

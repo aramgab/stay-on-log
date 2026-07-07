@@ -120,7 +120,7 @@ import { initAudio, sfx, music, toggleMute, isMuted } from './audio.js';
 import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecord, hapticCoin } from './haptics.js';
 import { screenShake, burst, floatText } from './fx.js';
 import { initTelegram, tgUser, cloudGet, cloudSet, shareScore } from './tg.js';
-import { stepBoss, isBossActive, bossReset, bossHide, bossResume, bossSpeedFactor, activeBossId } from './boss.js';
+import { stepBoss, isBossActive, bossReset, bossHide, bossResume, bossSpeedFactor, activeBossId, bossHitDir } from './boss.js';
 
 initTelegram();
 
@@ -881,13 +881,28 @@ function registerHit(playerPosition, source) {
     }
 
     // Non-fatal: brief invulnerability + visual flash so a single obstacle
-    // can't drain two lives in consecutive frames.
+    // can't drain two lives in consecutive frames. A boss strike hits harder
+    // on every channel: big shake, denser burst, and the stickman is visibly
+    // KNOCKED by the impact (rig-level animation — the svg root's transform
+    // belongs to the jump).
     sfx.hit();
     hapticHit();
-    screenShake(false);
+    screenShake(source === 'boss');
     triggerHitFlash();
     const xy = playerXY();
-    burst(xy.x, xy.y, { color: '#ff5252', count: 12, size: 8 });
+    burst(xy.x, xy.y, {
+        color: '#ff5252',
+        count: source === 'boss' ? 20 : 12,
+        size: source === 'boss' ? 10 : 8,
+    });
+    if (source === 'boss') {
+        const dir = bossHitDir(); // attack origin: knock AWAY from it
+        const knockCls = dir === -1 ? 'boss-knock-r' : dir === 1 ? 'boss-knock-l' : 'boss-knock-up';
+        playerEl.classList.remove('boss-knock-l', 'boss-knock-r', 'boss-knock-up');
+        playerEl.getBoundingClientRect(); // reflow so a repeat knock restarts
+        playerEl.classList.add(knockCls);
+        setTimeout(() => playerEl.classList.remove(knockCls), 480);
+    }
     state.invulnerable = true;
     playerEl.classList.add('hit');
     arrowWarningVisible = false;

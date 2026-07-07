@@ -52,6 +52,7 @@ let fightKind = 'pattern'; // 'pattern' | 'chase'
 let lastBossId = '';       // id of the boss that is fighting / just fought
 let layerVariant = '';     // per-boss CSS class riding alongside the state class
 let biteFlip = false;      // bite sweeps alternate sides; true = mirrored run
+let lastHitDir = 0;        // -1 the landing hit came from the left, 1 right, 0 below
 let snapState = 0;         // 0 none / 1 telegraph / 2 strike (chase-only)
 let snapT = 0;              // ms elapsed in the current snap phase
 let nextSnapAt = 0;         // t (chase clock) at which the next snap begins
@@ -131,6 +132,7 @@ export function bossReset() {
     lastBossId = '';
     layerVariant = '';
     biteFlip = false;
+    lastHitDir = 0;
     snapState = 0;
     snapT = 0;
     nextSnapAt = 0;
@@ -242,6 +244,7 @@ export function stepBoss(dtMs, normPos) {
             if ((sideResolved === -1 && normPos < -BOSS_LUNGE_SAFE_DEG) ||
                 (sideResolved === 1 && normPos > BOSS_LUNGE_SAFE_DEG)) {
                 struckThisAttack = true;
+                lastHitDir = sideResolved;
                 return 'hit';
             }
         } else {
@@ -251,6 +254,7 @@ export function stepBoss(dtMs, normPos) {
                 biteChecked = true;
                 if (!state.isJumping) {
                     struckThisAttack = true;
+                    lastHitDir = 0;
                     return 'hit';
                 }
             }
@@ -305,6 +309,7 @@ function stepChase(dtMs) {
         if (!snapChecked && snapT >= BOSS_SNAP_STRIKE_MS / 2) {
             snapChecked = true;
             if (!state.isJumping && !state.invulnerable) {
+                lastHitDir = 0;
                 endSnap();
                 return 'hit';
             }
@@ -338,4 +343,11 @@ export function bossSpeedFactor() {
 // read it after the fight has already moved back to 'idle'.
 export function activeBossId() {
     return lastBossId;
+}
+
+// Where the boss hit that just landed came from: -1 left flank, 1 right
+// flank, 0 from below/above (bite sweep, giant breach). game.js reads this
+// right after a 'hit' to pick the knockback direction on the stickman.
+export function bossHitDir() {
+    return lastHitDir;
 }

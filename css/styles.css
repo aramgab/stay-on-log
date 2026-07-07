@@ -3716,6 +3716,85 @@ body.is-desktop .howto-desktop {
     }
 }
 
+/* Boss knockback: the stickman is visibly THROWN by the impact. Lives on the
+   inner .rig group — the svg root's transform is owned by the jump — so it
+   composes with .hit (opacity) and .jumping (root transform). Origin at the
+   feet keeps him planted while the body whips. The real position (normPos)
+   is untouched: presentation only, no double punishment. */
+#player .rig {
+    transform-origin: 22px 46px;
+}
+
+#player.boss-knock-l .rig {
+    animation: bossKnockL 0.46s cubic-bezier(0.2, 0.9, 0.4, 1);
+}
+
+#player.boss-knock-r .rig {
+    animation: bossKnockR 0.46s cubic-bezier(0.2, 0.9, 0.4, 1);
+}
+
+#player.boss-knock-up .rig {
+    animation: bossKnockUp 0.46s cubic-bezier(0.2, 0.9, 0.4, 1);
+}
+
+@keyframes bossKnockL {
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+
+    30% {
+        transform: translate(-10px, -14px) rotate(-24deg);
+    }
+
+    60% {
+        transform: translate(-7px, -4px) rotate(-13deg);
+    }
+
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+}
+
+@keyframes bossKnockR {
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+
+    30% {
+        transform: translate(10px, -14px) rotate(24deg);
+    }
+
+    60% {
+        transform: translate(7px, -4px) rotate(13deg);
+    }
+
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+}
+
+@keyframes bossKnockUp {
+    0% {
+        transform: translateY(0) scaleY(1);
+    }
+
+    25% {
+        transform: translateY(-16px) rotate(8deg) scaleY(1.06);
+    }
+
+    55% {
+        transform: translateY(-5px) rotate(-6deg);
+    }
+
+    80% {
+        transform: translateY(-1px) scaleY(0.94);
+    }
+
+    100% {
+        transform: translateY(0) scaleY(1);
+    }
+}
+
 /* Jump (tap) — preserves the translateX(-50%) centering.
    Natural parabolic arc: rising half eases out (fast leave-ground, slowing
    into the apex), falling half eases in (accelerating like real gravity into

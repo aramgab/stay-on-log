@@ -19,7 +19,7 @@
          stylesheet against max-age=0 (fullscreen-shark incident, июль 2026).
          index.html itself always revalidates, so bumping v here on css
          changes guarantees clients fetch the fresh file. -->
-    <link rel="stylesheet" href="css/styles.css?v=13">
+    <link rel="stylesheet" href="css/styles.css?v=14">
 </head>
 
 <body>
@@ -245,6 +245,10 @@
             <div id="player-orbit">
                 <!-- Side-view running stickman -->
                 <svg id="player" viewBox="0 0 44 55" xmlns="http://www.w3.org/2000/svg">
+                    <!-- .rig wraps the whole figure: the svg root's transform is
+                         owned by the jump (css playerJump), so knockback and any
+                         future body-level animation live on this inner group. -->
+                    <g class="rig">
                     <!-- Head with a face: expressions are toggled purely via CSS
                          on the existing .jumping / .hit classes -->
                     <g class="head">
@@ -286,6 +290,7 @@
                             stroke-linecap="round" />
                         <line x1="28" y1="46" x2="30" y2="46" stroke="white" stroke-width="2.5"
                             stroke-linecap="round" />
+                    </g>
                     </g>
                 </svg>
             </div>

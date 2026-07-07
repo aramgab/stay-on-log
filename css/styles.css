@@ -1728,10 +1728,10 @@ body.boss-fight .shark-fin {
     }
 }
 
-/* The silhouettes are hand-drawn inline SVGs in index.html (#shark-svg and
-   #orca-svg — breach pose, jaw toward the log). The shark shows by default;
-   the .orca variant class on the layer (js/boss.js) swaps them. A soft
-   drop-shadow follows the drawn outline. */
+/* The lunge silhouette is a hand-drawn inline SVG in index.html (#shark-svg,
+   breach pose, jaw toward the log). The orca variant hides this element
+   entirely (rule further up) — the giant replaced her. A soft drop-shadow
+   follows the drawn outline. */
 #boss-shark svg {
     position: absolute;
     inset: 0;
@@ -1740,48 +1740,6 @@ body.boss-fight .shark-fin {
     overflow: visible;
     filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.45));
 }
-
-#boss-shark #orca-svg {
-    display: none;
-}
-
-#boss-layer.orca #boss-shark #shark-svg {
-    display: none;
-}
-
-#boss-layer.orca #boss-shark #orca-svg {
-    display: block;
-}
-
-/* The bite sweep: a wide low shape at the log-top height. Looms at one edge
-   during the telegraph, then sweeps across the top during the strike. */
-#boss-jaw {
-    position: absolute;
-    top: 18%;
-    left: -40%;
-    width: 80%;
-    height: 46px;
-    display: none;
-    background: linear-gradient(180deg, #17242f, #0c141c);
-    border-radius: 0 0 40% 40% / 0 0 70% 70%;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
-    transform-origin: center;
-    opacity: 0;
-}
-
-#boss-jaw::after {
-    content: '';
-    position: absolute;
-    left: 6%;
-    right: 6%;
-    bottom: 2px;
-    height: 12px;
-    background: repeating-linear-gradient(90deg, #fff 0 8px, transparent 8px 16px);
-}
-
-/* The abstract jaw div no longer plays the bite — the real shark profile
-   sweep (#boss-shark-side, rules below) took the role over. The element
-   itself is scheduled for removal once the rework is confirmed on-device. */
 
 /* Bite telegraph: the shark looms at the left screen edge, nose in, bobbing
    with the swell — read time to prep the jump. */

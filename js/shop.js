@@ -11,6 +11,7 @@ import { state, lsGet, lsSet } from './state.js';
 import { AVATAR_SKIN_PRICE, SPARE_HEART_PRICE } from './config.js';
 import {
     logSvg,
+    playerEl,
     shopBtn,
     shopOverlay,
     shopBalanceEl,
@@ -25,8 +26,33 @@ import { sfx, initAudio } from './audio.js';
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const XLINK_NS = 'http://www.w3.org/1999/xlink';
 
+// Owned = a set of skin ids (avatar_log + character-skin ids like head_cap,
+// body_cape, suit_ninja). Equipped is per slot: `log` dresses the log face,
+// head/body/legs/suit dress the character. A suit is a full costume that
+// overrides the individual slots (see applyCharSkin).
 let ownedSkins = (lsGet('stayOnLog_ownedSkins') || '').split(',').filter(Boolean);
-let equippedSkin = lsGet('stayOnLog_equippedSkin') || '';
+
+const EQUIP_KEYS = {
+    log: 'stayOnLog_equipLog',
+    head: 'stayOnLog_equipHead',
+    body: 'stayOnLog_equipBody',
+    legs: 'stayOnLog_equipLegs',
+    suit: 'stayOnLog_equipSuit',
+};
+const equip = { log: '', head: '', body: '', legs: '', suit: '' };
+
+function loadEquip() {
+    for (const slot in EQUIP_KEYS) equip[slot] = lsGet(EQUIP_KEYS[slot]) || '';
+    // Migrate the legacy single-slot key (held 'avatar_log' or '') into the
+    // new per-slot log key, once, so old installs keep their log avatar.
+    const legacy = lsGet('stayOnLog_equippedSkin');
+    if (legacy && !equip.log) {
+        equip.log = legacy;
+        lsSet(EQUIP_KEYS.log, legacy);
+    }
+    if (legacy !== null && legacy !== '') lsSet('stayOnLog_equippedSkin', '');
+}
+loadEquip();
 
 // game.js hands us its HUD refresher via initShop() — shop.js can't import
 // game.js back without a cycle.
@@ -60,11 +86,14 @@ function ownsAvatar() {
     return ownedSkins.indexOf('avatar_log') !== -1;
 }
 
-function persistSkins() {
+function persistOwned() {
     lsSet('stayOnLog_ownedSkins', ownedSkins.join(','));
-    lsSet('stayOnLog_equippedSkin', equippedSkin);
     cloudSet('stayOnLog_ownedSkins', ownedSkins.join(','));
-    cloudSet('stayOnLog_equippedSkin', equippedSkin);
+}
+
+function persistSlot(slot) {
+    lsSet(EQUIP_KEYS[slot], equip[slot]);
+    cloudSet(EQUIP_KEYS[slot], equip[slot]);
 }
 
 // Insert (or update) the avatar <image> inside the log-face SVG. It sits
@@ -72,7 +101,7 @@ function persistSkins() {
 // bark ring stays visible around the clipped photo. Rotates with the log
 // for free — it lives inside #log-svg.
 function applyLogSkin() {
-    const url = equippedSkin === 'avatar_log' ? avatarUrl() : '';
+    const url = equip.log === 'avatar_log' ? avatarUrl() : '';
     let img = logSvg.querySelector('#avatar-skin-img');
     if (!url) {
         if (img) img.remove();
@@ -107,6 +136,40 @@ function applyLogSkin() {
     img.setAttributeNS(XLINK_NS, 'xlink:href', url); // older webviews
 }
 
+// --- Character skins ---
+// The equipped slots map to toggle classes on the figure root; a suit
+// (costume) wins and suppresses the individual slots. Ids are prefixed by
+// slot ('head_cap', 'suit_ninja'), so the class strips the prefix.
+function charClasses() {
+    const cls = [];
+    if (equip.suit) {
+        cls.push('char-costume-' + equip.suit.replace('suit_', ''));
+    } else {
+        if (equip.head) cls.push('char-head-' + equip.head.replace('head_', ''));
+        if (equip.body) cls.push('char-body-' + equip.body.replace('body_', ''));
+        if (equip.legs) cls.push('char-legs-' + equip.legs.replace('legs_', ''));
+    }
+    return cls;
+}
+
+// #player is an SVG element — its `.className` is an SVGAnimatedString, so
+// classes MUST go through classList, never `el.className = ...`.
+function applyClasses(el) {
+    if (!el) return;
+    Array.prototype.slice.call(el.classList).forEach((c) => {
+        if (c.indexOf('char-head-') === 0 || c.indexOf('char-body-') === 0 ||
+            c.indexOf('char-legs-') === 0 || c.indexOf('char-costume-') === 0) {
+            el.classList.remove(c);
+        }
+    });
+    charClasses().forEach((c) => el.classList.add(c));
+}
+
+function applyCharSkin() {
+    applyClasses(playerEl);
+    // #falling-player is dressed too — wired in a later commit.
+}
+
 // --- Overlay UI ---
 function refreshShopUI() {
     shopBalanceEl.innerText = '🪙 ' + state.coins;
@@ -126,7 +189,7 @@ function refreshShopUI() {
     } else if (!ownsAvatar()) {
         shopAvatarBtn.innerText = AVATAR_SKIN_PRICE + ' 🪙';
         shopAvatarBtn.disabled = state.coins < AVATAR_SKIN_PRICE;
-    } else if (equippedSkin === 'avatar_log') {
+    } else if (equip.log === 'avatar_log') {
         shopAvatarBtn.innerText = 'Снять ✓';
         shopAvatarBtn.disabled = false;
     } else {
@@ -159,13 +222,14 @@ function onAvatarBtn() {
     if (!ownsAvatar()) {
         if (!spendCoins(AVATAR_SKIN_PRICE)) return;
         ownedSkins.push('avatar_log');
-        equippedSkin = 'avatar_log';
+        equip.log = 'avatar_log';
+        persistOwned();
         sfx.combo(3); // a purchase is a small celebration
     } else {
-        equippedSkin = equippedSkin === 'avatar_log' ? '' : 'avatar_log';
+        equip.log = equip.log === 'avatar_log' ? '' : 'avatar_log';
         sfx.point();
     }
-    persistSkins();
+    persistSlot('log');
     applyLogSkin();
     refreshShopUI();
 }
@@ -194,15 +258,23 @@ function syncFromCloud() {
         if (changed) {
             lsSet('stayOnLog_ownedSkins', ownedSkins.join(','));
             applyLogSkin();
+            applyCharSkin();
         }
     });
-    cloudGet('stayOnLog_equippedSkin', (v) => {
-        if (v && !lsGet('stayOnLog_equippedSkin') && ownedSkins.indexOf(v) !== -1) {
-            equippedSkin = v;
-            lsSet('stayOnLog_equippedSkin', equippedSkin);
-            applyLogSkin();
-        }
-    });
+    // Each equipped slot: the cloud value only fills a local void (an
+    // explicit local choice, including "unequipped", wins on this device).
+    for (const slot in EQUIP_KEYS) {
+        (function (s) {
+            cloudGet(EQUIP_KEYS[s], (v) => {
+                if (v && !lsGet(EQUIP_KEYS[s]) && ownedSkins.indexOf(v) !== -1) {
+                    equip[s] = v;
+                    lsSet(EQUIP_KEYS[s], v);
+                    if (s === 'log') applyLogSkin();
+                    else applyCharSkin();
+                }
+            });
+        })(slot);
+    }
 }
 
 // Wire the UI and apply the equipped skin. Called once from game.js;
@@ -214,5 +286,6 @@ export function initShop(walletChangedCb) {
     shopAvatarBtn.addEventListener('click', onAvatarBtn);
     shopHeartBtn.addEventListener('click', onHeartBtn);
     applyLogSkin();
+    applyCharSkin();
     syncFromCloud();
 }

@@ -11,7 +11,7 @@
 //                                   scoreB, myTotal, canRename?, finished? }
 
 import { state, lsGet, lsSet } from './state.js';
-import { isInTelegram, tgInitData, tgUser, shareScore } from './tg.js';
+import { isInTelegram, tgInitData, tgUser, tgStartParam, shareScore } from './tg.js';
 import { battleBtn, battleBadge, battleOverlay, battleCloseBtn } from './dom.js';
 import { whenBackendAlive } from './leaderboard.js';
 import { initAudio } from './audio.js';
@@ -505,10 +505,22 @@ export function initBattle() {
     // the shared probe; refresh the badge from the last cached numbers now
     // and from the server once per boot if a battle is on.
     if (!isInTelegram()) return;
+
+    // Deep-link routing: the app was opened via a challenge link
+    // (t.me/<bot>/<app>?startapp=b_<id>) — land the player straight on the
+    // join confirmation once the backend answered. A member of that very
+    // battle just gets his battle view.
+    const spMatch = /^b_([A-Za-z0-9_-]{6,32})$/.exec(tgStartParam());
+    if (spMatch) setPendingJoin(spMatch[1]);
+
     whenBackendAlive(() => {
         battleBtn.style.display = '';
         updateBadge();
         const b = getActiveBattle();
+        if (pendingJoinId && !state.isPlaying) {
+            openBattle();
+            return;
+        }
         if (b && !b.finished) refreshState();
     });
 }

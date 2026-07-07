@@ -1420,6 +1420,7 @@ body.boss-fight .shark-fin {
 #boss-layer.strike-left #boss-glow-left,
 #boss-layer.intro #boss-glow-left,
 #boss-layer.tele-snap #boss-glow-left,
+#boss-layer.tele-bite #boss-glow-left,
 #boss-layer.tele-right #boss-glow-right,
 #boss-layer.strike-right #boss-glow-right,
 #boss-layer.intro #boss-glow-right,
@@ -1429,6 +1430,7 @@ body.boss-fight .shark-fin {
 
 #boss-layer.tele-left #boss-glow-left,
 #boss-layer.tele-right #boss-glow-right,
+#boss-layer.tele-bite #boss-glow-left,
 #boss-layer.tele-snap #boss-glow-left,
 #boss-layer.tele-snap #boss-glow-right {
     animation: bossGlowPulse 0.5s ease-in-out infinite alternate;
@@ -1749,37 +1751,43 @@ body.boss-fight .shark-fin {
     background: repeating-linear-gradient(90deg, #fff 0 8px, transparent 8px 16px);
 }
 
-#boss-layer.tele-bite #boss-jaw {
+/* The abstract jaw div no longer plays the bite — the real shark profile
+   sweep (#boss-shark-side, rules below) took the role over. The element
+   itself is scheduled for removal once the rework is confirmed on-device. */
+
+/* Bite telegraph: the shark looms at the left screen edge, nose in, bobbing
+   with the swell — read time to prep the jump. */
+#boss-layer.on.tele-bite ~ #boss-shark-side {
     display: block;
-    opacity: 0.5;
-    animation: bossJawLoom 0.6s ease-in-out infinite alternate;
+    animation: sharkLoom 0.7s ease-in-out infinite alternate;
 }
 
-@keyframes bossJawLoom {
+@keyframes sharkLoom {
     from {
-        transform: translateX(0);
-        opacity: 0.4;
+        transform: translateX(calc(-50vw - 50px)) translateY(0);
     }
 
     to {
-        transform: translateX(4%);
-        opacity: 0.6;
+        transform: translateX(calc(-50vw - 38px)) translateY(6px);
     }
 }
 
-#boss-layer.strike-bite #boss-jaw {
+/* Bite strike: she races the whole width along the log top in exactly the
+   strike window; the keyframes are offset so her MOUTH crosses the log
+   center precisely at the strike midpoint — the dodge-check instant in
+   js/boss.js. Jumping lets her pass underneath. */
+#boss-layer.on.strike-bite ~ #boss-shark-side {
     display: block;
-    opacity: 1;
-    animation: bossJawSweep 0.6s linear forwards;
+    animation: sharkSweep 0.6s linear forwards;
 }
 
-@keyframes bossJawSweep {
-    0% {
-        transform: translateX(0);
+@keyframes sharkSweep {
+    from {
+        transform: translateX(calc(-50vw - 348px));
     }
 
-    100% {
-        transform: translateX(170%);
+    to {
+        transform: translateX(calc(50vw + 132px));
     }
 }
 

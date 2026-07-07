@@ -96,6 +96,13 @@ export function submitBattleScore(runId, score) {
         .catch(() => { /* best-effort, like the leaderboard */ });
 }
 
+// Dev-only (?dev=1): fast-forward MY active battle to end in 5 minutes, so
+// the win/lose/draw screens can be playtested without waiting out the real
+// 24h window. Server enforces membership + only-shortens — see api/battle.js.
+export function devExpireBattle(id) {
+    return battleApi('devExpire', { id });
+}
+
 // --- UI --------------------------------------------------------------------
 // Section elements are private to the feature, so they're resolved here
 // rather than ballooning dom.js (modules are deferred — DOM is parsed).
@@ -121,6 +128,7 @@ const timerEl = el('bt-timer');
 const verdictEl = el('bt-verdict');
 const mineEl = el('bt-mine');
 const renameLink = el('bt-rename');
+const devExpireLink = el('bt-dev-expire');
 const listA = el('bt-list-a');
 const listB = el('bt-list-b');
 const shareRow = el('bt-share-row');
@@ -500,6 +508,27 @@ export function initBattle() {
         createNameInput.value = '';
         showState('none');
     });
+
+    // Dev-only fast-forward: the button starts display:none in the markup,
+    // this is the ONLY place that ever reveals it.
+    if (new URLSearchParams(location.search).has('dev')) {
+        devExpireLink.style.display = '';
+        devExpireLink.addEventListener('click', () => {
+            const b = getActiveBattle();
+            if (!b) return;
+            devExpireLink.textContent = '⏳…';
+            devExpireBattle(b.id)
+                .then((resp) => {
+                    devExpireLink.textContent = !resp.ok
+                        ? '⚡ не вышло'
+                        : resp.unchanged
+                            ? '⚡ уже скоро закончится'
+                            : '⚡ конец через 5 мин ✓';
+                    if (resp.ok) refreshState();
+                })
+                .catch(() => { devExpireLink.textContent = '⚡ не вышло'; });
+        });
+    }
 
     // Battles are Telegram-only AND need the backend: reveal the button via
     // the shared probe; refresh the badge from the last cached numbers now

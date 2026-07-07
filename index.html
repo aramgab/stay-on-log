@@ -19,7 +19,7 @@
          stylesheet against max-age=0 (fullscreen-shark incident, июль 2026).
          index.html itself always revalidates, so bumping v here on css
          changes guarantees clients fetch the fresh file. -->
-    <link rel="stylesheet" href="css/styles.css?v=22">
+    <link rel="stylesheet" href="css/styles.css?v=23">
 </head>
 
 <body>
@@ -188,6 +188,7 @@
                 <div id="bt-verdict"></div>
                 <div id="bt-mine"></div>
                 <div id="bt-rename" role="button">✏️ переименовать команду</div>
+                <div id="bt-dev-expire" role="button" style="display:none">⚡ Ускорить конец боя</div>
                 <div id="bt-tables">
                     <ol class="bt-list" id="bt-list-a"></ol>
                     <ol class="bt-list" id="bt-list-b"></ol>

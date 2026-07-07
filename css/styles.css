@@ -3113,6 +3113,17 @@ body.world-winter .obstacle-inner.ob-branch::after {
     margin-bottom: 8px;
 }
 
+/* Dev-only (?dev=1): fast-forward battle end. Same size/underline as
+   #bt-rename, warm yellow marks it as a cheat, not a normal action. */
+#bt-dev-expire {
+    font-size: 12px;
+    opacity: 0.75;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-bottom: 8px;
+    color: #ffd93d;
+}
+
 #bt-tables {
     display: flex;
     gap: 8px;

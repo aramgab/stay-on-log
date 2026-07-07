@@ -35,6 +35,7 @@ export const shopOverlay = document.getElementById('shop-overlay');
 export const shopBalanceEl = document.getElementById('shop-balance');
 export const shopMannequin = document.getElementById('shop-mannequin');
 export const shopTabs = document.getElementById('shop-tabs');
+export const shopSubtabs = document.getElementById('shop-subtabs');
 export const shopGrid = document.getElementById('shop-grid');
 export const shopCloseBtn = document.getElementById('shop-close');
 export const mapBtn = document.getElementById('map-btn');

@@ -2697,13 +2697,20 @@ body.world-winter .obstacle-inner.ob-branch::after {
     animation: none !important;
 }
 
-/* Slot tabs. */
-#shop-tabs {
+/* Top-level tabs (Скины/Сундуки/Прочее) and, nested under Скины, the
+   per-slot sub-tabs (Голова/Тело/Ноги/Костюмы) — same pill styling via
+   the shared .shop-tab class, shop.js toggles #shop-subtabs' visibility. */
+#shop-tabs,
+#shop-subtabs {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     justify-content: center;
     margin-bottom: 12px;
+}
+
+#shop-subtabs {
+    margin-top: -6px;
 }
 
 .shop-tab {
@@ -2728,6 +2735,15 @@ body.world-winter .obstacle-inner.ob-branch::after {
     grid-template-columns: 1fr 1fr;
     gap: 10px;
     margin-bottom: 12px;
+}
+
+/* Placeholder content for tabs with nothing to show yet (Сундуки). */
+.empty-state {
+    grid-column: 1 / -1;
+    padding: 30px 16px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 14px;
 }
 
 .skin-card {

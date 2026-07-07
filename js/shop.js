@@ -18,6 +18,7 @@ import {
     shopBalanceEl,
     shopMannequin,
     shopTabs,
+    shopSubtabs,
     shopGrid,
     shopCloseBtn,
 } from './dom.js';
@@ -187,7 +188,10 @@ function applyCharSkin() {
 }
 
 // --- Overlay UI ---
-let activeTab = 'head';
+// Two-level tabs: activeGroup picks Скины/Сундуки/Прочее; activeSlot only
+// matters while activeGroup is 'skins' (it picks the sub-tab within it).
+let activeGroup = 'skins';
+let activeSlot = 'head';
 
 function isOwned(id) {
     return ownedSkins.indexOf(id) !== -1;
@@ -214,6 +218,11 @@ function skinCardHtml(skin) {
         + '<div class="skin-card-rar">' + rar + '</div>'
         + '<button class="skin-card-btn"' + (disabled ? ' disabled' : '') + '>' + btn + '</button>'
         + '</div>';
+}
+
+// The Сундуки tab has no gacha mechanic yet — a placeholder until it does.
+function chestsHtml() {
+    return '<div class="empty-state">Сундуки скоро откроются!</div>';
 }
 
 // The Прочее tab keeps the log avatar and the spare heart.
@@ -251,16 +260,27 @@ function miscCardsHtml() {
 }
 
 function renderGrid() {
-    if (activeTab === 'misc') {
+    if (activeGroup === 'misc') {
         shopGrid.innerHTML = miscCardsHtml();
-        return;
+    } else if (activeGroup === 'chests') {
+        shopGrid.innerHTML = chestsHtml();
+    } else {
+        shopGrid.innerHTML = SKINS.filter((s) => s.slot === activeSlot).map(skinCardHtml).join('');
     }
-    shopGrid.innerHTML = SKINS.filter((s) => s.slot === activeTab).map(skinCardHtml).join('');
 }
 
-function selectTab(slot) {
-    activeTab = slot;
+function selectGroup(group) {
+    activeGroup = group;
     Array.prototype.slice.call(shopTabs.children).forEach((b) => {
+        b.classList.toggle('active', b.dataset.tab === group);
+    });
+    shopSubtabs.style.display = group === 'skins' ? '' : 'none';
+    renderGrid();
+}
+
+function selectSlot(slot) {
+    activeSlot = slot;
+    Array.prototype.slice.call(shopSubtabs.children).forEach((b) => {
         b.classList.toggle('active', b.dataset.slot === slot);
     });
     renderGrid();
@@ -381,7 +401,11 @@ export function initShop(walletChangedCb) {
     shopGrid.addEventListener('click', onGridClick);
     shopTabs.addEventListener('click', (e) => {
         const tab = e.target.closest('.shop-tab');
-        if (tab) selectTab(tab.dataset.slot);
+        if (tab) selectGroup(tab.dataset.tab);
+    });
+    shopSubtabs.addEventListener('click', (e) => {
+        const tab = e.target.closest('.shop-tab');
+        if (tab) selectSlot(tab.dataset.slot);
     });
     applyLogSkin();
     applyCharSkin();

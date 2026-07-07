@@ -65,6 +65,29 @@ function promotePlaybackSession() {
     } catch (e) { /* ignore — retry on the next gesture */ }
 }
 
+// 'suspended' happens before first resume or after some backgrounding;
+// 'interrupted' is WebKit-specific (phone call, Siri, control center...).
+// Called both from a user gesture (initAudio) and from every actual sound
+// play (tone/noise) — a gesture isn't guaranteed to precede every sound
+// (e.g. a passive hit/coin mid-run under tilt-only steering), and without
+// this the context can stay silently suspended until a full page reload
+// (the "иногда нет звука, помогает перезапуск" symptom).
+function resumeIfSuspended() {
+    if (!ctx) return;
+    if (ctx.state === 'suspended' || ctx.state === 'interrupted') {
+        try {
+            const p = ctx.resume();
+            if (p && p.catch) p.catch(() => { /* ignore — will retry on next gesture/sound */ });
+        } catch (e) { /* ignore */ }
+    }
+}
+
+// Returning from the background is the other common way the context gets
+// stuck suspended without a fresh user gesture right behind it.
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) resumeIfSuspended();
+});
+
 // Lazily create the context (call from a user gesture, e.g. the Start tap).
 // Safe to call from EVERY user gesture (tap-to-jump, how-to "Go", nickname
 // save, mute toggle, Start): iOS can suspend/interrupt the context at any
@@ -92,15 +115,7 @@ export function initAudio() {
         for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
     }
 
-    // 'suspended' happens before first resume or after some backgrounding;
-    // 'interrupted' is WebKit-specific (phone call, Siri, control center...).
-    if (ctx.state === 'suspended' || ctx.state === 'interrupted') {
-        try {
-            const p = ctx.resume();
-            if (p && p.catch) p.catch(() => { /* ignore — will retry on next gesture */ });
-        } catch (e) { /* ignore */ }
-    }
-
+    resumeIfSuspended();
     unlockIOSAudio();
     promotePlaybackSession();
 }
@@ -108,6 +123,7 @@ export function initAudio() {
 // One-shot tone with an attack/decay envelope.
 function tone(type, fromHz, toHz, dur, gain = 0.25) {
     if (!ctx) return;
+    resumeIfSuspended();
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
     const g = ctx.createGain();
@@ -126,6 +142,7 @@ function tone(type, fromHz, toHz, dur, gain = 0.25) {
 // Filtered noise burst (splash / impact texture).
 function noise(dur, filterFrom, filterTo, gain = 0.3) {
     if (!ctx || !noiseBuffer) return;
+    resumeIfSuspended();
     const now = ctx.currentTime;
     const src = ctx.createBufferSource();
     src.buffer = noiseBuffer;

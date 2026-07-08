@@ -298,3 +298,14 @@ export const BATTLE_SHARE_FOE_TEXT =
     '⚔️ Наш чат вызывает ваш на битву в «Stay on Log»! 24 часа, каждый забег — в общий счёт. Принимаете?';
 export const BATTLE_SHARE_OWN_TEXT =
     '📣 Народ, у нас битва чатов в «Stay on Log»! Каждый твой забег капает в счёт команды. Врываемся!';
+
+// === ANALYTICS (PostHog) ===
+// Client-side "project API key" — unlike TG_BOT_TOKEN this is meant to be
+// public (write-only, same class as a GA measurement id or a Stripe
+// publishable key), so it lives here rather than in a Vercel env var. Empty
+// by default: js/analytics.js self-hides (no script load, no network calls)
+// until this is filled in. Setup: docs/ANALYTICS_SETUP.md.
+export const POSTHOG_KEY = '';
+// Region picked at project-creation time on posthog.com — 'https://us.i.posthog.com'
+// (US cloud) or 'https://eu.i.posthog.com' (EU cloud); must match the project.
+export const POSTHOG_HOST = 'https://us.i.posthog.com';

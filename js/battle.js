@@ -396,7 +396,15 @@ function refreshChatState() {
                 if (battleOverlay.classList.contains('active')) showState('none');
                 return;
             }
-            if (!resp.ok) return;
+            if (!resp.ok) {
+                // refreshChatState is only ever called right after an explicit
+                // action (never a silent background poll) — going quiet here
+                // left "Вступаю…"/etc. stuck on screen forever with zero
+                // feedback. Status/error code included while we track down
+                // why this branch is actually firing in practice.
+                setMsg('Не получилось загрузить чат 😔 (' + (resp.httpStatus || '?') + (resp.error ? ' ' + resp.error : '') + ')');
+                return;
+            }
             setMyChat({
                 ci: resp.ci,
                 name: resp.name,
@@ -445,7 +453,7 @@ function refreshChatState() {
                 stopTimers();
             }
         })
-        .catch(() => { /* poll again later */ });
+        .catch(() => setMsg('Сеть молчит 😔'));
 }
 
 function joinOrFoundChat(name) {
@@ -463,7 +471,7 @@ function joinOrFoundChat(name) {
                 return;
             }
             if (!resp.ok) {
-                setMsg('Не получилось вступить 😔 Попробуй ещё раз.');
+                setMsg('Не получилось вступить 😔 (' + (resp.httpStatus || '?') + (resp.error ? ' ' + resp.error : '') + ')');
                 return;
             }
             if (resp.founder && !name) {

@@ -165,10 +165,15 @@ async function opChatJoinOrFound(res, body) {
 
     // curCi === ci means we're already a member of THIS chat — idempotent
     // success, skip straight to returning the current view (no founder logic).
+    // Still refresh the name record on every visit (not just at join time) —
+    // it's cheap, backfills anyone who joined before this write existed, and
+    // keeps it current if the player's Telegram display name changes later.
     if (curCi === ci) {
         const state = await kvPipeline([
             ['HGETALL', chatKey],
             ['SCARD', membersKey],
+            ['HSET', chatKey + ':names', uid, displayName(v.user)],
+            ['EXPIRE', chatKey + ':names', String(CHAT_TTL_S)],
         ]);
         const meta = hashToObj(state[0] && state[0].result);
         const memberCount = Number(state[1] && state[1].result) || 0;
@@ -229,8 +234,10 @@ async function opChatJoinOrFound(res, body) {
     await kvPipeline([
         ['SADD', membersKey, uid],
         ['SET', 'chat:u:' + uid, ci],
+        ['HSET', chatKey + ':names', uid, displayName(v.user)],
         ['EXPIRE', chatKey, String(CHAT_TTL_S)],
         ['EXPIRE', membersKey, String(CHAT_TTL_S)],
+        ['EXPIRE', chatKey + ':names', String(CHAT_TTL_S)],
         ['EXPIRE', 'chat:u:' + uid, String(CHAT_TTL_S)],
     ]);
 
@@ -661,12 +668,18 @@ async function opChatSubmit(res, body) {
         return json(res, 200, { ok: true, unchanged: true, myTotal });
     }
 
+    // Also (re-)writes the display name on every scoring run — cheap (same
+    // pipeline, no extra round trip) and it's what actually backfills
+    // members who joined before this write existed anywhere, or whose
+    // Telegram name changed since — without needing to leave and rejoin.
     const inc = await kvPipeline([
         ['HSET', chatKey + ':runs', runKey, String(score)],
         ['HINCRBY', chatKey + ':contrib', uid, String(delta)],
+        ['HSET', chatKey + ':names', uid, displayName(v.user)],
         ['EXPIRE', chatKey, String(CHAT_TTL_S)],
         ['EXPIRE', chatKey + ':runs', String(CHAT_TTL_S)],
         ['EXPIRE', chatKey + ':contrib', String(CHAT_TTL_S)],
+        ['EXPIRE', chatKey + ':names', String(CHAT_TTL_S)],
     ]);
     const newMine = Number(inc && inc[1] && inc[1].result) || myTotal + delta;
 

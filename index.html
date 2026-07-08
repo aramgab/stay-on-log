@@ -153,6 +153,12 @@
                     24-часовые битвы чат против чата, где каждый забег каждого
                     игрока — в общий счёт.</p>
                 <button id="chat-join-btn" class="bt-primary">Вступить в чат</button>
+                <!-- Revealed only when chatJoinOrFound fails with no_chat_context
+                     (opened outside any group — Home Screen shortcut, bot's own
+                     private chat, desktop). Shares a startapp=joinchat link;
+                     opening THAT from inside a real group auto-completes the
+                     join on boot (see initBattle in js/battle.js). -->
+                <button id="chat-invite-btn" class="bt-primary" style="display:none">📤 Отправить ссылку в чат</button>
             </div>
             <!-- state: opened via a challenge link -->
             <div class="bt-state" id="bt-join">

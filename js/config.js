@@ -283,7 +283,11 @@ export const CHAT_RENAME_LIMIT = 3;
 export const CHAT_NAME_MAX = 24; // same length cap the server enforces
 
 export const CHAT_NO_CONTEXT_TEXT =
-    'Не вижу чат — открой игру из группового чата в Telegram, чтобы вступить.';
+    'Не вижу чат — открой игру из группового чата в Telegram, чтобы вступить, ' +
+    'или отправь себе ссылку кнопкой ниже и открой её уже там.';
+export const CHAT_INVITE_SHARE_TEXT =
+    '👥 Открой эту ссылку прямо в чате, который хочешь сделать своим в ' +
+    '«Stay on Log» — так игра узнает, какой это чат, и ты сможешь вступить.';
 export const CHAT_LEAVE_CONFIRM_TEXT =
     'Покинуть чат? Весь твой вклад в нём пропадёт.';
 export const CHAT_LEAVE_BLOCKED_TEXT =

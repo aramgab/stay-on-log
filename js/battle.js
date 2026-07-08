@@ -390,7 +390,7 @@ function renderChatHome(resp) {
     chatHomeCount.textContent = (resp.memberCount || 1) + ' 👥';
     chatList.textContent = '';
     (resp.top || []).forEach((e) => chatList.appendChild(contribRow(e)));
-    chatRenameLink.textContent = '✏️ переименовать чат' +
+    chatRenameLink.textContent = '✏️ Переименовать' +
         (resp.renamesLeft != null ? ' (' + resp.renamesLeft + ')' : '');
     // Battle panel vs "Вызвать другой чат" is decided by refreshChatState,
     // not here — see the comment there for why it needs the local battle

@@ -19,7 +19,7 @@
          stylesheet against max-age=0 (fullscreen-shark incident, июль 2026).
          index.html itself always revalidates, so bumping v here on css
          changes guarantees clients fetch the fresh file. -->
-    <link rel="stylesheet" href="css/styles.css?v=28">
+    <link rel="stylesheet" href="css/styles.css?v=29">
 </head>
 
 <body>
@@ -50,7 +50,7 @@
             <div id="hud-buttons">
                 <!-- ⚔️ appears only inside Telegram AND with a live backend
                      (js/battle.js); the badge shows the live team score. -->
-                <button id="battle-btn" aria-label="Битва чатов" style="display:none">⚔️<span
+                <button id="battle-btn" aria-label="Битвы" style="display:none">⚔️<span
                         id="battle-badge"></span></button>
                 <!-- 🏆 stays hidden until /api/top answers (js/leaderboard.js) -->
                 <button id="lb-btn" aria-label="Топ игроков" style="display:none">🏆</button>
@@ -146,7 +146,7 @@
          sections below are the UI states, battle.js shows one at a time. -->
     <div id="battle-overlay">
         <div id="battle-card">
-            <h2>⚔️ Битва чатов</h2>
+            <h2>⚔️ Битвы</h2>
             <!-- state: no chat yet — the one smart button founds or joins -->
             <div class="bt-state" id="bt-none">
                 <p class="bt-note">Вступи в чат: постоянный зачёт среди своих и
@@ -177,8 +177,8 @@
                 <div id="chat-home-name"></div>
                 <div id="chat-home-count"></div>
                 <ol class="bt-list" id="chat-list"></ol>
-                <div id="chat-rename-link" role="button">✏️ переименовать чат</div>
-                <div id="chat-leave-link" class="bt-danger-link" role="button">🚪 Покинуть чат</div>
+                <div id="chat-rename-link" role="button">✏️ Переименовать</div>
+                <div id="chat-leave-link" class="bt-danger-link" role="button">🚪 Покинуть</div>
                 <!-- sub-panel: the battle hanging off this chat, if any is active -->
                 <div id="chat-battle-panel">
                     <div id="bt-versus">

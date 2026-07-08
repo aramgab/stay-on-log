@@ -3035,6 +3035,15 @@ body.world-winter .obstacle-inner.ob-branch::after {
     cursor: pointer;
 }
 
+/* Same shape as .bt-primary, own color: starting a NEW fight reads as a
+   distinct, more consequential action than the routine rename/leave links
+   or "Вступить в чат" above it, same flat-UI orange as the rest of this
+   file's button-color set (green .bt-primary, red #bt-share-foe, blue
+   #bt-share-own). */
+#chat-challenge-btn {
+    background: linear-gradient(135deg, #e67e22, #f39c12);
+}
+
 #bt-join-title {
     font-size: 18px;
     font-weight: 800;

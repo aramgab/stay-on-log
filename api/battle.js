@@ -125,11 +125,15 @@ function groupCi(v) {
     return GROUP_TYPES[v.chatType] ? v.chatInstance : '';
 }
 
-function battleView(meta) {
+function battleView(meta, live) {
+    live = live || {};
     return {
         ends: Number(meta.ends) || 0,
-        nameA: meta.nameA || 'Команда А',
-        nameB: meta.nameB || 'Команда Б',
+        // Live chat name wins over the bt:<id> snapshot taken at create/join
+        // time — a team's display name should track a mid-battle chat
+        // rename, not freeze whatever the chat happened to be called then.
+        nameA: live.nameA || meta.nameA || 'Команда А',
+        nameB: live.nameB || meta.nameB || 'Команда Б',
         scoreA: Number(meta.scoreA) || 0,
         scoreB: Number(meta.scoreB) || 0,
     };
@@ -538,20 +542,33 @@ async function opState(res, query) {
     const membersOut = await kvPipeline([
         meta.chatA ? ['SMEMBERS', 'chat:' + meta.chatA + ':members'] : ['SMEMBERS', 'chat:__none__:members'],
         meta.chatB ? ['SMEMBERS', 'chat:' + meta.chatB + ':members'] : ['SMEMBERS', 'chat:__none__:members'],
+        meta.chatA ? ['HGET', 'chat:' + meta.chatA, 'name'] : ['HGET', 'chat:__none__', 'name'],
+        meta.chatB ? ['HGET', 'chat:' + meta.chatB, 'name'] : ['HGET', 'chat:__none__', 'name'],
+        meta.chatA ? ['HGETALL', 'chat:' + meta.chatA + ':names'] : ['HGETALL', 'chat:__none__:names'],
+        meta.chatB ? ['HGETALL', 'chat:' + meta.chatB + ':names'] : ['HGETALL', 'chat:__none__:names'],
     ]);
     const membersA = {};
     (membersOut[0] && membersOut[0].result || []).forEach((u) => { membersA[u] = 1; });
     const membersB = {};
     (membersOut[1] && membersOut[1].result || []).forEach((u) => { membersB[u] = 1; });
+    // Fallback for contributors opSubmit never wrote into bt:<id>:names (only
+    // opCreate/opJoin populate it directly — see the fix in opSubmit below)
+    // and for the pre-fix backlog of already-running battles.
+    const chatNamesA = hashToObj(membersOut[4] && membersOut[4].result);
+    const chatNamesB = hashToObj(membersOut[5] && membersOut[5].result);
 
-    const view = battleView(meta);
+    const view = battleView(meta, {
+        nameA: membersOut[2] && membersOut[2].result,
+        nameB: membersOut[3] && membersOut[3].result,
+    });
     const finished = now > view.ends;
 
     const rows = { A: [], B: [] };
     for (const u in contrib) {
         const s = membersA[u] ? 'A' : membersB[u] ? 'B' : null;
         if (!s) continue;
-        rows[s].push({ name: names[u] || 'Игрок', score: Number(contrib[u]) || 0, you: u === uid });
+        const chatNames = s === 'A' ? chatNamesA : chatNamesB;
+        rows[s].push({ name: names[u] || chatNames[u] || 'Игрок', score: Number(contrib[u]) || 0, you: u === uid });
     }
     const top = (s) => {
         rows[s].sort((a, b) => b.score - a.score);
@@ -628,6 +645,13 @@ async function opSubmit(res, body) {
         ['HINCRBY', bt + ':contrib', uid, String(delta)],
         ['EXPIRE', bt + ':runs', String(TTL_S)],
         ['EXPIRE', bt + ':contrib', String(TTL_S)],
+        // opCreate/opJoin only ever populate bt:<id>:names for the
+        // creator/first joiner — anyone else who contributes purely through
+        // ordinary runs never got a name written, showing up as the
+        // "Игрок" fallback in topA/topB. Same fix as opChatSubmit's
+        // (eabe372), just for the per-battle names hash.
+        ['HSET', bt + ':names', uid, displayName(v.user)],
+        ['EXPIRE', bt + ':names', String(TTL_S)],
     ]);
     const newTeam = Number(inc && inc[1] && inc[1].result) || 0;
     const newMine = Number(inc && inc[2] && inc[2].result) || myTotal + delta;

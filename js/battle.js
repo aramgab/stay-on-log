@@ -461,8 +461,15 @@ function joinOrFoundChat(name) {
     battleApi('chatJoinOrFound', name ? { name } : {})
         .then((resp) => {
             if (resp.httpStatus === 400 && resp.error === 'no_chat_context') {
-                setMsg(CHAT_NO_CONTEXT_TEXT);
+                // showState() clears the message as its own first step (it's
+                // meant to reset stale text on a real transition) — setting
+                // the message BEFORE calling it, as this used to, meant
+                // showState immediately wiped it back to '' since we're
+                // already on 'none' (no visible transition to hide behind).
+                // Order matters: transition first, THEN set the message that
+                // should actually stick.
                 showState('none');
+                setMsg(CHAT_NO_CONTEXT_TEXT);
                 return;
             }
             if (resp.httpStatus === 409 && resp.error === 'already_in_chat') {
@@ -570,8 +577,10 @@ function joinBattle(id) {
         .then((resp) => {
             if (resp.httpStatus === 403 && resp.error === 'no_chat') {
                 clearMyChat();
-                setMsg(CHAT_NO_CONTEXT_TEXT);
+                // Same ordering fix as joinOrFoundChat: showState() clears
+                // the message itself, so it must run BEFORE setMsg, not after.
                 showState('none');
+                setMsg(CHAT_NO_CONTEXT_TEXT);
                 return;
             }
             if (resp.httpStatus === 409 && resp.error === 'battle_full') {

@@ -135,6 +135,18 @@ export function submitBattleScore(runId, score) {
         .catch(() => { /* best-effort, like the leaderboard */ });
 }
 
+// The chat's OWN permanent leaderboard — deliberately independent of
+// submitBattleScore above (which only fires with a currently-active battle):
+// this fires on EVERY game over as long as the player has a chat, battle or
+// not, since the whole point of the internal rating is that it isn't
+// gated on a battle happening to be running. Same delta-dedup contract
+// as submitBattleScore, just chat-scoped.
+export function submitChatScore(runId, score) {
+    const c = getMyChat();
+    if (!c || !isInTelegram() || !(score > 0) || !runId) return;
+    battleApi('chatSubmit', { runId, score }).catch(() => { /* best-effort, like the leaderboard */ });
+}
+
 // Dev-only (?dev=1): fast-forward MY active battle to end in 5 minutes, so
 // the win/lose/draw screens can be playtested without waiting out the real
 // 24h window. Server enforces membership + only-shortens — see api/battle.js.

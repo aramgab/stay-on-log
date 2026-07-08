@@ -4,7 +4,8 @@
 //   GET  ?op=chatState&uid=..                — caller's own chat entity + its leaderboard
 //   POST {op:'create', initData}             — start a battle, creator's chat joins side A
 //   POST {op:'join',   initData, id}
-//   POST {op:'submit', initData, id, runId, score}
+//   POST {op:'submit', initData, id, runId, score}      — feeds THIS battle only
+//   POST {op:'chatSubmit', initData, runId, score}      — feeds the chat's all-time total, always
 //   POST {op:'chatJoinOrFound', initData, name?}
 //   POST {op:'chatLeave', initData}
 //   POST {op:'chatRename', initData, name}
@@ -19,11 +20,17 @@
 // member of a chat is automatically "in" any battle that chat is fighting,
 // with no separate per-user join-the-battle step.
 //
-// Scoring: team score = SUM of every run of every member inside the 24h
-// window. Dedup across revive: the client submits (runId, score) on every
+// Scoring: team score (bt:<id>:contrib) = SUM of every run of every member
+// inside the 24h window — fed ONLY by opSubmit, which requires a live
+// battle. The chat's own all-time total (chat:<ci>:contrib) is a SEPARATE,
+// independent accumulation fed by opChatSubmit — called on every completed
+// run regardless of whether a battle happens to be active, since that's the
+// entire point of a permanent chat leaderboard (folding it into opSubmit
+// would only credit contribution during the rare windows a battle runs).
+// Dedup across revive, for BOTH: the client submits (runId, score) on every
 // game over of one run; the server stores the last submitted score per
-// uid:runId and increments the team only by the positive delta. The same
-// verified delta ALSO feeds the chat's own all-time (never reset) total.
+// uid:runId (in the relevant *:runs hash) and increments only by the
+// positive delta.
 //
 // Keys (prefix bt:, TTL = 24h window + 7d grace to view the result):
 //   bt:<id>          HASH  created ends creator chatA? chatB? nameA nameB
@@ -40,7 +47,11 @@
 //   chat:<ci>          HASH  name founder created renameCount
 //   chat:<ci>:members  SET   uid, uid, ...
 //   chat:<ci>:contrib  HASH  uid -> all-time cumulative score (never reset,
-//                            unlike bt:<id>:contrib which is per-battle)
+//                            unlike bt:<id>:contrib which is per-battle;
+//                            fed by opChatSubmit, NOT opSubmit)
+//   chat:<ci>:runs     HASH  "<uid>:<runId>" -> last submitted score of the
+//                            run, for opChatSubmit's own dedup (separate
+//                            from bt:<id>:runs — different lifetime, same idiom)
 //   chat:<ci>:names    HASH  uid -> display name from VERIFIED initData
 //   chat:<ci>:battle   STR   the bt:<id> this chat currently has active
 //                            (mirrors bt:u:<uid>, just re-scoped from user
@@ -591,16 +602,19 @@ async function opSubmit(res, body) {
         return json(res, 200, Object.assign({ ok: true, unchanged: true, myTotal }, view));
     }
 
-    const chatKey = 'chat:' + ci;
+    // Note: this only feeds bt:<id>:contrib (THIS battle's score, resets
+    // next battle) — the chat's own all-time chat:<ci>:contrib is a
+    // SEPARATE, independent accumulation via opChatSubmit below, submitted
+    // on every run regardless of whether a battle happens to be active.
+    // Folding it in here would only credit contribution during the rare
+    // windows a battle is actually running, defeating the entire point of a
+    // PERMANENT chat leaderboard.
     const inc = await kvPipeline([
         ['HSET', bt + ':runs', runKey, String(score)],
         ['HINCRBY', bt, 'score' + side, String(delta)],
         ['HINCRBY', bt + ':contrib', uid, String(delta)],
         ['EXPIRE', bt + ':runs', String(TTL_S)],
         ['EXPIRE', bt + ':contrib', String(TTL_S)],
-        ['HINCRBY', chatKey + ':contrib', uid, String(delta)],
-        ['EXPIRE', chatKey, String(CHAT_TTL_S)],
-        ['EXPIRE', chatKey + ':contrib', String(CHAT_TTL_S)],
     ]);
     const newTeam = Number(inc && inc[1] && inc[1].result) || 0;
     const newMine = Number(inc && inc[2] && inc[2].result) || myTotal + delta;
@@ -612,6 +626,51 @@ async function opSubmit(res, body) {
         myTotal: newMine,
         ends: view.ends,
     });
+}
+
+// The chat's OWN all-time contribution — independent of opSubmit above and
+// called on EVERY completed run regardless of whether a battle happens to be
+// active (that's the entire point of a permanent leaderboard). Same
+// delta-dedup idiom as opSubmit's bt:<id>:runs, just chat-scoped and never
+// expiring on its own battle-length timer.
+async function opChatSubmit(res, body) {
+    const v = validateInitData(String(body.initData || ''));
+    if (!v) return json(res, 403, { error: 'invalid initData' });
+    const runId = String(body.runId || '');
+    const score = Math.floor(Number(body.score));
+    if (!RUN_RE.test(runId) || !Number.isFinite(score) || score <= 0 || score > MAX_SCORE) {
+        return json(res, 400, { error: 'bad request' });
+    }
+    const uid = String(v.user.id);
+
+    const ptr = await kvPipeline([['GET', 'chat:u:' + uid]]);
+    const ci = ptr && ptr[0] && ptr[0].result;
+    if (!ci) return json(res, 404, { error: 'no_chat' });
+
+    const chatKey = 'chat:' + ci;
+    const runKey = uid + ':' + runId;
+
+    const out = await kvPipeline([
+        ['HGET', chatKey + ':runs', runKey],
+        ['HGET', chatKey + ':contrib', uid],
+    ]);
+    const old = Number(out[0] && out[0].result) || 0;
+    const myTotal = Number(out[1] && out[1].result) || 0;
+    const delta = score - old;
+    if (delta <= 0) {
+        return json(res, 200, { ok: true, unchanged: true, myTotal });
+    }
+
+    const inc = await kvPipeline([
+        ['HSET', chatKey + ':runs', runKey, String(score)],
+        ['HINCRBY', chatKey + ':contrib', uid, String(delta)],
+        ['EXPIRE', chatKey, String(CHAT_TTL_S)],
+        ['EXPIRE', chatKey + ':runs', String(CHAT_TTL_S)],
+        ['EXPIRE', chatKey + ':contrib', String(CHAT_TTL_S)],
+    ]);
+    const newMine = Number(inc && inc[1] && inc[1].result) || myTotal + delta;
+
+    return json(res, 200, { ok: true, myTotal: newMine });
 }
 
 // Dev-only (?dev=1 client gate): fast-forward the caller's OWN battle to end
@@ -664,6 +723,7 @@ module.exports = async (req, res) => {
             if (body.op === 'create') return await opCreate(res, body);
             if (body.op === 'join') return await opJoin(res, body);
             if (body.op === 'submit') return await opSubmit(res, body);
+            if (body.op === 'chatSubmit') return await opChatSubmit(res, body);
             if (body.op === 'devExpire') return await opDevExpire(res, body);
             if (body.op === 'chatJoinOrFound') return await opChatJoinOrFound(res, body);
             if (body.op === 'chatLeave') return await opChatLeave(res, body);

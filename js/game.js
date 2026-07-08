@@ -116,7 +116,7 @@ import {
 import { spawnCoins, renderCoinLayer, stepCoins, resetCoins } from './coins.js';
 import { initShop, hasPendingHeart, consumePendingHeart, spendCoins } from './shop.js';
 import { initLeaderboard, submitScore } from './leaderboard.js';
-import { submitBattleScore, initBattle } from './battle.js';
+import { submitBattleScore, submitChatScore, initBattle } from './battle.js';
 import { setMainArrow, setPreviewArrow, promoteArrows, cancelPromote, resetArrows } from './dirarrow.js';
 import { deathQuip } from './quips.js';
 import { DAY_PHASE_CLASSES, dayPhaseFor, cycleOf, BIOMES, BOSSES, questsFor } from './biomes.js';
@@ -1649,6 +1649,10 @@ function gameOver(normPos, cause) {
     // Battle: same fire-and-forget; the server counts only the positive
     // delta per runId, so the post-revive game over adds growth, not a dupe.
     submitBattleScore(state.runId, state.score);
+
+    // Chat's own permanent rating: independent of whether a battle is
+    // active — fires as long as the player has a chat at all.
+    submitChatScore(state.runId, state.score);
 
     // === FALL ANIMATION ===
     animateFall(normPos);

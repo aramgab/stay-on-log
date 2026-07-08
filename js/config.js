@@ -274,9 +274,23 @@ export const SHARE_URL = 'https://t.me/StayOnLog_bot/game';
 // channel admin, which is out of scope for now).
 export const COMMUNITY_URL = 'https://t.me/StayOnLog';
 
+// === CHAT (persistent membership; see CHAT BATTLES below — the cross-chat
+// battle mode is now derived from this, not the other way around) ===
+// How many times a chat may rename itself — small on purpose, this is meant
+// to be a settled identity, not something bikeshedded every session; raise
+// if playtesting shows chats getting stuck with a name nobody likes.
+export const CHAT_RENAME_LIMIT = 3;
+export const CHAT_NAME_MAX = 24; // same length cap the server enforces
+
+export const CHAT_NO_CONTEXT_TEXT =
+    'Не вижу чат — открой игру из группового чата в Telegram, чтобы вступить.';
+export const CHAT_LEAVE_CONFIRM_TEXT =
+    'Покинуть чат? Весь твой вклад в нём пропадёт.';
+export const CHAT_LEAVE_BLOCKED_TEXT =
+    'Нельзя уйти, пока у чата идёт битва — дождись конца.';
+
 // === CHAT BATTLES (client-side constants; server caps live in api/battle.js) ===
 export const BATTLE_POLL_MS = 10000; // live-score poll while the battle overlay is open
-export const BATTLE_NAME_MAX = 24;   // team name length (the server cuts to the same)
 // Two share flavours around ONE link (the side is decided by chat_instance,
 // so the text is what tells "our" link from the enemy's).
 export const BATTLE_SHARE_FOE_TEXT =

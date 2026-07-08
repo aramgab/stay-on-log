@@ -37,28 +37,42 @@ module.exports = async (req, res) => {
             });
         }
 
-        // "In battle" status: bt:u:<uid> is just a pointer to the LAST battle
-        // the player touched — its TTL is refreshed to a full 24h on both
-        // create and join, so it can outlive the actual battle by hours if a
-        // member joined late. Never trust the pointer alone; always confirm
-        // the pointed-to battle's own `ends` is still in the future.
+        // "In battle" status: chat:u:<uid> points at the player's current
+        // persistent chat (ci), and chat:<ci>:battle points at that chat's
+        // active battle id. A uid is "in battle" iff the battle its CURRENT
+        // chat is fighting hasn't ended yet — never trust either pointer
+        // alone; always confirm the pointed-to battle's own `ends` is still
+        // in the future.
         const allUids = uid && !uids.includes(uid) ? uids.concat(uid) : uids;
         const inBattle = {};
         if (allUids.length) {
-            const ptrs = await kvPipeline(allUids.map((u) => ['GET', 'bt:u:' + u]));
-            const battleIds = new Set();
-            const uidToBid = {};
-            ptrs.forEach((r, i) => {
-                const bid = r && r.result;
-                if (bid) { battleIds.add(bid); uidToBid[allUids[i]] = bid; }
+            const chatPtrs = await kvPipeline(allUids.map((u) => ['GET', 'chat:u:' + u]));
+            const cis = new Set();
+            const uidToCi = {};
+            chatPtrs.forEach((r, i) => {
+                const ci = r && r.result;
+                if (ci) { cis.add(ci); uidToCi[allUids[i]] = ci; }
             });
-            if (battleIds.size) {
-                const idList = [...battleIds];
-                const endsOut = await kvPipeline(idList.map((bid) => ['HGET', 'bt:' + bid, 'ends']));
-                const now = Date.now();
-                const bidEnds = {};
-                endsOut.forEach((r, i) => { bidEnds[idList[i]] = Number(r && r.result) || 0; });
-                for (const u in uidToBid) inBattle[u] = bidEnds[uidToBid[u]] > now;
+            if (cis.size) {
+                const ciList = [...cis];
+                const battlePtrs = await kvPipeline(ciList.map((ci) => ['GET', 'chat:' + ci + ':battle']));
+                const battleIds = new Set();
+                const ciToBid = {};
+                battlePtrs.forEach((r, i) => {
+                    const bid = r && r.result;
+                    if (bid) { battleIds.add(bid); ciToBid[ciList[i]] = bid; }
+                });
+                if (battleIds.size) {
+                    const idList = [...battleIds];
+                    const endsOut = await kvPipeline(idList.map((bid) => ['HGET', 'bt:' + bid, 'ends']));
+                    const now = Date.now();
+                    const bidEnds = {};
+                    endsOut.forEach((r, i) => { bidEnds[idList[i]] = Number(r && r.result) || 0; });
+                    for (const u in uidToCi) {
+                        const bid = ciToBid[uidToCi[u]];
+                        if (bid) inBattle[u] = bidEnds[bid] > now;
+                    }
+                }
             }
         }
 

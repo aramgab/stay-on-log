@@ -1,12 +1,17 @@
 // === CHAT BATTLES (client) ===
-// Chat vs chat: one challenge link, teams auto-formed by chat_instance
-// server-side, 24h window, team score = sum of every member's every run.
-// Self-hiding like the leaderboard: the ⚔️ button appears only inside
+// A player belongs to at most one persistent chat at a time (server-side
+// chat:u:<uid>), independent of any battle. Two things hang off "having a
+// chat": a permanent in-chat leaderboard among its members, and the 24h
+// cross-chat battle (whole chat vs whole chat, team score = sum of every
+// member's every run) — side A/B is derived from current chat membership,
+// not a one-off per-battle claim. Without a chat, neither is reachable, so
+// the single ⚔️ #battle-btn overlay now gates on chat membership first.
+// Self-hiding like the leaderboard: the button appears only inside
 // Telegram AND after the backend probe answered (whenBackendAlive).
 //
-// The player's active battle lives in localStorage as the UI's source of
-// truth; the server keeps its own bt:u pointer purely as an anti-spam
-// "one battle per user" guard. Shape:
+// Two localStorage caches, same split as always — the UI's cheap source of
+// truth, the server keeps the real pointer:
+//   stayOnLog_myChat       = JSON { ci, name, founder, renameCount }
 //   stayOnLog_activeBattle = JSON { id, side, ends, nameA, nameB, scoreA,
 //                                   scoreB, myTotal, canRename?, finished? }
 
@@ -15,9 +20,13 @@ import { isInTelegram, tgInitData, tgUser, tgStartParam, shareScore, isDevMode }
 import { battleBtn, battleBadge, battleOverlay, battleCloseBtn } from './dom.js';
 import { whenBackendAlive } from './leaderboard.js';
 import { initAudio } from './audio.js';
-import { SHARE_URL, BATTLE_POLL_MS, BATTLE_SHARE_FOE_TEXT, BATTLE_SHARE_OWN_TEXT } from './config.js';
+import {
+    SHARE_URL, BATTLE_POLL_MS, BATTLE_SHARE_FOE_TEXT, BATTLE_SHARE_OWN_TEXT,
+    CHAT_NO_CONTEXT_TEXT, CHAT_LEAVE_CONFIRM_TEXT, CHAT_LEAVE_BLOCKED_TEXT,
+} from './config.js';
 
 const LS_KEY = 'stayOnLog_activeBattle';
+const CHAT_LS_KEY = 'stayOnLog_myChat';
 
 // --- data core -------------------------------------------------------------
 
@@ -38,6 +47,27 @@ export function setActiveBattle(b) {
 
 export function clearActiveBattle() {
     lsSet(LS_KEY, '');
+}
+
+// Same shape as getActiveBattle/setActiveBattle/clearActiveBattle, but for
+// "my chat" — the entity a battle now hangs off instead of a raw chat_instance.
+export function getMyChat() {
+    try {
+        const raw = lsGet(CHAT_LS_KEY);
+        if (!raw) return null;
+        const c = JSON.parse(raw);
+        return c && c.ci ? c : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+export function setMyChat(c) {
+    lsSet(CHAT_LS_KEY, JSON.stringify(c));
+}
+
+export function clearMyChat() {
+    lsSet(CHAT_LS_KEY, '');
 }
 
 // Merge fresh server numbers into the stored battle (badge/overlay read it).
@@ -65,6 +95,15 @@ export function battleApi(op, payload) {
 export function battleState(id, uid) {
     const q = '/api/battle?op=state&id=' + encodeURIComponent(id) +
         (uid ? '&uid=' + encodeURIComponent(uid) : '');
+    return fetch(q).then((r) => r.json().then((data) => {
+        data.httpStatus = r.status;
+        return data;
+    }));
+}
+
+// GET analogue of battleState, but for the caller's own chat entity.
+export function chatState(uid) {
+    const q = '/api/battle?op=chatState&uid=' + encodeURIComponent(uid || '');
     return fetch(q).then((r) => r.json().then((data) => {
         data.httpStatus = r.status;
         return data;
@@ -110,24 +149,27 @@ export function devExpireBattle(id) {
 const el = (id) => document.getElementById(id);
 const secNone = el('bt-none');
 const secJoin = el('bt-join');
-const secSide = el('bt-side');
 const secName = el('bt-name');
-const secMain = el('bt-main');
-const createNameInput = el('bt-create-name');
-const createBtn = el('bt-create');
+const secChatHome = el('chat-home');
+const chatJoinBtn = el('chat-join-btn');
 const joinTitle = el('bt-join-title');
 const joinScore = el('bt-join-score');
 const joinGoBtn = el('bt-join-go');
-const sideABtn = el('bt-side-a');
-const sideBBtn = el('bt-side-b');
+const chatNameNote = el('chat-name-note');
 const nameInput = el('bt-name-input');
 const nameSaveBtn = el('bt-name-save');
+const chatHomeName = el('chat-home-name');
+const chatHomeCount = el('chat-home-count');
+const chatList = el('chat-list');
+const chatRenameLink = el('chat-rename-link');
+const chatLeaveLink = el('chat-leave-link');
+const chatBattlePanel = el('chat-battle-panel');
+const chatChallengeBtn = el('chat-challenge-btn');
 const teamAEl = el('bt-team-a');
 const teamBEl = el('bt-team-b');
 const timerEl = el('bt-timer');
 const verdictEl = el('bt-verdict');
 const mineEl = el('bt-mine');
-const renameLink = el('bt-rename');
 const devExpireLink = el('bt-dev-expire');
 const listA = el('bt-list-a');
 const listB = el('bt-list-b');
@@ -157,13 +199,12 @@ function setMsg(text) {
 }
 
 function showState(which) {
-    [secNone, secJoin, secSide, secName, secMain].forEach((s) => s.classList.remove('on'));
+    [secNone, secJoin, secName, secChatHome].forEach((s) => s.classList.remove('on'));
     setMsg('');
     if (which === 'none') secNone.classList.add('on');
     else if (which === 'join') secJoin.classList.add('on');
-    else if (which === 'side') secSide.classList.add('on');
     else if (which === 'name') secName.classList.add('on');
-    else if (which === 'main') secMain.classList.add('on');
+    else if (which === 'chat-home') secChatHome.classList.add('on');
 }
 
 export function updateBadge() {
@@ -222,10 +263,15 @@ function contribRow(entry) {
     return li;
 }
 
+// Renders the versus/timer/tables sub-panel from a battle-state response.
+// Invoked as a sub-render from within the chat-home render path — there's no
+// standalone "main" state anymore, the battle panel lives inside chat-home.
 function renderMain(resp) {
     const b = getActiveBattle();
     const side = b && b.id === resp.id ? b.side : '';
-    showState('main');
+
+    chatBattlePanel.style.display = '';
+    chatChallengeBtn.style.display = 'none';
 
     teamAEl.querySelector('.bt-team-name').textContent = resp.nameA;
     teamBEl.querySelector('.bt-team-name').textContent = resp.nameB;
@@ -259,11 +305,11 @@ function renderMain(resp) {
 
     shareRow.style.display = finished || !side ? 'none' : '';
     newBtn.style.display = finished ? '' : 'none';
-
-    const myTeamScore = side === 'A' ? resp.scoreA : side === 'B' ? resp.scoreB : 1;
-    renameLink.style.display = b && b.canRename && myTeamScore === 0 && !finished ? '' : 'none';
 }
 
+// Polls the ONE battle hanging off my chat right now, feeding the render
+// into the chat-home sub-panel (renderMain no longer flips a standalone
+// state — the overlay may or may not even be showing chat-home).
 function refreshState() {
     const b = getActiveBattle();
     if (!b) return;
@@ -273,7 +319,6 @@ function refreshState() {
                 // The battle expired out of the store — let go.
                 clearActiveBattle();
                 updateBadge();
-                if (battleOverlay.classList.contains('active')) showState('none');
                 return;
             }
             if (!resp.ends) return;
@@ -288,7 +333,9 @@ function refreshState() {
                 finished: Boolean(resp.finished),
             });
             updateBadge();
-            if (battleOverlay.classList.contains('active')) renderMain(resp);
+            if (battleOverlay.classList.contains('active') && secChatHome.classList.contains('on')) {
+                renderMain(resp);
+            }
             if (resp.finished) stopTimers();
         })
         .catch(() => { /* poll again later */ });
@@ -306,7 +353,7 @@ function startPolling() {
     }, BATTLE_POLL_MS);
 }
 
-function adoptBattle(id, side, resp, canRename) {
+function adoptBattle(id, side, resp) {
     setActiveBattle({
         id,
         side,
@@ -316,100 +363,229 @@ function adoptBattle(id, side, resp, canRename) {
         scoreA: resp.scoreA || 0,
         scoreB: resp.scoreB || 0,
         myTotal: 0,
-        canRename: Boolean(canRename),
     });
     updateBadge();
 }
 
-function createBattle() {
-    setMsg('Создаю…');
-    battleApi('create', { name: createNameInput.value })
+// Renders the chat-home screen from a chatState() response: name, member
+// count, permanent leaderboard, rename-left, and — if a battle is hanging
+// off this chat — the versus/timer/tables sub-panel (fetched separately,
+// see refreshChatState). Kept split from refreshChatState the same way the
+// old file split refreshState (fetch+poll) from renderMain (paint).
+function renderChatHome(resp) {
+    showState('chat-home');
+    chatHomeName.textContent = resp.name || 'Мой чат';
+    chatHomeCount.textContent = (resp.memberCount || 1) + ' 👥';
+    chatList.textContent = '';
+    (resp.top || []).forEach((e) => chatList.appendChild(contribRow(e)));
+    chatRenameLink.textContent = '✏️ переименовать чат' +
+        (resp.renamesLeft != null ? ' (' + resp.renamesLeft + ')' : '');
+    // Battle panel vs "Вызвать другой чат" is decided by refreshChatState,
+    // not here — see the comment there for why it needs the local battle
+    // cache too, not just this chat snapshot.
+}
+
+// Fetch+poll driver for the chat-home screen — analogue of the old
+// refreshState, but for the chat entity rather than a single battle.
+function refreshChatState() {
+    const uid = myUid();
+    chatState(uid)
         .then((resp) => {
-            if (resp.httpStatus === 409 && resp.id) {
-                // Already fighting somewhere — open that battle instead.
-                setActiveBattle({ id: resp.id, side: '', myTotal: 0 });
+            if (resp.httpStatus === 404 || resp.error === 'no_chat') {
+                clearMyChat();
+                if (battleOverlay.classList.contains('active')) showState('none');
+                return;
+            }
+            if (!resp.ok) return;
+            setMyChat({
+                ci: resp.ci,
+                name: resp.name,
+                founder: Boolean(resp.founder),
+                renameCount: 0,
+            });
+            if (battleOverlay.classList.contains('active')) renderChatHome(resp);
+
+            // Whether to show the battle panel is driven by the LOCAL battle
+            // cache first, not chatState's battleActive: that flag flips to
+            // false the instant a battle's `ends` passes, which would
+            // otherwise silently swap the verdict screen for the challenge
+            // button before the player ever saw who won (e.g. reopening the
+            // overlay after the battle already finished). A locally-tracked
+            // battle — active OR just-finished-but-not-yet-dismissed — keeps
+            // rendering through the existing battle-specific path below,
+            // which already shows the verdict correctly; clicking "Новая
+            // битва" is what actually dismisses it (clearActiveBattle).
+            // chatState's battleActive/battleId is only used to DISCOVER a
+            // battle this client doesn't have cached yet (e.g. a fellow
+            // member started one, or this is a fresh load).
+            const existing = getActiveBattle();
+            if (existing) {
+                if (battleOverlay.classList.contains('active') && secChatHome.classList.contains('on')) {
+                    chatBattlePanel.style.display = '';
+                    chatChallengeBtn.style.display = 'none';
+                }
                 refreshState();
-                showState('main');
-                setMsg('У тебя уже есть активная битва — вот она.');
+                if (!existing.finished) startPolling();
+                return;
+            }
+
+            if (resp.battleActive && resp.battleId) {
+                battleState(resp.battleId, uid).then((bResp) => {
+                    if (!bResp.ends) return;
+                    serverOffset = bResp.now ? bResp.now - Date.now() : 0;
+                    adoptBattle(resp.battleId, bResp.me ? bResp.me.side : '', bResp);
+                    if (battleOverlay.classList.contains('active') && secChatHome.classList.contains('on')) {
+                        renderMain(bResp);
+                    }
+                    startPolling();
+                }).catch(() => { /* poll again later */ });
+            } else if (battleOverlay.classList.contains('active') && secChatHome.classList.contains('on')) {
+                chatBattlePanel.style.display = 'none';
+                chatChallengeBtn.style.display = '';
+                stopTimers();
+            }
+        })
+        .catch(() => { /* poll again later */ });
+}
+
+function joinOrFoundChat(name) {
+    setMsg('Вступаю…');
+    battleApi('chatJoinOrFound', name ? { name } : {})
+        .then((resp) => {
+            if (resp.httpStatus === 400 && resp.error === 'no_chat_context') {
+                setMsg(CHAT_NO_CONTEXT_TEXT);
+                showState('none');
+                return;
+            }
+            if (resp.httpStatus === 409 && resp.error === 'already_in_chat') {
+                setMsg('Ты уже в чате — сначала выйди из него, если хочешь вступить в другой.');
+                refreshChatState();
+                return;
+            }
+            if (!resp.ok) {
+                setMsg('Не получилось вступить 😔 Попробуй ещё раз.');
+                return;
+            }
+            if (resp.founder && !name) {
+                // Brand-new/empty chat, nobody named it yet — prompt for a name,
+                // then re-call this SAME op with the typed name (the server only
+                // honors `name` on the founding path).
+                chatNameNote.textContent = 'Ты первый в этом чате — назови его!';
+                nameInput.value = '';
+                showState('name');
+                return;
+            }
+            setMyChat({ ci: resp.ci, name: resp.name, founder: Boolean(resp.founder), renameCount: 0 });
+            if (pendingJoinId) {
+                const id = pendingJoinId;
+                pendingJoinId = '';
+                renderJoinConfirm(id);
+                return;
+            }
+            refreshChatState();
+        })
+        .catch(() => setMsg('Сеть молчит 😔'));
+}
+
+function leaveChat() {
+    if (!window.confirm(CHAT_LEAVE_CONFIRM_TEXT)) return;
+    setMsg('Выхожу…');
+    battleApi('chatLeave', {})
+        .then((resp) => {
+            if (resp.httpStatus === 409 && resp.error === 'battle_active') {
+                setMsg(CHAT_LEAVE_BLOCKED_TEXT);
+                return;
+            }
+            if (!resp.ok) {
+                setMsg('Не получилось выйти 😔');
+                return;
+            }
+            clearMyChat();
+            clearActiveBattle();
+            updateBadge();
+            stopTimers();
+            showState('none');
+        })
+        .catch(() => setMsg('Сеть молчит 😔'));
+}
+
+function renameChat(name) {
+    setMsg('Сохраняю…');
+    battleApi('chatRename', { name })
+        .then((resp) => {
+            if (resp.httpStatus === 403 && resp.error === 'limit_reached') {
+                setMsg('Лимит переименований исчерпан.');
+                refreshChatState();
+                return;
+            }
+            if (!resp.ok) {
+                setMsg('Не вышло 😔');
+                refreshChatState();
+                return;
+            }
+            const c = getMyChat();
+            if (c) setMyChat(Object.assign(c, { name: resp.name }));
+            setMsg('');
+            refreshChatState();
+        })
+        .catch(() => setMsg('Сеть молчит 😔'));
+}
+
+function createBattle() {
+    setMsg('Вызываю…');
+    battleApi('create', {})
+        .then((resp) => {
+            if (resp.httpStatus === 403 && resp.error === 'no_chat') {
+                clearMyChat();
+                showState('none');
+                return;
+            }
+            if (resp.httpStatus === 409 && resp.error === 'already_active' && resp.id) {
+                // Your chat already has a live battle — just refresh onto it.
+                refreshChatState();
                 return;
             }
             if (!resp.ok) {
                 setMsg('Не получилось создать 😔 Попробуй ещё раз.');
                 return;
             }
-            adoptBattle(resp.id, 'A', resp, true);
-            refreshState();
-            showState('main');
+            adoptBattle(resp.id, 'A', resp);
+            refreshChatState();
             startPolling();
-            setMsg(resp.ciBound
-                ? 'Команда привязана к этому чату. Зови своих и вызывай врагов!'
-                : 'Открой «Клич своим» из своего чата — команда привяжется к нему.');
         })
         .catch(() => setMsg('Сеть молчит 😔'));
 }
 
-function joinBattle(id, side) {
+function joinBattle(id) {
     setMsg('Вступаю…');
-    battleApi('join', { id, side })
+    battleApi('join', { id })
         .then((resp) => {
-            if (resp.needSide) {
-                sideABtn.textContent = resp.nameA || 'Команда А';
-                sideBBtn.textContent = resp.nameB || 'Команда Б';
-                sideABtn.dataset.id = id;
-                sideBBtn.dataset.id = id;
-                showState('side');
+            if (resp.httpStatus === 403 && resp.error === 'no_chat') {
+                clearMyChat();
+                setMsg(CHAT_NO_CONTEXT_TEXT);
+                showState('none');
                 return;
             }
-            if (resp.httpStatus === 409 && resp.error === 'already_in_battle' && resp.id) {
-                setActiveBattle({ id: resp.id, side: '', myTotal: 0 });
-                refreshState();
-                showState('main');
-                setMsg('Ты уже в другой битве — сначала она.');
+            if (resp.httpStatus === 409 && resp.error === 'battle_full') {
+                setMsg('Обе стороны уже заняты другими чатами.');
+                refreshChatState();
                 return;
             }
             if (resp.httpStatus === 410 || resp.finished) {
                 setMsg('Эта битва уже завершена: ' +
                     (resp.nameA || 'А') + ' ' + (resp.scoreA || 0) + ' : ' +
                     (resp.scoreB || 0) + ' ' + (resp.nameB || 'Б'));
-                showState('none');
+                refreshChatState();
                 return;
             }
             if (!resp.ok) {
                 setMsg(resp.httpStatus === 404 ? 'Битва не найдена — ссылка устарела.' : 'Не получилось вступить 😔');
-                showState('none');
+                refreshChatState();
                 return;
             }
-            adoptBattle(id, resp.side, resp, resp.youNameIt);
-            if (resp.youNameIt) {
-                nameInput.value = resp.side === 'A' ? (resp.nameA || 'Команда А') : (resp.nameB || 'Команда Б');
-                showState('name');
-            } else {
-                refreshState();
-                showState('main');
-                startPolling();
-            }
-        })
-        .catch(() => setMsg('Сеть молчит 😔'));
-}
-
-function renameTeam() {
-    const b = getActiveBattle();
-    if (!b) return;
-    setMsg('Сохраняю…');
-    battleApi('rename', { id: b.id, name: nameInput.value })
-        .then((resp) => {
-            if (resp.ok) {
-                cacheBattleScores({ nameA: resp.nameA, nameB: resp.nameB });
-                refreshState();
-                showState('main');
-                startPolling();
-                setMsg('');
-            } else {
-                setMsg(resp.error === 'locked' ? 'Уже нельзя — команда в бою.' : 'Не вышло 😔');
-                refreshState();
-                showState('main');
-                startPolling();
-            }
+            adoptBattle(id, resp.side, resp);
+            refreshChatState();
+            startPolling();
         })
         .catch(() => setMsg('Сеть молчит 😔'));
 }
@@ -437,7 +613,7 @@ function renderJoinConfirm(id) {
         .then((resp) => {
             if (!resp.ends) {
                 setMsg('Битва не найдена — ссылка устарела.');
-                showState('none');
+                refreshChatState();
                 return;
             }
             joinTitle.textContent = '«' + resp.nameA + '» против «' + resp.nameB + '»';
@@ -456,21 +632,21 @@ function openBattle() {
     if (state.isPlaying) return;
     initAudio();
     battleOverlay.classList.add('active');
-    const b = getActiveBattle();
-    if (pendingJoinId && (!b || b.id !== pendingJoinId)) {
-        renderJoinConfirm(pendingJoinId);
-        pendingJoinId = '';
+    const c = getMyChat();
+    if (!c) {
+        // No chat yet: a pending challenge link waits behind the chat-cta
+        // screen — joinOrFoundChat() forwards to it once membership lands.
+        showState('none');
         return;
     }
-    pendingJoinId = '';
-    if (b) {
-        showState('main');
-        refreshState();
-        if (!b.finished) startPolling();
-    } else {
-        createNameInput.value = '';
-        showState('none');
+    if (pendingJoinId) {
+        const id = pendingJoinId;
+        pendingJoinId = '';
+        renderJoinConfirm(id);
+        return;
     }
+    refreshChatState();
+    startPolling();
 }
 
 function closeBattle() {
@@ -489,24 +665,27 @@ export function openBattleOverlay() {
 export function initBattle() {
     battleBtn.addEventListener('click', openBattle);
     battleCloseBtn.addEventListener('click', closeBattle);
-    createBtn.addEventListener('click', createBattle);
+    chatJoinBtn.addEventListener('click', () => joinOrFoundChat());
     joinGoBtn.addEventListener('click', () => joinBattle(joinGoBtn.dataset.id));
-    sideABtn.addEventListener('click', () => joinBattle(sideABtn.dataset.id, 'A'));
-    sideBBtn.addEventListener('click', () => joinBattle(sideBBtn.dataset.id, 'B'));
-    nameSaveBtn.addEventListener('click', renameTeam);
-    renameLink.addEventListener('click', () => {
-        const b = getActiveBattle();
-        if (!b) return;
-        nameInput.value = b.side === 'A' ? b.nameA : b.nameB;
+    nameSaveBtn.addEventListener('click', () => {
+        const c = getMyChat();
+        if (!c) joinOrFoundChat(nameInput.value);
+        else renameChat(nameInput.value);
+    });
+    chatRenameLink.addEventListener('click', () => {
+        const c = getMyChat();
+        chatNameNote.textContent = 'Переименовать чат:';
+        nameInput.value = c ? c.name : '';
         showState('name');
     });
+    chatLeaveLink.addEventListener('click', leaveChat);
+    chatChallengeBtn.addEventListener('click', createBattle);
     shareFoeBtn.addEventListener('click', () => shareBattle(BATTLE_SHARE_FOE_TEXT));
     shareOwnBtn.addEventListener('click', () => shareBattle(BATTLE_SHARE_OWN_TEXT));
     newBtn.addEventListener('click', () => {
         clearActiveBattle();
         updateBadge();
-        createNameInput.value = '';
-        showState('none');
+        refreshChatState();
     });
 
     // Dev-only fast-forward: the button starts display:none in the markup,
@@ -524,7 +703,7 @@ export function initBattle() {
                         : resp.unchanged
                             ? '⚡ уже скоро закончится'
                             : '⚡ конец через 5 мин ✓';
-                    if (resp.ok) refreshState();
+                    if (resp.ok) refreshChatState();
                 })
                 .catch(() => { devExpireLink.textContent = '⚡ не вышло'; });
         });
@@ -537,19 +716,24 @@ export function initBattle() {
 
     // Deep-link routing: the app was opened via a challenge link
     // (t.me/<bot>/<app>?startapp=b_<id>) — land the player straight on the
-    // join confirmation once the backend answered. A member of that very
-    // battle just gets his battle view.
+    // join confirmation once the backend answered (or, if they have no chat
+    // yet, on chat-cta first — joinOrFoundChat() forwards to the pending
+    // join once membership lands). A member of that very battle's chat just
+    // gets his battle view.
     const spMatch = /^b_([A-Za-z0-9_-]{6,32})$/.exec(tgStartParam());
     if (spMatch) setPendingJoin(spMatch[1]);
 
     whenBackendAlive(() => {
         battleBtn.style.display = '';
         updateBadge();
-        const b = getActiveBattle();
         if (pendingJoinId && !state.isPlaying) {
             openBattle();
             return;
         }
+        // Not opening the overlay yet (no pending join) — just refresh the
+        // ⚔️ badge from the server once per boot if a battle is on. The
+        // full chat-state refresh happens lazily when the overlay opens.
+        const b = getActiveBattle();
         if (b && !b.finished) refreshState();
     });
 }

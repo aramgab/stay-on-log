@@ -126,8 +126,10 @@ import { hapticJump, hapticHit, hapticFall, hapticClear, hapticTick, hapticRecor
 import { screenShake, burst, floatText } from './fx.js';
 import { initTelegram, tgUser, cloudGet, cloudSet, shareScore, isDevMode, openTgLink } from './tg.js';
 import { stepBoss, isBossActive, bossReset, bossHide, bossResume, bossSpeedFactor, activeBossId, bossHitDir } from './boss.js';
+import { initAnalytics, track } from './analytics.js';
 
 initTelegram();
+initAnalytics();
 
 // === DESKTOP DETECTION ===
 // The game is driven by the device's tilt sensor, which desktops lack. On a
@@ -462,6 +464,7 @@ function gameLoop() {
             state.targetSpeed = 0;
             showTutorialBanner('Готов! Погнали по-настоящему 🎉');
             lsSet('stayOnLog_seenTutorial_v1', '1');
+            track('tutorial_complete');
             setTimeout(exitTutorial, 1400);
         } else if (tutStep === 4 && obEvent === 'hit') {
             sfx.hit();
@@ -1149,6 +1152,7 @@ function exitTutorial() {
 
 tutorialSkipBtn.addEventListener('click', function () {
     lsSet('stayOnLog_seenTutorial_v1', '1');
+    track('tutorial_skip');
     exitTutorial();
 });
 
@@ -1215,8 +1219,10 @@ function requestPermissionAndStart() {
         DeviceMotionEvent.requestPermission()
             .then(response => {
                 if (response === 'granted') {
+                    track('motion_permission_granted');
                     showCountdown(wantsTutorial);
                 } else {
+                    track('motion_permission_denied');
                     alert("Нужен доступ к датчикам, чтобы крутить бревно!");
                 }
             })
@@ -1403,6 +1409,7 @@ function startGame() {
     scheduleNextChange();
     rollNextChange();
     setPreviewArrow(state.pendingChange);
+    track('run_start', { biome: runBiomeId, hp: state.hp, control_scheme: getScheme(), run_id: state.runId });
     music.start();
     lastFrameTs = performance.now();
     gameLoop();
@@ -1420,6 +1427,7 @@ function startTutorial() {
     tutWasJumping = false;
     tutLastEmergeAt = -Infinity;
     tutBannerLastSec = -1;
+    track('tutorial_start');
 
     state.isPlaying = true;
     state.logSpeed = TUT_LOG_SPEED;
@@ -1653,6 +1661,18 @@ function gameOver(normPos, cause) {
     // Chat's own permanent rating: independent of whether a battle is
     // active — fires as long as the player has a chat at all.
     submitChatScore(state.runId, state.score);
+
+    track('run_end', {
+        cause: cause || 'fall',
+        biome: runBiomeId,
+        score: state.score,
+        elapsed_ms: state.elapsed,
+        coins: state.lastRunCoins,
+        revived: state.revivedThisRun,
+        quests_completed: state.lastRunQuests.length,
+        control_scheme: getScheme(),
+        run_id: state.runId,
+    });
 
     // === FALL ANIMATION ===
     animateFall(normPos);

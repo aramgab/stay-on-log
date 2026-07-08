@@ -270,7 +270,7 @@ function renderMain(resp) {
     const b = getActiveBattle();
     const side = b && b.id === resp.id ? b.side : '';
 
-    chatBattlePanel.style.display = '';
+    chatBattlePanel.style.display = 'block';
     chatChallengeBtn.style.display = 'none';
 
     teamAEl.querySelector('.bt-team-name').textContent = resp.nameA;
@@ -421,7 +421,7 @@ function refreshChatState() {
             const existing = getActiveBattle();
             if (existing) {
                 if (battleOverlay.classList.contains('active') && secChatHome.classList.contains('on')) {
-                    chatBattlePanel.style.display = '';
+                    chatBattlePanel.style.display = 'block';
                     chatChallengeBtn.style.display = 'none';
                 }
                 refreshState();

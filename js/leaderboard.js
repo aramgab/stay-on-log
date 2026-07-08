@@ -9,6 +9,7 @@ import { state } from './state.js';
 import { isInTelegram, tgInitData, tgUser } from './tg.js';
 import { lbBtn, lbOverlay, lbListEl, lbMeEl, lbHintEl, lbCloseBtn } from './dom.js';
 import { initAudio } from './audio.js';
+import { track } from './analytics.js';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -92,6 +93,7 @@ function renderList(data) {
 function openLeaderboard() {
     if (state.isPlaying) return;
     initAudio();
+    track('feature_opened', { feature: 'leaderboard' });
     lbListEl.innerHTML = '';
     lbMeEl.innerText = 'Загружаю…';
     lbHintEl.innerText = isInTelegram()

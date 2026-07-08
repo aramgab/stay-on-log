@@ -10,6 +10,7 @@ import { BIOMES, CHAPTERS } from './biomes.js';
 import { getSelectedBiome, setSelectedBiome, isBiomeUnlocked, cyclesOf } from './campaign.js';
 import { initAudio, sfx } from './audio.js';
 import { mapBtn, mapOverlay, mapListEl, mapCloseBtn } from './dom.js';
+import { track } from './analytics.js';
 
 let mapHintTimer = 0;
 
@@ -30,6 +31,7 @@ function showMapHint(text) {
 function openMap() {
     if (state.isPlaying) return;
     initAudio();
+    track('feature_opened', { feature: 'map' });
     renderMap();
     mapOverlay.classList.add('active');
 }

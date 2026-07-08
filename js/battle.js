@@ -18,6 +18,7 @@
 import { state, lsGet, lsSet } from './state.js';
 import { isInTelegram, tgInitData, tgUser, tgStartParam, tgChatInstance, shareScore, isDevMode } from './tg.js';
 import { battleBtn, battleBadge, battleOverlay, battleCloseBtn } from './dom.js';
+import { track } from './analytics.js';
 import { whenBackendAlive } from './leaderboard.js';
 import { initAudio } from './audio.js';
 import {
@@ -683,6 +684,7 @@ function renderJoinConfirm(id) {
 function openBattle() {
     if (state.isPlaying) return;
     initAudio();
+    track('feature_opened', { feature: 'battle' });
     battleOverlay.classList.add('active');
     const c = getMyChat();
     if (!c) {

@@ -9,6 +9,7 @@
 
 import { state, lsGet, lsSet } from './state.js';
 import { AVATAR_SKIN_PRICE, SPARE_HEART_PRICE, SKINS, SKIN_RARITY } from './config.js';
+import { track } from './analytics.js';
 import {
     logSvg,
     playerEl,
@@ -346,6 +347,7 @@ function onGridClick(e) {
 function openShop() {
     if (state.isPlaying) return;
     initAudio();
+    track('feature_opened', { feature: 'shop' });
     buildMannequin();
     if (mannequinFig) applyClasses(mannequinFig);
     refreshBalance();

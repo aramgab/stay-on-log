@@ -305,7 +305,7 @@ export const BATTLE_SHARE_OWN_TEXT =
 // publishable key), so it lives here rather than in a Vercel env var. Empty
 // by default: js/analytics.js self-hides (no script load, no network calls)
 // until this is filled in. Setup: docs/ANALYTICS_SETUP.md.
-export const POSTHOG_KEY = '';
+export const POSTHOG_KEY = 'phc_wNaewf697XRAf9RsRErczQdcMkSTe2PJcqcXB5JSD7NQ';
 // Region picked at project-creation time on posthog.com — 'https://us.i.posthog.com'
 // (US cloud) or 'https://eu.i.posthog.com' (EU cloud); must match the project.
-export const POSTHOG_HOST = 'https://us.i.posthog.com';
+export const POSTHOG_HOST = 'https://eu.i.posthog.com';

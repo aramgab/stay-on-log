@@ -1,43 +1,71 @@
 // /api/battle — chat-vs-chat battles, one function with op routing to stay
 // well inside the Vercel Hobby function limit:
-//   GET  ?op=state&id=..&uid=..          — live scoreboard (uid only marks "you")
-//   POST {op:'create', initData, name?}  — start a battle, creator joins side A
-//   POST {op:'join',   initData, id, side?}
+//   GET  ?op=state&id=..&uid=..              — live scoreboard (uid only marks "you")
+//   GET  ?op=chatState&uid=..                — caller's own chat entity + its leaderboard
+//   POST {op:'create', initData}             — start a battle, creator's chat joins side A
+//   POST {op:'join',   initData, id}
 //   POST {op:'submit', initData, id, runId, score}
-//   POST {op:'rename', initData, id, name}
+//   POST {op:'chatJoinOrFound', initData, name?}
+//   POST {op:'chatLeave', initData}
+//   POST {op:'chatRename', initData, name}
 //
-// Teams are formed by the SIGNED chat_instance from initData (the anonymous
-// per-chat fingerprint Telegram attaches when the app is opened from a chat):
-// the creator's chat is side A, the first foreign chat claims side B, users
-// keep their side forever. No chat_instance (private chat / a third chat) —
-// the client asks the player to pick a side (fallback).
+// Teams are formed by a PERSISTENT chat entity (chat:<ci>, keyed by the
+// SIGNED chat_instance from initData — the anonymous per-chat fingerprint
+// Telegram attaches when the app is opened from a chat), not by an ad-hoc
+// per-battle claim: a player's chat membership (chat:u:<uid> -> ci) is set
+// once via chatJoinOrFound/chatLeave, independently of any battle, and a
+// battle's side A/B is just "whichever chat entity is bound to that side" —
+// side is derived live from CURRENT chat membership, so anyone who is a
+// member of a chat is automatically "in" any battle that chat is fighting,
+// with no separate per-user join-the-battle step.
 //
 // Scoring: team score = SUM of every run of every member inside the 24h
 // window. Dedup across revive: the client submits (runId, score) on every
 // game over of one run; the server stores the last submitted score per
-// uid:runId and increments the team only by the positive delta.
+// uid:runId and increments the team only by the positive delta. The same
+// verified delta ALSO feeds the chat's own all-time (never reset) total.
 //
 // Keys (prefix bt:, TTL = 24h window + 7d grace to view the result):
-//   bt:<id>          HASH  created ends creator ciA? ciB? nameA nameB
-//                          nameSetByA? nameSetByB? scoreA scoreB
-//                          (ci*/nameSetBy* are CLAIMED via HSETNX, so they
-//                           are omitted at create when unknown — never
+//   bt:<id>          HASH  created ends creator chatA? chatB? nameA nameB
+//                          scoreA scoreB
+//                          (chat*/ are CLAIMED via HSETNX, so they are
+//                           omitted at create when unknown — never
 //                           pre-written as '')
-//   bt:<id>:members  HASH  uid -> 'A' | 'B'   (HSETNX only — side is forever)
-//   bt:<id>:contrib  HASH  uid -> total contributed
+//   bt:<id>:contrib  HASH  uid -> total contributed (this battle only)
 //   bt:<id>:names    HASH  uid -> display name from VERIFIED initData
 //   bt:<id>:runs     HASH  "<uid>:<runId>" -> last submitted score of the run
-//   bt:u:<uid>       STR   active battle id (anti-spam: one battle per user)
+//
+// Keys (prefix chat:, persistent — see CHAT_TTL_S below for why the TTL on
+// these is long and NOT something a player should ever hit in practice):
+//   chat:<ci>          HASH  name founder created renameCount
+//   chat:<ci>:members  SET   uid, uid, ...
+//   chat:<ci>:contrib  HASH  uid -> all-time cumulative score (never reset,
+//                            unlike bt:<id>:contrib which is per-battle)
+//   chat:<ci>:names    HASH  uid -> display name from VERIFIED initData
+//   chat:<ci>:battle   STR   the bt:<id> this chat currently has active
+//                            (mirrors bt:u:<uid>, just re-scoped from user
+//                            to chat — "one active battle per chat")
+//   chat:u:<uid>       STR   ci of caller's current chat — THE pointer
+//                            answering "does this player have a chat, and
+//                            which"
 
 const crypto = require('crypto');
 const { kvConfigured, botConfigured, kvPipeline, validateInitData } = require('./_kv.js');
 
 const BATTLE_WINDOW_MS = 24 * 60 * 60 * 1000;
 const TTL_S = 8 * 24 * 60 * 60;          // window + grace, applied to every bt:<id>* key
-const PTR_TTL_S = 24 * 60 * 60;          // bt:u pointer lives only for the window
+// chat:* keys are meant to feel PERMANENT to a player — this long TTL exists
+// purely as Upstash storage hygiene against chats that got abandoned outright
+// (nobody ever opens the app from that group again), not a real expiry any
+// active player should ever notice. It is refreshed on every write to a
+// chat:* key, so a chat with any ongoing activity never approaches it.
+// Do NOT "fix" this into something shorter — that would turn into a real,
+// player-visible expiry for chats that just go quiet for a few weeks.
+const CHAT_TTL_S = 180 * 24 * 60 * 60;
 const MAX_SCORE = 50000;                 // same sanity cap as api/score.js
 const NAME_MAX = 24;
 const TOP_N = 10;
+const CHAT_RENAME_LIMIT = 3;
 const ID_RE = /^[A-Za-z0-9_-]{6,32}$/;
 const RUN_RE = /^[a-z0-9.-]{6,40}$/i;
 const GROUP_TYPES = { group: 1, supergroup: 1, channel: 1 };
@@ -69,7 +97,7 @@ function hashToObj(flat) {
 
 function sanitizeName(raw, fallback) {
     const s = String(raw == null ? '' : raw)
-        .replace(/[\u0000-\u001F\u007F]/g, '')
+        .replace(/[\x00-\x1f\x7f]/g, '')
         .replace(/\s+/g, ' ')
         .trim()
         .slice(0, NAME_MAX);
@@ -102,15 +130,257 @@ function winnerOf(meta) {
     return a > b ? 'A' : b > a ? 'B' : 'draw';
 }
 
+// ---------------------------------------------------------------------
+// Part 1 — chat entity ops (pure additions; nothing existing calls these).
+// ---------------------------------------------------------------------
+
+async function opChatJoinOrFound(res, body) {
+    const v = validateInitData(String(body.initData || ''));
+    if (!v) return json(res, 403, { error: 'invalid initData' });
+    const uid = String(v.user.id);
+    const now = Date.now();
+
+    const ci = groupCi(v);
+    if (!ci) return json(res, 400, { error: 'no_chat_context' });
+
+    const ptr = await kvPipeline([['GET', 'chat:u:' + uid]]);
+    const curCi = ptr && ptr[0] && ptr[0].result;
+    if (curCi && curCi !== ci) {
+        return json(res, 409, { error: 'already_in_chat', ci: curCi });
+    }
+
+    const chatKey = 'chat:' + ci;
+    const membersKey = chatKey + ':members';
+
+    // curCi === ci means we're already a member of THIS chat — idempotent
+    // success, skip straight to returning the current view (no founder logic).
+    if (curCi === ci) {
+        const state = await kvPipeline([
+            ['HGETALL', chatKey],
+            ['SCARD', membersKey],
+        ]);
+        const meta = hashToObj(state[0] && state[0].result);
+        const memberCount = Number(state[1] && state[1].result) || 0;
+        const renameCount = Number(meta.renameCount) || 0;
+        return json(res, 200, {
+            ok: true,
+            ci,
+            name: meta.name || 'Наш чат',
+            founder: false,
+            renameCount,
+            renamesLeft: Math.max(0, CHAT_RENAME_LIMIT - renameCount),
+            memberCount,
+        });
+    }
+
+    const existing = await kvPipeline([
+        ['HGETALL', chatKey],
+        ['SCARD', membersKey],
+    ]);
+    const existingMeta = hashToObj(existing[0] && existing[0].result);
+    const exists = Object.keys(existingMeta).length > 0;
+    const memberCountBefore = Number(existing[1] && existing[1].result) || 0;
+
+    const name = sanitizeName(body.name, 'Наш чат');
+    let founder = false;
+    let finalMeta = existingMeta;
+
+    if (!exists) {
+        // Brand new chat: nobody has ever seen this ci before. Race-safe
+        // founder claim via HSETNX (mirrors the ciA/ciB claim idiom already
+        // used elsewhere in this file).
+        const claim = await kvPipeline([['HSETNX', chatKey, 'founder', uid]]);
+        founder = Boolean(claim && claim[0] && claim[0].result === 1);
+        if (founder) {
+            await kvPipeline([
+                ['HSET', chatKey, 'name', name, 'created', String(now), 'renameCount', '0'],
+            ]);
+            finalMeta = { founder: uid, name, created: String(now), renameCount: '0' };
+        } else {
+            // Lost the race to a concurrent founder — re-read what they wrote.
+            const reread = await kvPipeline([['HGETALL', chatKey]]);
+            finalMeta = hashToObj(reread[0] && reread[0].result);
+        }
+    } else if (memberCountBefore === 0) {
+        // The chat entity exists but has been emptied out (everyone left) —
+        // it is re-foundable. Accept the tiny race risk of two people
+        // re-founding the exact same emptied chat at the same instant; this
+        // is a rare edge case not worth over-engineering.
+        founder = true;
+        await kvPipeline([
+            ['HSET', chatKey, 'founder', uid, 'name', name, 'created', String(now), 'renameCount', '0'],
+        ]);
+        finalMeta = { founder: uid, name, created: String(now), renameCount: '0' };
+    }
+    // else: memberCountBefore > 0 — definite join, no founder attempt at all,
+    // founder stays false and finalMeta stays the existing chat's meta.
+
+    await kvPipeline([
+        ['SADD', membersKey, uid],
+        ['SET', 'chat:u:' + uid, ci],
+        ['EXPIRE', chatKey, String(CHAT_TTL_S)],
+        ['EXPIRE', membersKey, String(CHAT_TTL_S)],
+        ['EXPIRE', 'chat:u:' + uid, String(CHAT_TTL_S)],
+    ]);
+
+    const memberCount = await kvPipeline([['SCARD', membersKey]]);
+    const renameCount = Number(finalMeta.renameCount) || 0;
+
+    return json(res, 200, {
+        ok: true,
+        ci,
+        name: finalMeta.name || 'Наш чат',
+        founder,
+        renameCount,
+        renamesLeft: Math.max(0, CHAT_RENAME_LIMIT - renameCount),
+        memberCount: Number(memberCount && memberCount[0] && memberCount[0].result) || 0,
+    });
+}
+
+async function opChatLeave(res, body) {
+    const v = validateInitData(String(body.initData || ''));
+    if (!v) return json(res, 403, { error: 'invalid initData' });
+    const uid = String(v.user.id);
+
+    const ptr = await kvPipeline([['GET', 'chat:u:' + uid]]);
+    const ci = ptr && ptr[0] && ptr[0].result;
+    if (!ci) return json(res, 404, { error: 'no_chat' });
+
+    const chatKey = 'chat:' + ci;
+
+    // Anti-abuse: don't let a chat bail out of a battle it's currently
+    // losing by having everyone leave. Double-check the pointed-to record
+    // (don't just trust the pointer's presence) — same idiom as opCreate's
+    // bt:u:<uid> check and api/top.js's equivalent pattern.
+    const battlePtr = await kvPipeline([['GET', chatKey + ':battle']]);
+    const battleId = battlePtr && battlePtr[0] && battlePtr[0].result;
+    if (battleId) {
+        const bt = await kvPipeline([['HGET', 'bt:' + battleId, 'ends']]);
+        const ends = bt && bt[0] && Number(bt[0].result);
+        if (ends && Date.now() < ends) {
+            return json(res, 409, { error: 'battle_active' });
+        }
+    }
+
+    // Deliberately do NOT touch chat:<ci>:contrib for this uid — leaving
+    // forfeits future visibility, not the historical number. The row simply
+    // stops rendering once the uid drops out of :members, same as how
+    // battle contrib rows are filtered by current membership.
+    await kvPipeline([
+        ['SREM', chatKey + ':members', uid],
+        ['DEL', 'chat:u:' + uid],
+    ]);
+
+    return json(res, 200, { ok: true });
+}
+
+async function opChatRename(res, body) {
+    const v = validateInitData(String(body.initData || ''));
+    if (!v) return json(res, 403, { error: 'invalid initData' });
+    const uid = String(v.user.id);
+
+    const ptr = await kvPipeline([['GET', 'chat:u:' + uid]]);
+    const ci = ptr && ptr[0] && ptr[0].result;
+    if (!ci) return json(res, 404, { error: 'no_chat' });
+
+    const chatKey = 'chat:' + ci;
+    const cur = await kvPipeline([['HGETALL', chatKey]]);
+    const meta = hashToObj(cur[0] && cur[0].result);
+    const renameCount = Number(meta.renameCount) || 0;
+    if (renameCount >= CHAT_RENAME_LIMIT) return json(res, 403, { error: 'limit_reached' });
+
+    const name = sanitizeName(body.name, meta.name || 'Наш чат');
+    await kvPipeline([
+        ['HSET', chatKey, 'name', name],
+        ['HINCRBY', chatKey, 'renameCount', '1'],
+        ['EXPIRE', chatKey, String(CHAT_TTL_S)],
+    ]);
+
+    return json(res, 200, {
+        ok: true,
+        name,
+        renamesLeft: Math.max(0, CHAT_RENAME_LIMIT - (renameCount + 1)),
+    });
+}
+
+async function opChatState(res, query) {
+    const uid = query.uid ? String(query.uid) : '';
+    if (!uid) return json(res, 400, { error: 'uid required' });
+
+    const ptr = await kvPipeline([['GET', 'chat:u:' + uid]]);
+    const ci = ptr && ptr[0] && ptr[0].result;
+    if (!ci) return json(res, 404, { error: 'no_chat' });
+
+    const chatKey = 'chat:' + ci;
+    const out = await kvPipeline([
+        ['HGETALL', chatKey],
+        ['HGETALL', chatKey + ':contrib'],
+        ['HGETALL', chatKey + ':names'],
+        ['SCARD', chatKey + ':members'],
+        ['GET', chatKey + ':battle'],
+    ]);
+    const meta = hashToObj(out[0] && out[0].result);
+    const contrib = hashToObj(out[1] && out[1].result);
+    const names = hashToObj(out[2] && out[2].result);
+    const memberCount = Number(out[3] && out[3].result) || 0;
+    const battleId = out[4] && out[4].result;
+
+    // Same shape as opState's top() helper: build rows from contrib, sort
+    // descending, slice to TOP_N, always include "me" even if outside the
+    // top-N slice.
+    const rows = [];
+    for (const u in contrib) {
+        rows.push({ name: names[u] || 'Игрок', score: Number(contrib[u]) || 0, you: u === uid });
+    }
+    rows.sort((a, b) => b.score - a.score);
+    const top = rows.slice(0, TOP_N);
+    const mine = rows.find((r) => r.you);
+    if (mine && top.indexOf(mine) === -1) top.push(mine);
+
+    let battleActive = false;
+    let battleIdOut = null;
+    if (battleId) {
+        const bt = await kvPipeline([['HGET', 'bt:' + battleId, 'ends']]);
+        const ends = bt && bt[0] && Number(bt[0].result);
+        if (ends && Date.now() < ends) {
+            battleActive = true;
+            battleIdOut = battleId;
+        }
+    }
+
+    const renameCount = Number(meta.renameCount) || 0;
+    return json(res, 200, {
+        ok: true,
+        ci,
+        name: meta.name || 'Наш чат',
+        memberCount,
+        top,
+        me: { score: Number(contrib[uid]) || 0 },
+        renamesLeft: Math.max(0, CHAT_RENAME_LIMIT - renameCount),
+        battleId: battleIdOut,
+        battleActive,
+    });
+}
+
+// ---------------------------------------------------------------------
+// Part 2 — battle ops, rewired to derive side from persistent chat
+// membership instead of an ad-hoc per-battle claim.
+// ---------------------------------------------------------------------
+
 async function opCreate(res, body) {
     const v = validateInitData(String(body.initData || ''));
     if (!v) return json(res, 403, { error: 'invalid initData' });
     const uid = String(v.user.id);
     const now = Date.now();
 
-    // One battle per user: if the pointed-to battle is still running, send
-    // the client there instead of creating a parallel one.
-    const ptr = await kvPipeline([['GET', 'bt:u:' + uid]]);
+    const chatPtr = await kvPipeline([['GET', 'chat:u:' + uid]]);
+    const ci = chatPtr && chatPtr[0] && chatPtr[0].result;
+    if (!ci) return json(res, 403, { error: 'no_chat' });
+    const chatKey = 'chat:' + ci;
+
+    // One battle per CHAT: if the chat's pointed-to battle is still running,
+    // send the client there instead of creating a parallel one.
+    const ptr = await kvPipeline([['GET', chatKey + ':battle']]);
     const oldId = ptr && ptr[0] && ptr[0].result;
     if (oldId) {
         const old = await kvPipeline([['HGET', 'bt:' + oldId, 'ends']]);
@@ -120,8 +390,10 @@ async function opCreate(res, body) {
         }
     }
 
-    const ci = groupCi(v);
-    const nameA = sanitizeName(body.name, 'Команда А');
+    // Snapshot the chat's own name at creation time — this deliberately does
+    // NOT live-follow later chat renames.
+    const chatMeta = await kvPipeline([['HGET', chatKey, 'name']]);
+    const nameA = (chatMeta && chatMeta[0] && chatMeta[0].result) || 'Команда А';
     const ends = now + BATTLE_WINDOW_MS;
 
     // Claim a fresh id (HSETNX on 'created' detects the astronomically
@@ -136,28 +408,25 @@ async function opCreate(res, body) {
     if (!id) return json(res, 500, { error: 'id collision' });
 
     const bt = 'bt:' + id;
-    const meta = ['HSET', bt,
-        'ends', String(ends),
-        'creator', uid,
-        'nameA', nameA,
-        'nameB', 'Команда Б',
-        'nameSetByA', uid,
-        'scoreA', '0',
-        'scoreB', '0',
-    ];
-    if (ci) meta.push('ciA', ci);
-
     await kvPipeline([
-        meta,
-        ['HSETNX', bt + ':members', uid, 'A'],
+        ['HSET', bt,
+            'ends', String(ends),
+            'creator', uid,
+            'chatA', ci,
+            'nameA', nameA,
+            'nameB', 'Команда Б',
+            'scoreA', '0',
+            'scoreB', '0',
+        ],
         ['HSET', bt + ':names', uid, displayName(v.user)],
         ['EXPIRE', bt, String(TTL_S)],
-        ['EXPIRE', bt + ':members', String(TTL_S)],
         ['EXPIRE', bt + ':names', String(TTL_S)],
-        ['SET', 'bt:u:' + uid, id, 'EX', String(PTR_TTL_S)],
+        ['SET', chatKey + ':battle', id],
+        ['EXPIRE', chatKey, String(CHAT_TTL_S)],
+        ['EXPIRE', chatKey + ':battle', String(CHAT_TTL_S)],
     ]);
 
-    return json(res, 200, { ok: true, id, side: 'A', ends, nameA, nameB: 'Команда Б', ciBound: Boolean(ci) });
+    return json(res, 200, { ok: true, id, side: 'A', ends, nameA, nameB: 'Команда Б' });
 }
 
 async function opJoin(res, body) {
@@ -169,11 +438,12 @@ async function opJoin(res, body) {
     const bt = 'bt:' + id;
     const now = Date.now();
 
-    const out = await kvPipeline([
-        ['HGETALL', bt],
-        ['HGET', bt + ':members', uid],
-        ['GET', 'bt:u:' + uid],
-    ]);
+    const chatPtr = await kvPipeline([['GET', 'chat:u:' + uid]]);
+    const ci = chatPtr && chatPtr[0] && chatPtr[0].result;
+    if (!ci) return json(res, 403, { error: 'no_chat' });
+    const chatKey = 'chat:' + ci;
+
+    const out = await kvPipeline([['HGETALL', bt]]);
     const meta = hashToObj(out[0] && out[0].result);
     if (!meta.ends) return json(res, 404, { error: 'not found' });
     const view = battleView(meta);
@@ -181,83 +451,47 @@ async function opJoin(res, body) {
         return json(res, 410, Object.assign({ finished: true, winner: winnerOf(meta) }, view));
     }
 
-    const memberSide = out[1] && out[1].result;
-    const ci = groupCi(v);
-
-    if (memberSide) {
-        // Side is forever. Opportunistic ci bind: a member arriving from a
-        // group chat that nobody owns yet welds it to HIS side — this is how
-        // a creator who started from a private chat attaches his real chat
-        // (he opens his own rally link from inside it).
-        let bound = false;
-        if (ci && ci !== meta.ciA && ci !== meta.ciB && !meta['ci' + memberSide]) {
-            const claim = await kvPipeline([
-                ['HSETNX', bt, 'ci' + memberSide, ci],
-                ['HGET', bt, 'ci' + memberSide],
-            ]);
-            bound = Boolean(claim && claim[1] && claim[1].result === ci);
-        }
-        return json(res, 200, Object.assign({
-            ok: true, side: memberSide, youNameIt: false, ciBound: bound,
-        }, view));
+    // Own chat's own challenge link — not really a "join," just "show me my
+    // own battle". Treat as idempotent, no chatB binding attempt.
+    if (ci === meta.chatA) {
+        return json(res, 200, Object.assign({ ok: true, side: 'A' }, view));
     }
 
-    // Not a member yet: refuse if he already fights elsewhere (alive).
-    const otherId = out[2] && out[2].result;
-    if (otherId && otherId !== id) {
-        const other = await kvPipeline([['HGET', 'bt:' + otherId, 'ends']]);
-        const otherEnds = other && other[0] && Number(other[0].result);
-        if (otherEnds && now < otherEnds) {
-            return json(res, 409, { error: 'already_in_battle', id: otherId });
-        }
+    if (ci === meta.chatB) {
+        // Already bound to this side — idempotent success.
+        return json(res, 200, Object.assign({ ok: true, side: 'B' }, view));
     }
 
-    // Resolve the side.
-    let side = '';
-    if (ci && ci === meta.ciA) side = 'A';
-    else if (ci && ci === meta.ciB) side = 'B';
-    else if (ci) {
-        // Unknown group chat: claim the free side — B first (the canonical
-        // flow creates the battle from the home chat, so the first foreign
-        // chat IS the enemy), then A (creator-from-DMs case).
-        for (const s of ['B', 'A']) {
-            if (side) break;
-            if (meta['ci' + s]) continue;
-            const claim = await kvPipeline([
-                ['HSETNX', bt, 'ci' + s, ci],
-                ['HGET', bt, 'ci' + s],
-            ]);
-            const actual = claim && claim[1] && claim[1].result;
-            if (actual === ci) side = s;
-            else meta['ci' + s] = actual || meta['ci' + s]; // lost the race — remember and move on
-        }
-        if (!side) return json(res, 409, { needSide: true, nameA: view.nameA, nameB: view.nameB });
-    } else {
-        // No chat fingerprint (DMs / desktop): manual pick from the client.
-        if (body.side === 'A' || body.side === 'B') side = body.side;
-        else return json(res, 409, { needSide: true, nameA: view.nameA, nameB: view.nameB });
+    if (meta.chatB) {
+        // chatB is already bound to a THIRD, different chat — sides are full.
+        return json(res, 409, { error: 'battle_full' });
     }
 
-    // Fix membership (first write wins; on a race we return the actual side)
-    // and detect "you are the first here — name your team".
-    const fix = await kvPipeline([
-        ['HSETNX', bt + ':members', uid, side],
-        ['HGET', bt + ':members', uid],
+    // chatB unset: claim it (race-safe idiom mirrors the old ciA/ciB claim).
+    const claim = await kvPipeline([
+        ['HSETNX', bt, 'chatB', ci],
+        ['HGET', bt, 'chatB'],
     ]);
-    const actualSide = (fix && fix[1] && fix[1].result) || side;
+    const actual = claim && claim[1] && claim[1].result;
+    if (actual !== ci) {
+        // Lost the race to a concurrent joiner from a different chat.
+        return json(res, 409, { error: 'battle_full' });
+    }
 
-    const nameClaim = await kvPipeline([
-        ['HSETNX', bt, 'nameSetBy' + actualSide, uid],
-        ['HGET', bt, 'nameSetBy' + actualSide],
+    const chatMeta = await kvPipeline([['HGET', chatKey, 'name']]);
+    const nameB = sanitizeName(chatMeta && chatMeta[0] && chatMeta[0].result, 'Команда Б');
+
+    await kvPipeline([
+        ['HSET', bt, 'nameB', nameB],
         ['HSET', bt + ':names', uid, displayName(v.user)],
-        ['SET', 'bt:u:' + uid, id, 'EX', String(PTR_TTL_S)],
         ['EXPIRE', bt, String(TTL_S)],
-        ['EXPIRE', bt + ':members', String(TTL_S)],
         ['EXPIRE', bt + ':names', String(TTL_S)],
+        ['SET', chatKey + ':battle', id],
+        ['EXPIRE', chatKey, String(CHAT_TTL_S)],
+        ['EXPIRE', chatKey + ':battle', String(CHAT_TTL_S)],
     ]);
-    const youNameIt = Boolean(nameClaim && nameClaim[1] && nameClaim[1].result === uid);
 
-    return json(res, 200, Object.assign({ ok: true, side: actualSide, youNameIt }, view));
+    return json(res, 200, Object.assign({ ok: true, side: 'B' }, view, { nameB }));
 }
 
 async function opState(res, query) {
@@ -270,22 +504,29 @@ async function opState(res, query) {
     const out = await kvPipeline([
         ['HGETALL', bt],
         ['HGETALL', bt + ':contrib'],
-        ['HGETALL', bt + ':members'],
         ['HGETALL', bt + ':names'],
     ]);
     const meta = hashToObj(out[0] && out[0].result);
     if (!meta.ends) return json(res, 404, { error: 'not found' });
     const contrib = hashToObj(out[1] && out[1].result);
-    const members = hashToObj(out[2] && out[2].result);
-    const names = hashToObj(out[3] && out[3].result);
+    const names = hashToObj(out[2] && out[2].result);
+
+    const membersOut = await kvPipeline([
+        meta.chatA ? ['SMEMBERS', 'chat:' + meta.chatA + ':members'] : ['SMEMBERS', 'chat:__none__:members'],
+        meta.chatB ? ['SMEMBERS', 'chat:' + meta.chatB + ':members'] : ['SMEMBERS', 'chat:__none__:members'],
+    ]);
+    const membersA = {};
+    (membersOut[0] && membersOut[0].result || []).forEach((u) => { membersA[u] = 1; });
+    const membersB = {};
+    (membersOut[1] && membersOut[1].result || []).forEach((u) => { membersB[u] = 1; });
 
     const view = battleView(meta);
     const finished = now > view.ends;
 
     const rows = { A: [], B: [] };
     for (const u in contrib) {
-        const s = members[u];
-        if (!rows[s]) continue;
+        const s = membersA[u] ? 'A' : membersB[u] ? 'B' : null;
+        if (!s) continue;
         rows[s].push({ name: names[u] || 'Игрок', score: Number(contrib[u]) || 0, you: u === uid });
     }
     const top = (s) => {
@@ -296,6 +537,9 @@ async function opState(res, query) {
         return t;
     };
 
+    const myScore = uid && contrib[uid] ? Number(contrib[uid]) || 0 : 0;
+    const mySide = uid && membersA[uid] ? 'A' : uid && membersB[uid] ? 'B' : null;
+
     // Short shared cache: the poll while the overlay is open rides this.
     res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate=15');
     return json(res, 200, Object.assign({
@@ -305,9 +549,7 @@ async function opState(res, query) {
         winner: finished ? winnerOf(meta) : null,
         topA: top('A'),
         topB: top('B'),
-        me: uid && members[uid]
-            ? { side: members[uid], score: Number(contrib[uid]) || 0 }
-            : null,
+        me: mySide ? { side: mySide, score: myScore } : null,
     }, view));
 }
 
@@ -326,33 +568,39 @@ async function opSubmit(res, body) {
     const runKey = uid + ':' + runId; // uid prefixed SERVER-side — no forging other players' runs
     const now = Date.now();
 
+    const chatPtr = await kvPipeline([['GET', 'chat:u:' + uid]]);
+    const ci = chatPtr && chatPtr[0] && chatPtr[0].result;
+
     const out = await kvPipeline([
         ['HGETALL', bt],
-        ['HGET', bt + ':members', uid],
         ['HGET', bt + ':runs', runKey],
         ['HGET', bt + ':contrib', uid],
     ]);
     const meta = hashToObj(out[0] && out[0].result);
     if (!meta.ends) return json(res, 404, { error: 'not found' });
-    const side = out[1] && out[1].result;
-    if (side !== 'A' && side !== 'B') return json(res, 403, { error: 'not a member' });
+    const side = ci && ci === meta.chatA ? 'A' : ci && ci === meta.chatB ? 'B' : null;
+    if (!side) return json(res, 403, { error: 'not a member' });
     const view = battleView(meta);
     if (now > view.ends) return json(res, 410, Object.assign({ finished: true, winner: winnerOf(meta) }, view));
 
-    const old = Number(out[2] && out[2].result) || 0;
-    const myTotal = Number(out[3] && out[3].result) || 0;
+    const old = Number(out[1] && out[1].result) || 0;
+    const myTotal = Number(out[2] && out[2].result) || 0;
     const delta = score - old;
     if (delta <= 0) {
         // Same run resubmitted with no growth (or a replayed request) — a no-op.
         return json(res, 200, Object.assign({ ok: true, unchanged: true, myTotal }, view));
     }
 
+    const chatKey = 'chat:' + ci;
     const inc = await kvPipeline([
         ['HSET', bt + ':runs', runKey, String(score)],
         ['HINCRBY', bt, 'score' + side, String(delta)],
         ['HINCRBY', bt + ':contrib', uid, String(delta)],
         ['EXPIRE', bt + ':runs', String(TTL_S)],
         ['EXPIRE', bt + ':contrib', String(TTL_S)],
+        ['HINCRBY', chatKey + ':contrib', uid, String(delta)],
+        ['EXPIRE', chatKey, String(CHAT_TTL_S)],
+        ['EXPIRE', chatKey + ':contrib', String(CHAT_TTL_S)],
     ]);
     const newTeam = Number(inc && inc[1] && inc[1].result) || 0;
     const newMine = Number(inc && inc[2] && inc[2].result) || myTotal + delta;
@@ -366,48 +614,13 @@ async function opSubmit(res, body) {
     });
 }
 
-async function opRename(res, body) {
-    const v = validateInitData(String(body.initData || ''));
-    if (!v) return json(res, 403, { error: 'invalid initData' });
-    const id = String(body.id || '');
-    if (!ID_RE.test(id)) return json(res, 400, { error: 'bad id' });
-    const uid = String(v.user.id);
-    const bt = 'bt:' + id;
-    const now = Date.now();
-
-    const out = await kvPipeline([
-        ['HGETALL', bt],
-        ['HGET', bt + ':members', uid],
-    ]);
-    const meta = hashToObj(out[0] && out[0].result);
-    if (!meta.ends) return json(res, 404, { error: 'not found' });
-    const side = out[1] && out[1].result;
-    const view = battleView(meta);
-
-    // Naming right: only the member who claimed the team name slot, only
-    // while his team has not scored yet, only while the battle runs.
-    const allowed = (side === 'A' || side === 'B')
-        && meta['nameSetBy' + side] === uid
-        && (Number(meta['score' + side]) || 0) === 0
-        && now <= view.ends;
-    if (!allowed) return json(res, 403, { error: 'locked' });
-
-    const name = sanitizeName(body.name, side === 'A' ? 'Команда А' : 'Команда Б');
-    await kvPipeline([['HSET', bt, 'name' + side, name]]);
-
-    return json(res, 200, {
-        ok: true,
-        nameA: side === 'A' ? name : view.nameA,
-        nameB: side === 'B' ? name : view.nameB,
-    });
-}
-
 // Dev-only (?dev=1 client gate): fast-forward the caller's OWN battle to end
 // in 5 minutes, so the win/lose/draw screens can be playtested without
-// waiting out the real 24h window. Membership is the entire authorization
-// surface (mirrors opRename). Only ever shortens `ends` — never extends it —
-// which as a side effect also refuses to resurrect an already-finished battle
-// (its `ends` is in the past, so `newEnds >= curEnds` is always true there).
+// waiting out the real 24h window. Chat membership (derived the same way as
+// opSubmit) is the entire authorization surface. Only ever shortens `ends` —
+// never extends it — which as a side effect also refuses to resurrect an
+// already-finished battle (its `ends` is in the past, so `newEnds >= curEnds`
+// is always true there).
 async function opDevExpire(res, body) {
     const v = validateInitData(String(body.initData || ''));
     if (!v) return json(res, 403, { error: 'invalid initData' });
@@ -416,14 +629,14 @@ async function opDevExpire(res, body) {
     const uid = String(v.user.id);
     const bt = 'bt:' + id;
 
-    const out = await kvPipeline([
-        ['HGETALL', bt],
-        ['HGET', bt + ':members', uid],
-    ]);
+    const chatPtr = await kvPipeline([['GET', 'chat:u:' + uid]]);
+    const ci = chatPtr && chatPtr[0] && chatPtr[0].result;
+
+    const out = await kvPipeline([['HGETALL', bt]]);
     const meta = hashToObj(out[0] && out[0].result);
     if (!meta.ends) return json(res, 404, { error: 'not found' });
-    const side = out[1] && out[1].result;
-    if (side !== 'A' && side !== 'B') return json(res, 403, { error: 'not a member' });
+    const side = ci && ci === meta.chatA ? 'A' : ci && ci === meta.chatB ? 'B' : null;
+    if (!side) return json(res, 403, { error: 'not a member' });
 
     const newEnds = Date.now() + 5 * 60 * 1000;
     const curEnds = Number(meta.ends) || 0;
@@ -442,7 +655,8 @@ module.exports = async (req, res) => {
         if (req.method === 'GET') {
             const query = req.query || {};
             if (query.op === 'state') return await opState(res, query);
-            return json(res, query.op ? 405 : 400, { error: query.op ? 'GET is for op=state only' : 'no op' });
+            if (query.op === 'chatState') return await opChatState(res, query);
+            return json(res, query.op ? 405 : 400, { error: query.op ? 'GET is for op=state/chatState only' : 'no op' });
         }
         if (req.method === 'POST') {
             const body = readBody(req);
@@ -450,9 +664,11 @@ module.exports = async (req, res) => {
             if (body.op === 'create') return await opCreate(res, body);
             if (body.op === 'join') return await opJoin(res, body);
             if (body.op === 'submit') return await opSubmit(res, body);
-            if (body.op === 'rename') return await opRename(res, body);
             if (body.op === 'devExpire') return await opDevExpire(res, body);
-            if (body.op === 'state') return json(res, 405, { error: 'state is GET' });
+            if (body.op === 'chatJoinOrFound') return await opChatJoinOrFound(res, body);
+            if (body.op === 'chatLeave') return await opChatLeave(res, body);
+            if (body.op === 'chatRename') return await opChatRename(res, body);
+            if (body.op === 'state' || body.op === 'chatState') return json(res, 405, { error: body.op + ' is GET' });
             return json(res, 400, { error: 'unknown op' });
         }
         return json(res, 405, { error: 'GET or POST' });

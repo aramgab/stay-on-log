@@ -16,13 +16,13 @@
 //                                   scoreB, myTotal, canRename?, finished? }
 
 import { state, lsGet, lsSet } from './state.js';
-import { isInTelegram, tgInitData, tgUser, tgStartParam, shareScore, isDevMode } from './tg.js';
+import { isInTelegram, tgInitData, tgUser, tgStartParam, tgChatInstance, shareScore, isDevMode } from './tg.js';
 import { battleBtn, battleBadge, battleOverlay, battleCloseBtn } from './dom.js';
 import { whenBackendAlive } from './leaderboard.js';
 import { initAudio } from './audio.js';
 import {
     SHARE_URL, BATTLE_POLL_MS, BATTLE_SHARE_FOE_TEXT, BATTLE_SHARE_OWN_TEXT,
-    CHAT_NO_CONTEXT_TEXT, CHAT_INVITE_SHARE_TEXT, CHAT_LEAVE_CONFIRM_TEXT, CHAT_LEAVE_BLOCKED_TEXT,
+    CHAT_INVITE_SHARE_TEXT, CHAT_LEAVE_CONFIRM_TEXT, CHAT_LEAVE_BLOCKED_TEXT,
 } from './config.js';
 
 const LS_KEY = 'stayOnLog_activeBattle';
@@ -152,7 +152,6 @@ const secJoin = el('bt-join');
 const secName = el('bt-name');
 const secChatHome = el('chat-home');
 const chatJoinBtn = el('chat-join-btn');
-const chatInviteBtn = el('chat-invite-btn');
 const joinTitle = el('bt-join-title');
 const joinScore = el('bt-join-score');
 const joinGoBtn = el('bt-join-go');
@@ -202,9 +201,6 @@ function setMsg(text) {
 function showState(which) {
     [secNone, secJoin, secName, secChatHome].forEach((s) => s.classList.remove('on'));
     setMsg('');
-    // Only relevant to the 'none' screen; reset here so every OTHER
-    // transition hides it too, same reasoning as clearing the message above.
-    chatInviteBtn.style.display = 'none';
     if (which === 'none') secNone.classList.add('on');
     else if (which === 'join') secJoin.classList.add('on');
     else if (which === 'name') secName.classList.add('on');
@@ -465,18 +461,15 @@ function joinOrFoundChat(name) {
     battleApi('chatJoinOrFound', name ? { name } : {})
         .then((resp) => {
             if (resp.httpStatus === 400 && resp.error === 'no_chat_context') {
-                // showState() clears the message as its own first step (it's
-                // meant to reset stale text on a real transition) — setting
-                // the message BEFORE calling it, as this used to, meant
-                // showState immediately wiped it back to '' since we're
-                // already on 'none' (no visible transition to hide behind).
-                // Order matters: transition first, THEN set the message that
-                // should actually stick.
+                // startJoinFlow already checks tgChatInstance() before ever
+                // calling this op, so reaching this branch means that client
+                // hint was stale/wrong — fall back to the same share flow it
+                // would have taken. showState() resets the message as its
+                // first step, so it has to run BEFORE shareChatInvite's own
+                // setMsg, not after (order matters — see git history for the
+                // bug this caused when it was the other way around).
                 showState('none');
-                setMsg(CHAT_NO_CONTEXT_TEXT);
-                // Same reasoning as the message above: showState() just reset
-                // this to hidden, so it has to be re-shown AFTER, not before.
-                chatInviteBtn.style.display = '';
+                shareChatInvite();
                 return;
             }
             if (resp.httpStatus === 409 && resp.error === 'already_in_chat') {
@@ -584,11 +577,8 @@ function joinBattle(id) {
         .then((resp) => {
             if (resp.httpStatus === 403 && resp.error === 'no_chat') {
                 clearMyChat();
-                // Same ordering fix as joinOrFoundChat: showState() clears
-                // the message itself, so it must run BEFORE setMsg, not after.
                 showState('none');
-                setMsg(CHAT_NO_CONTEXT_TEXT);
-                chatInviteBtn.style.display = '';
+                shareChatInvite();
                 return;
             }
             if (resp.httpStatus === 409 && resp.error === 'battle_full') {
@@ -622,14 +612,29 @@ function shareBattle(text) {
     if (method === 'copy') setMsg('Ссылка скопирована!');
 }
 
-// For the no_chat_context wall: no battle id involved, chat identity comes
-// entirely from WHICHEVER chat this link is eventually opened from — so
-// unlike shareBattle above, this link carries no target-specific payload,
-// startapp=joinchat only exists to auto-retry joinOrFoundChat() on boot
-// (see initBattle) instead of requiring one more manual tap once there.
+// The no-group-context fallback: unlike shareBattle above, this link carries
+// no target-specific payload — chat identity is whatever chat_instance it's
+// eventually opened from, so there's nothing to encode. startapp=joinchat
+// exists purely so opening it auto-retries the join on boot (see initBattle),
+// no extra tap needed once there.
 function shareChatInvite() {
     const method = shareScore(CHAT_INVITE_SHARE_TEXT, SHARE_URL + '?startapp=joinchat');
-    if (method === 'copy') setMsg('Ссылка скопирована!');
+    setMsg(method === 'copy'
+        ? 'Ссылка скопирована — отправь её в свой чат и открой игру уже оттуда.'
+        : 'Отправь эту ссылку в свой чат и открой игру уже оттуда, чтобы вступить.');
+}
+
+// The one adaptive entry point for "Вступить в чат": tgChatInstance() is a
+// cheap client-side hint (server always re-validates from signed initData,
+// this is UX-only) — with it present, attempt the join/found directly;
+// without it, there's nothing to attempt yet, so skip straight to sharing an
+// invite link instead of round-tripping to the server just to learn that.
+function startJoinFlow(name) {
+    if (!tgChatInstance()) {
+        shareChatInvite();
+        return;
+    }
+    joinOrFoundChat(name);
 }
 
 // Deep-link routing hook: the boot code (initBattle) parses start_param and
@@ -700,8 +705,7 @@ export function openBattleOverlay() {
 export function initBattle() {
     battleBtn.addEventListener('click', openBattle);
     battleCloseBtn.addEventListener('click', closeBattle);
-    chatJoinBtn.addEventListener('click', () => joinOrFoundChat());
-    chatInviteBtn.addEventListener('click', shareChatInvite);
+    chatJoinBtn.addEventListener('click', () => startJoinFlow());
     joinGoBtn.addEventListener('click', () => joinBattle(joinGoBtn.dataset.id));
     nameSaveBtn.addEventListener('click', () => {
         const c = getMyChat();
@@ -760,12 +764,13 @@ export function initBattle() {
     if (spMatch) setPendingJoin(spMatch[1]);
 
     // The OTHER deep link (t.me/<bot>/<app>?startapp=joinchat, shared by
-    // shareChatInvite from the no_chat_context wall): unlike the one above,
-    // it carries no id — chat identity is whatever chat_instance this
-    // specific open happens to have, so there's nothing to "confirm", just
-    // attempt the join immediately. Harmless to retry on someone re-opening
-    // an old invite link: joinOrFoundChat's own already_in_chat/idempotent
-    // handling covers that.
+    // shareChatInvite): unlike the one above, it carries no id — chat
+    // identity is whatever chat_instance this specific open happens to have,
+    // so there's nothing to "confirm", just run it through startJoinFlow like
+    // the button would (still graceful if opened from yet another
+    // no-context place — it'll just offer to share again). Harmless to retry
+    // on someone re-opening an old invite link: joinOrFoundChat's own
+    // already_in_chat/idempotent handling covers that.
     const isJoinChatLink = tgStartParam() === 'joinchat';
 
     whenBackendAlive(() => {
@@ -779,7 +784,7 @@ export function initBattle() {
             initAudio();
             battleOverlay.classList.add('active');
             showState('none');
-            joinOrFoundChat();
+            startJoinFlow();
             return;
         }
         // Not opening the overlay yet (no pending join) — just refresh the

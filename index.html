@@ -19,7 +19,7 @@
          stylesheet against max-age=0 (fullscreen-shark incident, июль 2026).
          index.html itself always revalidates, so bumping v here on css
          changes guarantees clients fetch the fresh file. -->
-    <link rel="stylesheet" href="css/styles.css?v=27">
+    <link rel="stylesheet" href="css/styles.css?v=28">
 </head>
 
 <body>
@@ -140,21 +140,19 @@
         </div>
     </div>
 
-    <!-- Chat battle overlay (js/battle.js): chat vs chat, 24h, every run of
-         every member sums into the team score. Same overlay pattern as the
-         shop; the sections below are the UI states, battle.js shows one at
-         a time. -->
+    <!-- Chat battle overlay (js/battle.js): a chat is a standing entity —
+         permanent in-chat leaderboard for its members, plus the 24h chat vs
+         chat battle hanging off it. Same overlay pattern as the shop; the
+         sections below are the UI states, battle.js shows one at a time. -->
     <div id="battle-overlay">
         <div id="battle-card">
             <h2>⚔️ Битва чатов</h2>
-            <!-- state: no battle — create one -->
+            <!-- state: no chat yet — the one smart button founds or joins -->
             <div class="bt-state" id="bt-none">
-                <p class="bt-note">Собери свой чат против чужого: 24 часа, каждый
-                    забег каждого игрока — в общий счёт команды.</p>
-                <input id="bt-create-name" maxlength="24" placeholder="Название твоей команды">
-                <button id="bt-create" class="bt-primary">Создать битву</button>
-                <div class="bt-hint">Открой игру из своего чата и создай битву там —
-                    команда привяжется к чату сама.</div>
+                <p class="bt-note">Вступи в чат: постоянный зачёт среди своих и
+                    24-часовые битвы чат против чата, где каждый забег каждого
+                    игрока — в общий счёт.</p>
+                <button id="chat-join-btn" class="bt-primary">Вступить в чат</button>
             </div>
             <!-- state: opened via a challenge link -->
             <div class="bt-state" id="bt-join">
@@ -162,45 +160,47 @@
                 <div id="bt-join-score"></div>
                 <button id="bt-join-go" class="bt-primary">Вступить в битву</button>
             </div>
-            <!-- state: no chat fingerprint — manual side pick -->
-            <div class="bt-state" id="bt-side">
-                <p class="bt-note">Не вижу, из какого ты чата. За кого играешь?</p>
-                <button id="bt-side-a" class="bt-side-btn"></button>
-                <button id="bt-side-b" class="bt-side-btn"></button>
-            </div>
-            <!-- state: first from the chat — name the team -->
+            <!-- state: founding a brand-new chat, or renaming later -->
             <div class="bt-state" id="bt-name">
-                <p class="bt-note">Ты первый из своего чата — назови команду!</p>
+                <p class="bt-note" id="chat-name-note">Назови свой чат!</p>
                 <input id="bt-name-input" maxlength="24">
                 <button id="bt-name-save" class="bt-primary">Сохранить</button>
             </div>
-            <!-- state: active / finished battle -->
-            <div class="bt-state" id="bt-main">
-                <div id="bt-versus">
-                    <div class="bt-team" id="bt-team-a">
-                        <div class="bt-team-name"></div>
-                        <div class="bt-team-score"></div>
+            <!-- state: chat home — permanent leaderboard + the battle hanging off it -->
+            <div class="bt-state" id="chat-home">
+                <div id="chat-home-name"></div>
+                <div id="chat-home-count"></div>
+                <ol class="bt-list" id="chat-list"></ol>
+                <div id="chat-rename-link" role="button">✏️ переименовать чат</div>
+                <div id="chat-leave-link" class="bt-danger-link" role="button">🚪 Покинуть чат</div>
+                <!-- sub-panel: the battle hanging off this chat, if any is active -->
+                <div id="chat-battle-panel">
+                    <div id="bt-versus">
+                        <div class="bt-team" id="bt-team-a">
+                            <div class="bt-team-name"></div>
+                            <div class="bt-team-score"></div>
+                        </div>
+                        <div id="bt-vs">VS</div>
+                        <div class="bt-team" id="bt-team-b">
+                            <div class="bt-team-name"></div>
+                            <div class="bt-team-score"></div>
+                        </div>
                     </div>
-                    <div id="bt-vs">VS</div>
-                    <div class="bt-team" id="bt-team-b">
-                        <div class="bt-team-name"></div>
-                        <div class="bt-team-score"></div>
+                    <div id="bt-timer"></div>
+                    <div id="bt-verdict"></div>
+                    <div id="bt-mine"></div>
+                    <div id="bt-dev-expire" role="button" style="display:none">⚡ Ускорить конец боя</div>
+                    <div id="bt-tables">
+                        <ol class="bt-list" id="bt-list-a"></ol>
+                        <ol class="bt-list" id="bt-list-b"></ol>
                     </div>
+                    <div id="bt-share-row">
+                        <button id="bt-share-foe">⚔️ Вызвать врагов</button>
+                        <button id="bt-share-own">📣 Клич своим</button>
+                    </div>
+                    <button id="bt-new" class="bt-primary">Новая битва</button>
                 </div>
-                <div id="bt-timer"></div>
-                <div id="bt-verdict"></div>
-                <div id="bt-mine"></div>
-                <div id="bt-rename" role="button">✏️ переименовать команду</div>
-                <div id="bt-dev-expire" role="button" style="display:none">⚡ Ускорить конец боя</div>
-                <div id="bt-tables">
-                    <ol class="bt-list" id="bt-list-a"></ol>
-                    <ol class="bt-list" id="bt-list-b"></ol>
-                </div>
-                <div id="bt-share-row">
-                    <button id="bt-share-foe">⚔️ Вызвать врагов</button>
-                    <button id="bt-share-own">📣 Клич своим</button>
-                </div>
-                <button id="bt-new" class="bt-primary">Новая битва</button>
+                <button id="chat-challenge-btn" class="bt-primary">⚔️ Вызвать другой чат</button>
             </div>
             <div id="bt-msg"></div>
             <button id="battle-close">Готово</button>

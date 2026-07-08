@@ -334,20 +334,26 @@ async function opChatState(res, query) {
         ['HGETALL', chatKey],
         ['HGETALL', chatKey + ':contrib'],
         ['HGETALL', chatKey + ':names'],
-        ['SCARD', chatKey + ':members'],
+        ['SMEMBERS', chatKey + ':members'],
         ['GET', chatKey + ':battle'],
     ]);
     const meta = hashToObj(out[0] && out[0].result);
     const contrib = hashToObj(out[1] && out[1].result);
     const names = hashToObj(out[2] && out[2].result);
-    const memberCount = Number(out[3] && out[3].result) || 0;
+    const members = {};
+    (out[3] && out[3].result || []).forEach((u) => { members[u] = 1; });
+    const memberCount = Object.keys(members).length;
     const battleId = out[4] && out[4].result;
 
     // Same shape as opState's top() helper: build rows from contrib, sort
     // descending, slice to TOP_N, always include "me" even if outside the
-    // top-N slice.
+    // top-N slice. Filtered by CURRENT :members (same idiom as opState's
+    // membersA/membersB) so a row disappears the instant its uid leaves —
+    // contrib itself is never trimmed (see opChatLeave), so without this
+    // filter a departed player's row hung around forever.
     const rows = [];
     for (const u in contrib) {
+        if (!members[u]) continue;
         rows.push({ name: names[u] || 'Игрок', score: Number(contrib[u]) || 0, you: u === uid });
     }
     rows.sort((a, b) => b.score - a.score);

@@ -58,7 +58,6 @@ export const questHudEl = document.getElementById('quest-hud');
 export const dangerVignette = document.getElementById('danger-vignette');
 export const hitFlash = document.getElementById('hit-flash');
 export const desktopStub = document.getElementById('desktop-stub');
-export const stubKeyboardBtn = document.getElementById('stub-keyboard-btn');
 export const countdownOverlay = document.getElementById('countdown-overlay');
 export const countdownNumber = document.getElementById('countdown-number');
 export const countdownTextEl = document.getElementById('countdown-text');

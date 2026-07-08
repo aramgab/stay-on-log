@@ -80,7 +80,6 @@ import {
     reviveBtn,
     shareBtn,
     desktopStub,
-    stubKeyboardBtn,
     countdownOverlay,
     countdownNumber,
     countdownTextEl,
@@ -382,9 +381,10 @@ function gameLoop() {
     // survival scoring, without touching any of that logic directly.
     if (!tutorialMode) state.elapsed += dtMs;
 
-    // 0. Keyboard control: dev mode (debugging) or the honest desktop mode
-    // reached via the stub's "play with keyboard" button.
-    if (devMode || isDesktop) {
+    // 0. Keyboard control: dev mode only (debugging on desktop or on a phone
+    // with a keyboard attached). Ordinary desktop visitors get the stub, not
+    // the game — see the desktop-stub gate below.
+    if (devMode) {
         if (devKeys.left) state.userAngle -= DEV_KEY_SPEED * dtF;
         if (devKeys.right) state.userAngle += DEV_KEY_SPEED * dtF;
     }
@@ -1733,27 +1733,20 @@ muteBtn.addEventListener('click', function () {
 });
 updateMuteBtn();
 
-// On desktop (no tilt sensor) show the "play on your phone" stub and disable start.
-// Exception: hidden dev mode (?dev=1) skips the stub entirely.
+// On desktop (no tilt sensor) show the "play on your phone" stub and disable
+// start — a hard dead end for ordinary visitors: the game needs a phone's
+// tilt sensor, so desktop players are pushed to open it on their phone.
+// Exception: hidden dev mode (?dev=1, or startapp=dev) skips the stub entirely
+// and unlocks keyboard control for the owner's own testing.
 if (isDesktop && !devMode) {
     desktopStub.classList.add('active');
     startBtn.disabled = true;
 }
 
-// "Play with keyboard" promotes the desktop stub from a dead end into an
-// honest (if second-class) input mode — shared links opened on desktop
-// Telegram/browsers can actually be played now.
-if (stubKeyboardBtn) {
-    stubKeyboardBtn.addEventListener('click', function () {
-        initAudio(); // may be the first gesture of the session
-        desktopStub.classList.remove('active');
-        startBtn.disabled = false;
-    });
-}
-
-// Keyboard control: ←/→ balance, Space/↑ jump. Active on desktop (the stub's
-// button unlocks it) and in dev mode (debugging on a phone with a keyboard).
-if (devMode || isDesktop) {
+// Keyboard control: ←/→ balance, Space/↑ jump. Dev mode only — the tuning
+// convenience of playing at a desk (on desktop, or on a phone with a keyboard
+// attached). Ordinary desktop visitors never reach the game (stub above).
+if (devMode) {
     window.addEventListener('keydown', function (e) {
         if (e.key === 'ArrowLeft') devKeys.left = true;
         else if (e.key === 'ArrowRight') devKeys.right = true;
